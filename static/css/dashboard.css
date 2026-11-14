@@ -295,6 +295,7 @@ body {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   font-family: var(--font-family-mono);
+  overflow-wrap: anywhere;
   word-break: break-all;
 }
 
@@ -723,6 +724,8 @@ body {
   min-height: 0;
   flex-direction: column;
   overflow: hidden;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 .tab-panel.active {
@@ -1119,6 +1122,8 @@ body {
 
 .rc-cell-mono {
   font-family: var(--font-family-mono);
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .rc-cell-select,
@@ -1137,13 +1142,13 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  overflow-wrap: anywhere;
   word-break: normal;
 }
 
 .rc-cell-reason {
   white-space: normal;
-  overflow-wrap: break-word;
-  word-break: normal;
+  overflow-wrap: anywhere;
   max-height: 4.2em;
   overflow: hidden;
 }
@@ -1414,6 +1419,8 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .jobs-schedule__desc {
@@ -1421,12 +1428,11 @@ body {
   font-size: var(--font-size-xs, 0.8125rem);
   color: var(--color-text-muted, #6b7280);
   font-weight: normal;
-  word-break: keep-all;
-  overflow-wrap: break-word;
-  display: -webkit-box;
-  -webkit-line-clamp: 2;
-  -webkit-box-orient: vertical;
+  line-height: 1.45;
+  max-height: calc(1.45em * 2);
   overflow: hidden;
+  word-break: keep-all;
+  overflow-wrap: normal;
 }
 
 .jobs-schedule__interval,
@@ -1884,8 +1890,7 @@ body {
     padding: var(--spacing-px-2) 0;
     border-bottom: none;
     text-align: right;
-    overflow-wrap: break-word;
-    word-break: normal;
+    overflow-wrap: anywhere;
   }
 
   .m-table td[data-label]::before {
@@ -1944,7 +1949,7 @@ body {
     overflow: visible;
     text-overflow: clip;
     overflow-wrap: anywhere;
-    word-break: break-word;
+    word-break: normal;
   }
 
   #settings-table .settings-desc,
@@ -2155,12 +2160,20 @@ body {
   width: 7.5rem;
 }
 
+#settings-table .settings-last-change__actor,
+#settings-events-table .settings-last-change__actor {
+  min-width: 0;
+  max-width: 100%;
+  overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
 .settings-col-actions {
   width: 7.5rem;
 }
 
-.settings-table th {
-  white-space: nowrap;
+.settings-table th,
+#settings-events-table th {
   word-break: keep-all;
 }
 
@@ -2169,7 +2182,7 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  overflow-wrap: normal;
+  overflow-wrap: anywhere;
   word-break: normal;
 }
 

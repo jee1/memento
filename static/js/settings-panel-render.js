@@ -101,7 +101,7 @@
       cell.textContent = S.none;
       return cell;
     }
-    cell.appendChild(ns.el('div', '', S.actionLabel[change.action] + ' / ' + change.actor));
+    cell.appendChild(ns.el('div', 'settings-last-change__actor', S.actionLabel[change.action] + ' / ' + change.actor));
     cell.appendChild(ns.el('div', 'settings-desc', ns.formatTime(change.created_at)));
     if (change.reason) {
       cell.appendChild(ns.el('div', 'settings-desc', change.reason));
@@ -211,8 +211,8 @@
         event.action === 'revert' ? S.none : ns.formatValue(event.new_value),
         event.actor,
         event.reason || S.none,
-      ].forEach(function (text) {
-        row.appendChild(ns.el('td', '', text));
+      ].forEach(function (text, index) {
+        row.appendChild(ns.el('td', index === 5 ? 'settings-last-change__actor' : '', text));
       });
       tbody.appendChild(row);
     });

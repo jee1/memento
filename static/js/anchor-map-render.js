@@ -88,7 +88,7 @@
     const ranked = ns.rankAnchorMemberships(node && node.anchors);
     if (ranked.length === 0) return '없음';
     return ranked
-      .map(function (entry) { return entry.slot + '(' + entry.hop_distance + '-hop)'; })
+      .map(function (entry) { return entry.slot + '(' + entry.hop_distance + '홉)'; })
       .join(', ');
   }
 

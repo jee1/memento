@@ -113,7 +113,7 @@
       fillOpacity: ns.hopFillOpacity(primary.hop_distance),
       primarySlot: primary.slot || null,
       membershipLabel: ranked
-        .map(function (entry) { return entry.slot + '(' + entry.hop_distance + '-hop)'; })
+        .map(function (entry) { return entry.slot + '(' + entry.hop_distance + '홉)'; })
         .join(', '),
     };
   };
@@ -124,9 +124,9 @@
     if (!root) return;
     const items = root.querySelectorAll('.legend-item');
     const copies = [
-      { title: '슬롯 A 앵커와 그 기억 — 검색 범위 A=1-hop', text: '슬롯 A 앵커와 그 기억' },
-      { title: '슬롯 B 앵커와 그 기억 — 검색 범위 B=2-hop', text: '슬롯 B 앵커와 그 기억' },
-      { title: '슬롯 C 앵커와 그 기억 — 검색 범위 C=3-hop', text: '슬롯 C 앵커와 그 기억' },
+      { title: '슬롯 A 앵커와 그 기억 — 검색 범위 A=1홉', text: '슬롯 A 앵커와 그 기억' },
+      { title: '슬롯 B 앵커와 그 기억 — 검색 범위 B=2홉', text: '슬롯 B 앵커와 그 기억' },
+      { title: '슬롯 C 앵커와 그 기억 — 검색 범위 C=3홉', text: '슬롯 C 앵커와 그 기억' },
       { title: '어느 앵커에도 속하지 않는 기억 노드', text: '앵커 없는 기억(회색)' },
     ];
     for (let i = 0; i < items.length && i < copies.length; i += 1) {
