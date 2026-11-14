@@ -3,13 +3,13 @@ import { expect, test } from '@playwright/test';
 // #1147: 390px phone layout contract. Every tab is reachable from the menu button, no page-level
 // horizontal scroll, and every visible interactive control is at least 44px.
 const TABS = [
-  'anchor',
-  'graph',
-  'ops-overview',
   'ops-status',
   'review',
-  'memory-finder',
   'jobs',
+  'memory-finder',
+  'anchor',
+  'graph',
+  'settings',
 ];
 
 test.describe('dashboard narrow layout (#1147)', () => {
@@ -72,7 +72,7 @@ test.describe('dashboard narrow layout (#1147)', () => {
 
   test('group chips jump to the first tab of their group and mark the current group', async ({ page }) => {
     await page.locator('.m-nav-chip[data-nav-group="ops"]').click();
-    await expect(page.locator('.m-tab-btn[data-tab="ops-overview"]')).toHaveAttribute('aria-selected', 'true');
+    await expect(page.locator('.m-tab-btn[data-tab="ops-status"]')).toHaveAttribute('aria-selected', 'true');
     await expect(page.locator('.m-nav-chip[data-nav-group="ops"]')).toHaveAttribute('aria-pressed', 'true');
     await expect(page.locator('.m-nav-chip[data-nav-group="spatial"]')).toHaveAttribute('aria-pressed', 'false');
 

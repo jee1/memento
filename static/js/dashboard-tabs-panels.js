@@ -5,14 +5,12 @@
   'use strict';
 
   const TAB_PANELS = [
-    { name: 'anchor', id: 'tab-anchor-map' },
-    { name: 'graph', id: 'tab-graph' },
-    { name: 'ops-overview', id: 'tab-ops-overview' },
     { name: 'ops-status', id: 'tab-ops-status' },
     { name: 'review', id: 'tab-review-candidates' },
-    { name: 'supersede', id: 'tab-supersede-candidates' },
-    { name: 'memory-finder', id: 'tab-memory-finder' },
     { name: 'jobs', id: 'tab-jobs' },
+    { name: 'memory-finder', id: 'tab-memory-finder' },
+    { name: 'anchor', id: 'tab-anchor-map' },
+    { name: 'graph', id: 'tab-graph' },
     { name: 'settings', id: 'tab-settings' },
   ];
 

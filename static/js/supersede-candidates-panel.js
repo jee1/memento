@@ -106,8 +106,8 @@
       '<p class="sc-content-status" role="status"></p>' +
       '<p class="sc-apply-hint hidden"></p>' +
       '<div class="sc-detail-actions">' +
-      '<button type="button" class="m-button sc-btn-apply">승인(apply)</button>' +
-      '<button type="button" class="m-button m-button--secondary sc-btn-restore">되돌리기(restore)</button>' +
+      '<button type="button" class="m-button sc-btn-apply">승인</button>' +
+      '<button type="button" class="m-button m-button--secondary sc-btn-restore">되돌리기</button>' +
       '<button type="button" class="m-button m-button--secondary sc-btn-dismiss">거절</button>' +
       '</div>';
     const cols = wrap.querySelectorAll('.sc-detail-col');
@@ -187,7 +187,7 @@
       const tdStatus = document.createElement('td');
       tdStatus.textContent = S.lifecycleLabel[row.lifecycle_status] || row.lifecycle_status;
       const tdVerdict = document.createElement('td');
-      tdVerdict.textContent = row.verdict;
+      tdVerdict.textContent = S.verdictLabel[row.verdict] || row.verdict;
       const tdProject = document.createElement('td');
       tdProject.textContent = row.project_id || '—';
       const tdOld = document.createElement('td');
@@ -289,6 +289,7 @@
   }
 
   function initSupersedeCandidatesPanel() {
+    const section = ns.$('rc-supersede-section');
     if (!state.wired) {
       state.wired = true;
       const refresh = ns.$('sc-refresh-btn');
@@ -303,9 +304,17 @@
           void loadList();
         });
       }
+      if (section) {
+        section.addEventListener('toggle', function () {
+          if (section.open) {
+            void loadList();
+          }
+        });
+      }
     }
-    state.loadedOnce = true;
-    void loadList();
+    if (section && section.open) {
+      void loadList();
+    }
   }
 
   global.initSupersedeCandidatesPanel = initSupersedeCandidatesPanel;

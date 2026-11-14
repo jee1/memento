@@ -56,19 +56,24 @@ async function installRoutes(page: Page, applyEnabled = false, missingBody = fal
   await page.route('**/graph**', (route) => route.fulfill({ status: 200, contentType: 'text/html', body: '<html></html>' }));
 }
 
+async function openSupersedeSection(page: Page) {
+  await page.click('#dashboard-tab-review');
+  await page.click('#rc-supersede-section > summary');
+}
+
 test.describe('Supersede candidates dashboard (#1618)', () => {
-  test('disables apply with a visible hint when SUPERSEDE_APPLY_ENABLED is off', async ({ page }) => {
+  test('disables apply with a visible hint when supersede approval is off', async ({ page }) => {
     await installRoutes(page);
     await page.goto('/static/dashboard.html');
-    await page.click('#dashboard-tab-supersede');
-    await expect(page.locator('#sc-detail .sc-apply-hint')).toContainText('SUPERSEDE_APPLY_ENABLED');
+    await openSupersedeSection(page);
+    await expect(page.locator('#sc-detail .sc-apply-hint')).toContainText('대체 승인이 꺼져 있어');
     await expect(page.locator('#sc-detail .sc-btn-apply')).toBeDisabled();
   });
 
   test('shows the full old/new bodies before enabling approval', async ({ page }) => {
     await installRoutes(page, true);
     await page.goto('/static/dashboard.html');
-    await page.click('#dashboard-tab-supersede');
+    await openSupersedeSection(page);
     const bodies = page.locator('#sc-detail .sc-preview');
     await expect(bodies.nth(0)).toHaveText(OLD_CONTENT);
     await expect(bodies.nth(1)).toHaveText(NEW_CONTENT);
@@ -77,10 +82,21 @@ test.describe('Supersede candidates dashboard (#1618)', () => {
     expect(await page.evaluate(() => (window as Window & { __sc_xss?: number }).__sc_xss)).toBeUndefined();
   });
 
+  test('1280px: status and verdict cells stay on one line', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await installRoutes(page, true);
+    await page.goto('/static/dashboard.html');
+    await openSupersedeSection(page);
+    const cells = page.locator('#sc-table-body tr').first().locator('td');
+    await expect(cells.nth(1)).toHaveText('확정 대체');
+    const heights = await cells.evaluateAll((els) => els.slice(0, 2).map((el) => Math.round(el.getBoundingClientRect().height)));
+    expect(heights.every((h) => h < 40), `status/verdict cell heights ${heights.join(',')}`).toBe(true);
+  });
+
   test('explains a missing body and blocks approval', async ({ page }) => {
     await installRoutes(page, true, true);
     await page.goto('/static/dashboard.html');
-    await page.click('#dashboard-tab-supersede');
+    await openSupersedeSection(page);
     await expect(page.locator('#sc-detail .sc-content-status')).toContainText('전체 본문을 불러오지 못해 승인할 수 없습니다');
     await expect(page.locator('#sc-detail .sc-btn-apply')).toBeDisabled();
   });

@@ -741,7 +741,7 @@ describe('static design contracts', () => {
     expect(html.indexOf('id="dashboard-auth-session"')).toBeGreaterThan(headerCloseIdx);
 
     const tabpanelMatches = html.match(/role="tabpanel"[^>]*aria-labelledby="(dashboard-tab-[a-z-]+)"/g) ?? [];
-    expect(tabpanelMatches).toHaveLength(9);
+    expect(tabpanelMatches).toHaveLength(7);
     for (const match of tabpanelMatches) {
       const idMatch = match.match(/aria-labelledby="(dashboard-tab-[a-z-]+)"/);
       expect(idMatch).not.toBeNull();
@@ -785,18 +785,6 @@ describe('static design contracts', () => {
 
     expect(componentsCss).toContain('.m-tab-btn.active {');
     expect(dashboardCss).not.toContain('.m-tab-btn.active {');
-  });
-
-  it('issue #1145 ops overview styles use tokens only', () => {
-    const dashboardCss = readStaticFile('static/css/dashboard.css');
-    const marker = '/* Ops overview tab (#1145) */';
-    const nextMarker = '/* Ops status zones (#1699) */';
-    const start = dashboardCss.indexOf(marker);
-    expect(start).toBeGreaterThanOrEqual(0);
-    const end = dashboardCss.indexOf(nextMarker, start);
-    const section =
-      end >= 0 ? dashboardCss.slice(start + marker.length, end) : dashboardCss.slice(start + marker.length);
-    expect(section).not.toMatch(/#[0-9a-fA-F]{3,8}\b/);
   });
 
   it('issue #1699 ops status zone styles use tokens only', () => {
@@ -874,8 +862,8 @@ describe('static design contracts', () => {
 
     const chipKeys = [...html.matchAll(/class="m-nav-chip[^"]*" data-nav-group="([a-z]+)"/g)].map((m) => m[1]);
     const groupKeys = [...html.matchAll(/class="m-nav-group[^"]*" role="presentation" data-nav-group="([a-z]+)"/g)].map((m) => m[1]);
-    expect(chipKeys).toEqual(['spatial', 'ops']);
-    expect(groupKeys).toEqual(chipKeys);
+    expect(chipKeys).toEqual(['ops', 'spatial']);
+    expect(groupKeys).toEqual([...chipKeys, 'settings']);
 
     expect(componentsCss).toMatch(/\.m-nav-compact \{\s*display: none;\s*\}/);
     expect(componentsCss).toMatch(/\.m-nav-compact__menu \{[^}]*width: var\(--size-touch\);[^}]*height: var\(--size-touch\);/s);
@@ -926,18 +914,17 @@ describe('static design contracts', () => {
     const panelEntries = [
       ...panelsJs.matchAll(/\{\s*name:\s*'([^']+)',\s*id:\s*'([^']+)'\s*\}/g),
     ].map((m) => ({ name: m[1], id: m[2] }));
-    expect(panelEntries).toHaveLength(9);
     expect(panelEntries.map((p) => p.name)).toEqual([
-      'anchor',
-      'graph',
-      'ops-overview',
       'ops-status',
       'review',
-      'supersede',
-      'memory-finder',
       'jobs',
+      'memory-finder',
+      'anchor',
+      'graph',
       'settings',
     ]);
+    const tabButtonOrder = [...html.matchAll(/class="m-tab-btn[^"]*" role="tab"[^>]*data-tab="([^"]+)"/g)].map((m) => m[1]);
+    expect(tabButtonOrder).toEqual(panelEntries.map((p) => p.name));
 
     for (const { name, id } of panelEntries) {
       expect(html).toMatch(new RegExp(`class="m-tab-btn[^"]*" role="tab"[^>]*data-tab="${name}"`));
@@ -949,11 +936,9 @@ describe('static design contracts', () => {
     expect(runTabInit).not.toContain("name === 'embedding'");
     expect(runTabInit).toContain('initEmbeddingHealthCard');
     expect(runTabInit).toContain("name === 'review'");
-    expect(runTabInit).toContain("name === 'supersede'");
     expect(runTabInit).toContain("name === 'memory-finder'");
     expect(runTabInit).toContain("name === 'jobs'");
     expect(runTabInit).toContain("name === 'settings'");
-    expect(runTabInit).toContain("name === 'ops-overview'");
     expect(runTabInit).toContain("name === 'graph'");
     expect(runTabInit).toContain("name === 'anchor'");
     expect(runTabInit).not.toContain('evolution-demo');
@@ -997,7 +982,6 @@ describe('static design contracts', () => {
     const block = extractAtMediaBlock(dashboardCss.slice(at), '(max-width: 30rem)');
     expect(block).toMatch(/\.m-table:not\(#rc-table\) td\[data-label\]::before \{[^}]*content: attr\(data-label\);/s);
     expect(block).toMatch(/\.m-stat-grid \{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
-    expect(block).toMatch(/\.oo-list__item \{[^}]*min-height: var\(--size-touch\);/s);
     expect(block).toMatch(/:is\(button, select, summary, textarea,[\s\S]*?\) \{\s*min-width: var\(--size-touch\);\s*min-height: var\(--size-touch\);/);
     expect(block).not.toMatch(/#[0-9a-fA-F]{3,8}\b(?![-\w])/);
   });
@@ -1070,7 +1054,7 @@ describe('static design contracts', () => {
 
   it('issue #1152 jobs tab is one schedule table plus a three-tab drawer; selection is shown once', () => {
     const html = readStaticFile('static/dashboard.html');
-    const jobs = html.slice(html.indexOf('id="tab-jobs"'), html.indexOf('id="tab-supersede-candidates"'));
+    const jobs = html.slice(html.indexOf('id="tab-jobs"'), html.indexOf('id="tab-settings"'));
     expect(jobs).not.toContain('id="jobs-actions"');
     expect(jobs).not.toMatch(/id="jobs-(timeline|logs)-selected"/);
     const drawer = jobs.slice(jobs.indexOf('<aside id="jobs-drawer"'), jobs.indexOf('</aside>'));
