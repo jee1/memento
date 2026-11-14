@@ -58,7 +58,9 @@
 
   function keyCell(setting) {
     const cell = ns.el('td');
-    cell.appendChild(ns.el('code', 'm-code-inline settings-key', setting.key));
+    const keyEl = ns.el('code', 'm-code-inline settings-key', setting.key);
+    keyEl.title = String(setting.key || '');
+    cell.appendChild(keyEl);
     cell.appendChild(ns.el('div', 'settings-desc', setting.description));
     if (setting.inactive_reason) {
       cell.appendChild(badge('warn', S.inactive));

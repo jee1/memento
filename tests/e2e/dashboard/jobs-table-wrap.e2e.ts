@@ -1,6 +1,7 @@
 import { expect, test, type Page } from '@playwright/test';
 
-// #1724: jobs schedule/timeline show Korean labels; no raw ms / English queue keys; cells stay in card.
+// #1724: jobs schedule/timeline show Korean labels; col widths under table-layout:fixed;
+// last-run cells are not ellipsis-clipped; CSS/colgroup revert must fail.
 
 const JOBS = [
   {
@@ -122,18 +123,21 @@ async function openJobsTab(page: Page): Promise<void> {
   await expect(page.locator('#jobs-schedule-tbody tr')).toHaveCount(JOBS.length, {
     timeout: 10_000,
   });
+  await expect(page.locator('#jobs-timeline-tbody tr')).toHaveCount(1, { timeout: 10_000 });
 }
 
-async function measureJobsSchedule(page: Page) {
+async function measureJobsTables(page: Page) {
   return page.evaluate(() => {
-    const table = document.querySelector('#jobs-schedule-table');
+    const schedule = document.querySelector('#jobs-schedule-table') as HTMLTableElement | null;
+    const timeline = document.querySelector('#jobs-timeline-table') as HTMLTableElement | null;
     const wrap = document.querySelector('#jobs-schedule-table-wrap');
-    if (!table || !wrap) {
-      return { clipped: [], englishHits: [], text: '' };
+    if (!schedule || !timeline || !wrap) {
+      return { ok: false, reason: 'missing-table' as const };
     }
+
     const clipped: Array<{ text: string; right: number; wrapRight: number }> = [];
     const wrapRight = wrap.getBoundingClientRect().right;
-    for (const td of Array.from(table.querySelectorAll('tbody td'))) {
+    for (const td of Array.from(schedule.querySelectorAll('tbody td'))) {
       const box = td.getBoundingClientRect();
       if (box.width < 1) continue;
       if (box.right > wrapRight + 2) {
@@ -144,7 +148,33 @@ async function measureJobsSchedule(page: Page) {
         });
       }
     }
-    const text = (table.innerText || '') + ' ' + (document.querySelector('#jobs-queue-summary')?.textContent || '');
+
+    const lastClip: Array<{ scroll: number; client: number; text: string }> = [];
+    for (const td of Array.from(schedule.querySelectorAll('td.jobs-schedule__last')) as HTMLElement[]) {
+      if (td.scrollWidth > td.clientWidth + 1) {
+        lastClip.push({
+          scroll: td.scrollWidth,
+          client: td.clientWidth,
+          text: (td.textContent || '').slice(0, 40),
+        });
+      }
+    }
+
+    const colWidths = Array.from(timeline.querySelectorAll('col')).map((col) => {
+      const style = getComputedStyle(col);
+      return { cls: col.className, width: style.width };
+    });
+    const equalCols =
+      colWidths.length >= 2 && colWidths.every((c) => c.width === colWidths[0].width);
+    const missingCol = colWidths.length < 7;
+    const autoOnly = colWidths.every((c) => !c.width || c.width === 'auto' || c.width === '0px');
+
+    const text =
+      (schedule.innerText || '') +
+      ' ' +
+      (timeline.innerText || '') +
+      ' ' +
+      (document.querySelector('#jobs-queue-summary')?.textContent || '');
     const englishHits = [
       'runningCount',
       'size=',
@@ -155,7 +185,18 @@ async function measureJobsSchedule(page: Page) {
       'HealthChecker',
       'soft delete',
     ].filter((token) => text.includes(token));
-    return { clipped, englishHits, text: text.slice(0, 200) };
+
+    return {
+      ok: true as const,
+      clipped,
+      lastClip,
+      englishHits,
+      colWidths,
+      equalCols,
+      missingCol,
+      autoOnly,
+      text: text.slice(0, 200),
+    };
   });
 }
 
@@ -174,10 +215,28 @@ test.describe('jobs table wrap (#1724)', () => {
       await expect(page.locator('#jobs-schedule-tbody')).toContainText('5분마다');
       await expect(page.locator('#jobs-queue-summary')).toContainText('대기열');
       await expect(page.locator('#jobs-queue-summary')).not.toContainText('runningCount');
+      await expect(page.locator('#jobs-timeline-tbody')).toContainText('예약');
+      // Compact table stamp, not full 「2026. 11. 14. 오후 …」
+      await expect(page.locator('#jobs-schedule-tbody .jobs-schedule__last').first()).toContainText('오후');
+      await expect(page.locator('#jobs-schedule-tbody .jobs-schedule__last').first()).not.toContainText(
+        '2026. 11. 14.',
+      );
 
-      const report = await measureJobsSchedule(page);
+      const report = await measureJobsTables(page);
+      expect(report.ok, `measure: ${JSON.stringify(report)}`).toBe(true);
+      if (!report.ok) return;
       expect(report.englishHits, `english: ${JSON.stringify(report.englishHits)}`).toEqual([]);
       expect(report.clipped, `clipped: ${JSON.stringify(report.clipped)}`).toEqual([]);
+      if (width === 1280) {
+        expect(report.lastClip, `last-run clip: ${JSON.stringify(report.lastClip)}`).toEqual([]);
+        expect(report.missingCol, `timeline colgroup missing: ${JSON.stringify(report.colWidths)}`).toBe(
+          false,
+        );
+        expect(report.equalCols, `timeline equal cols: ${JSON.stringify(report.colWidths)}`).toBe(false);
+        expect(report.autoOnly, `timeline auto-only cols: ${JSON.stringify(report.colWidths)}`).toBe(
+          false,
+        );
+      }
     });
   }
 
@@ -191,10 +250,70 @@ test.describe('jobs table wrap (#1724)', () => {
         .__MEMENTO_JOBS_PANEL__;
       ns.formatIntervalHuman = (n: number) => String(n);
       const jobs = (
-        window as unknown as { __MEMENTO_JOBS_PANEL__: { state: { lastStats: { jobs: unknown } }; renderSchedule: (j: unknown) => void } }
+        window as unknown as {
+          __MEMENTO_JOBS_PANEL__: {
+            state: { lastStats: { jobs: unknown } };
+            renderSchedule: (j: unknown) => void;
+          };
+        }
       ).__MEMENTO_JOBS_PANEL__;
       jobs.renderSchedule(jobs.state.lastStats.jobs);
     });
     await expect(page.locator('#jobs-schedule-tbody')).toContainText('86400000');
+  });
+
+  test('stripping timeline colgroup makes columns equal (counter-check)', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await installJobsRoutes(page);
+    await page.goto('/dashboard');
+    await openJobsTab(page);
+
+    const before = await measureJobsTables(page);
+    expect(before.ok && !before.equalCols && !before.missingCol).toBe(true);
+
+    await page.evaluate(() => {
+      const table = document.querySelector('#jobs-timeline-table');
+      const group = table?.querySelector('colgroup');
+      group?.remove();
+      const style = document.createElement('style');
+      style.textContent = `
+        .jobs-timeline-table { table-layout: fixed; width: 100%; min-width: 0 !important; }
+        .jobs-col-last { width: 4rem !important; }
+        .jobs-schedule__last { overflow: hidden !important; text-overflow: ellipsis !important; max-width: 4rem !important; }
+        .jobs-timeline-table th, .jobs-timeline-table td { white-space: normal !important; word-break: break-all !important; }
+      `;
+      document.head.appendChild(style);
+      const lastCol = document.querySelector('#jobs-schedule-table col.jobs-col-last') as HTMLElement | null;
+      if (lastCol) {
+        lastCol.style.width = '4rem';
+      }
+      // Force full ISO stamp back into last cell so 4rem must clip
+      for (const td of Array.from(document.querySelectorAll('td.jobs-schedule__last')) as HTMLElement[]) {
+        td.textContent = '2026. 11. 14. 오후 3:51:15';
+      }
+    });
+
+    const after = await page.evaluate(() => {
+      const timeline = document.querySelector('#jobs-timeline-table') as HTMLTableElement | null;
+      const schedule = document.querySelector('#jobs-schedule-table') as HTMLTableElement | null;
+      const cols = timeline ? Array.from(timeline.querySelectorAll('col')) : [];
+      const lastClip: Array<{ scroll: number; client: number }> = [];
+      if (schedule) {
+        for (const td of Array.from(schedule.querySelectorAll('td.jobs-schedule__last')) as HTMLElement[]) {
+          if (td.scrollWidth > td.clientWidth + 1) {
+            lastClip.push({ scroll: td.scrollWidth, client: td.clientWidth });
+          }
+        }
+      }
+      return {
+        missingCol: cols.length === 0,
+        lastClip,
+      };
+    });
+
+    expect(after.missingCol, 'colgroup strip should leave zero cols').toBe(true);
+    expect(after.lastClip.length, `narrow last should clip: ${JSON.stringify(after.lastClip)}`).toBeGreaterThan(
+      0,
+    );
   });
 });

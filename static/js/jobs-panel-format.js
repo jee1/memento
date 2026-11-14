@@ -136,4 +136,29 @@
     }
     return date.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
   };
+
+  /** Compact table cell: 「11. 14. 오후 4:23」 — fits schedule/timeline cols (#1724 review). */
+  ns.formatKoDateTimeTable = function (value) {
+    if (!value) {
+      return '—';
+    }
+    const date = new Date(String(value));
+    if (Number.isNaN(date.getTime())) {
+      return String(value);
+    }
+    const parts = new Intl.DateTimeFormat('ko-KR', {
+      timeZone: 'Asia/Seoul',
+      month: 'numeric',
+      day: 'numeric',
+      hour: 'numeric',
+      minute: '2-digit',
+      hour12: true,
+    }).formatToParts(date);
+    const get = (type) => {
+      const p = parts.find((x) => x.type === type);
+      return p ? p.value : '';
+    };
+    const dayPeriod = get('dayPeriod');
+    return get('month') + '. ' + get('day') + '. ' + dayPeriod + ' ' + get('hour') + ':' + get('minute');
+  };
 })(typeof window !== 'undefined' ? window : globalThis);

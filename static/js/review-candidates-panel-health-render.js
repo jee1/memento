@@ -116,9 +116,11 @@
         Number(s.reviewed_last_1h || 0) +
         Number(s.dismissed_last_1h || 0) +
         Number(s.expired_last_1h || 0);
+      const sampled =
+        typeof ns.formatDue === 'function' ? ns.formatDue(s.sampled_at) : String(s.sampled_at || '');
       tr.innerHTML =
         '<td class="rc-cell-mono">' +
-        ns.escapeHtml(String(s.sampled_at || '')) +
+        ns.escapeHtml(sampled) +
         '</td><td>' +
         ns.escapeHtml(String(s.pending_total != null ? s.pending_total : '')) +
         '</td><td>' +

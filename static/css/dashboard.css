@@ -1328,6 +1328,8 @@ body {
 
 .jobs-table-wrap {
   max-height: var(--layout-track-28);
+  overflow-x: auto;
+  min-width: 0;
 }
 
 .jobs-retry-btn {
@@ -1372,8 +1374,9 @@ body {
   width: 5.5rem;
 }
 
+/* Compact 「11. 14. 오후 4:23」 fits; full stamp stays in title (#1724 review). */
 .jobs-col-last {
-  width: 8.5rem;
+  width: 9rem;
 }
 
 .jobs-col-errors {
@@ -1422,18 +1425,58 @@ body {
 .jobs-schedule__last {
   word-break: keep-all;
   white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
 }
 
+/* #1724 review: table-layout:fixed needs col widths (#1723 trap). */
 .jobs-timeline-table {
   table-layout: fixed;
   width: 100%;
+  min-width: 32rem;
+}
+
+.jobs-tl-col-job {
+  width: 5.5rem;
+}
+
+.jobs-tl-col-trigger {
+  width: 3.25rem;
+}
+
+.jobs-tl-col-started,
+.jobs-tl-col-ended {
+  width: 7.5rem;
+}
+
+.jobs-tl-col-duration {
+  width: 3.25rem;
+}
+
+.jobs-tl-col-outcome {
+  width: 2.75rem;
+}
+
+.jobs-tl-col-actions {
+  width: 3.5rem;
 }
 
 .jobs-timeline__job {
   word-break: keep-all;
   overflow-wrap: break-word;
+}
+
+.jobs-timeline-table th,
+.jobs-timeline-table td {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.jobs-timeline__time,
+.jobs-timeline-table th:nth-child(2),
+.jobs-timeline-table th:nth-child(3),
+.jobs-timeline-table th:nth-child(4),
+.jobs-timeline-table td:nth-child(2) {
+  white-space: nowrap;
 }
 
 .jobs-guide__key {
@@ -1971,9 +2014,55 @@ body {
   max-height: var(--layout-track-32);
 }
 
-.settings-key,
+/* #1724 review: fixed + col widths so「마지막 변경」and keys do not glyph-wrap. */
+.settings-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.settings-col-key {
+  width: auto;
+}
+
+.settings-col-value,
+.settings-col-default {
+  width: 6.5rem;
+}
+
+.settings-col-risk {
+  width: 9rem;
+}
+
+.settings-col-changed {
+  width: 8rem;
+}
+
+.settings-col-actions {
+  width: 6rem;
+}
+
+.settings-table th {
+  white-space: nowrap;
+  word-break: keep-all;
+}
+
+.settings-key {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+
 .settings-value {
-  overflow-wrap: anywhere;
+  overflow-wrap: break-word;
+  word-break: keep-all;
+}
+
+.settings-desc {
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 .settings-value {

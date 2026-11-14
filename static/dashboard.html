@@ -629,7 +629,16 @@
             <div id="jobs-dpanel-runs" class="jobs-drawer__panel" role="tabpanel" aria-labelledby="jobs-dtab-runs">
               <p class="jobs-disclaimer">실패한 실행만 재시도할 수 있습니다.</p>
               <div id="jobs-timeline" class="jobs-table-wrap m-table-wrap">
-                <table class="m-table jobs-timeline-table">
+                <table id="jobs-timeline-table" class="m-table jobs-timeline-table">
+                  <colgroup>
+                    <col class="jobs-tl-col-job" />
+                    <col class="jobs-tl-col-trigger" />
+                    <col class="jobs-tl-col-started" />
+                    <col class="jobs-tl-col-ended" />
+                    <col class="jobs-tl-col-duration" />
+                    <col class="jobs-tl-col-outcome" />
+                    <col class="jobs-tl-col-actions" />
+                  </colgroup>
                   <thead>
                     <tr>
                       <th scope="col">작업</th>
@@ -693,7 +702,15 @@
         <section class="settings-section" aria-labelledby="settings-adjustable-heading">
           <h3 id="settings-adjustable-heading">조정 가능한 설정</h3>
           <div class="m-table-wrap settings-table-wrap">
-            <table id="settings-table" class="m-table">
+            <table id="settings-table" class="m-table settings-table">
+              <colgroup>
+                <col class="settings-col-key" />
+                <col class="settings-col-value" />
+                <col class="settings-col-default" />
+                <col class="settings-col-risk" />
+                <col class="settings-col-changed" />
+                <col class="settings-col-actions" />
+              </colgroup>
               <thead>
                 <tr>
                   <th scope="col">설정</th>

@@ -169,8 +169,16 @@
       if (job.intervalMs != null) {
         intervalTd.title = String(job.intervalMs) + ' ms';
       }
-      const lastTd = appendCell(row, ns.formatIso(job.lastExecution));
+      const lastRaw = job.lastExecution;
+      const lastLabel =
+        typeof ns.formatKoDateTimeTable === 'function'
+          ? ns.formatKoDateTimeTable(lastRaw)
+          : ns.formatIso(lastRaw);
+      const lastTd = appendCell(row, lastLabel);
       lastTd.className = 'jobs-schedule__last';
+      if (lastRaw) {
+        lastTd.title = ns.formatIso(lastRaw);
+      }
       appendCell(row, ns.formatNumber(job.errorCount));
       const actionsTd = document.createElement('td');
       if (!ns.state.readOnly) {
@@ -240,8 +248,26 @@
       jobTd.title = run.jobName || '';
       jobTd.className = 'jobs-timeline__job';
       appendCell(row, ns.formatTrigger(run.trigger));
-      appendCell(row, ns.formatIso(run.startedAt));
-      appendCell(row, ns.formatIso(run.endedAt));
+      const startedTd = appendCell(
+        row,
+        typeof ns.formatKoDateTimeTable === 'function'
+          ? ns.formatKoDateTimeTable(run.startedAt)
+          : ns.formatIso(run.startedAt),
+      );
+      startedTd.className = 'jobs-timeline__time';
+      if (run.startedAt) {
+        startedTd.title = ns.formatIso(run.startedAt);
+      }
+      const endedTd = appendCell(
+        row,
+        typeof ns.formatKoDateTimeTable === 'function'
+          ? ns.formatKoDateTimeTable(run.endedAt)
+          : ns.formatIso(run.endedAt),
+      );
+      endedTd.className = 'jobs-timeline__time';
+      if (run.endedAt) {
+        endedTd.title = ns.formatIso(run.endedAt);
+      }
       const durTd = appendCell(row, ns.formatDurationHuman(run.durationMs));
       if (run.durationMs != null) {
         durTd.title = String(run.durationMs) + ' ms';

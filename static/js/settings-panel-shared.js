@@ -113,7 +113,9 @@
       return ns.S.none;
     }
     const date = new Date(String(iso));
-    return Number.isNaN(date.getTime()) ? String(iso) : date.toLocaleString();
+    return Number.isNaN(date.getTime())
+      ? String(iso)
+      : date.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
   };
 
   /** null means "not set" in the API; an empty string is shown as such, not as unset. */
