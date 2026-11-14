@@ -244,7 +244,7 @@
                 <p class="rc-intro">
                   중요도가 높은데 오랫동안 recall 되지 않아 자동 망각으로 향하는 기억들입니다. 각 기억을
                   <strong>보존</strong>할지 <strong>무시</strong>할지 결정하는 자리입니다. 결정하지 않으면 기억은 그대로 망각 경로에 남습니다.
-                  <code class="m-code-inline">memory_review_candidates</code> 배치가 후보를 채웁니다.
+                  검토 대기열 후보 선정 배치가 후보를 채웁니다.
                 </p>
                 <p class="rc-howto">
                   <span class="rc-howto-label">결정하는 법:</span>
@@ -263,7 +263,7 @@
         <section id="rc-health-panel" class="m-panel" aria-label="대기열 상태 지표">
           <h3 class="m-panel__title">대기열 상태</h3>
           <p id="rc-health-hint" class="m-panel__note">
-            롤링 윈도우는 행 타임스탬프를 사용합니다(<code class="m-code-inline">created_at</code>, <code class="m-code-inline">reviewed_at</code>, <code class="m-code-inline">dismissed_at</code>, <code class="m-code-inline">expired</code>는 <code class="m-code-inline">updated_at</code> 기준).
+            롤링 윈도우는 행의 생성·보존·무시 시각을 쓰고, 만료는 갱신 시각 기준입니다.
           </p>
           <div id="rc-health-error" class="m-error hidden"></div>
           <div id="rc-health-live" class="rc-health-live hidden" aria-live="polite"></div>
@@ -292,7 +292,7 @@
         >
           <h3 class="m-panel__title">수동 배치 실행</h3>
           <p class="m-panel__note">
-            이 서버 프로세스의 최근 <code class="m-code-inline">POST /admin/batch/run</code> 호출
+            이 서버 프로세스에서 관리자가 수동으로 돌린 최근 배치 실행
             (메모리 내; 재시작 시 초기화).
           </p>
           <div id="rc-batch-history-error" class="m-error hidden" role="alert"></div>
@@ -409,10 +409,10 @@
                 <span class="rc-filter-label">기억 유형</span>
                 <select id="rc-filter-memory-type" class="m-select">
                   <option value="">전체</option>
-                  <option value="working">working</option>
-                  <option value="episodic">episodic</option>
-                  <option value="semantic">semantic</option>
-                  <option value="procedural">procedural</option>
+                  <option value="working">작업(working)</option>
+                  <option value="episodic">사건(episodic)</option>
+                  <option value="semantic">지식(semantic)</option>
+                  <option value="procedural">절차(procedural)</option>
                 </select>
               </label>
               <label class="rc-filter-field rc-filter-field--grow">
@@ -448,20 +448,27 @@
               </div>
               <p class="rc-bulk-effect-note">
                 무시와 만료는 이 대기열에서 후보만 내립니다. 원본 기억은 지워지지 않고 내용도 바뀌지 않습니다.
-                기억이 조건을 다시 만족하면 <code class="m-code-inline">memory_review_candidates</code> 배치가 새 후보로 다시 올리므로 되돌릴 수 있습니다.
+                기억이 조건을 다시 만족하면 검토 대기열 후보 선정 배치가 새 후보로 다시 올리므로 되돌릴 수 있습니다.
               </p>
             </div>
             <div id="rc-table-wrap" class="review-candidates-table-wrap m-table-wrap hidden">
               <table id="rc-table" class="m-table">
+                <colgroup>
+                  <col class="rc-col-select" />
+                  <col class="rc-col-priority" />
+                  <col class="rc-col-id" />
+                  <col class="rc-col-status" />
+                  <col class="rc-col-reason" />
+                  <col class="rc-col-due" />
+                </colgroup>
                 <thead>
                   <tr>
-                    <th scope="col" aria-label="후보 선택"></th>
-                    <th scope="col">우선순위</th>
-                    <th scope="col">Memory ID</th>
-                    <th scope="col">상태</th>
-                    <th scope="col">사유</th>
-                    <th scope="col">기한</th>
-                    <th scope="col">Candidate ID</th>
+                    <th scope="col" class="rc-cell-select" aria-label="후보 선택"></th>
+                    <th scope="col" class="rc-cell-priority">우선순위</th>
+                    <th scope="col" class="rc-cell-id">기억 ID</th>
+                    <th scope="col" class="rc-cell-status">상태</th>
+                    <th scope="col" class="rc-cell-reason">사유</th>
+                    <th scope="col" class="rc-cell-due">기한</th>
                   </tr>
                 </thead>
                 <tbody></tbody>
@@ -477,7 +484,8 @@
                   <div><dt>우선순위</dt><dd id="rc-preview-priority"></dd></div>
                   <div><dt>사유</dt><dd id="rc-preview-reason" class="rc-preview-reason-full"></dd></div>
                   <div><dt>기한</dt><dd id="rc-preview-due" class="rc-cell-mono"></dd></div>
-                  <div><dt>Memory ID</dt><dd id="rc-preview-mid" class="rc-cell-mono"></dd></div>
+                  <div><dt>기억 ID</dt><dd id="rc-preview-mid" class="rc-cell-mono rc-preview-id"></dd></div>
+                  <div><dt>후보 ID</dt><dd id="rc-preview-cid" class="rc-cell-mono rc-preview-id"></dd></div>
                 </dl>
                 <p id="rc-preview-memory-status" class="rc-preview-memory-status" aria-live="polite"></p>
                 <pre id="rc-preview-content" class="rc-preview-content"></pre>

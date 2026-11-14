@@ -973,14 +973,17 @@ describe('static design contracts', () => {
 
     expect(html.match(/<script src="\/static\/js\/table-card-labels\.js"><\/script>/g)).toHaveLength(1);
     expect(html.indexOf('table-card-labels.js')).toBeGreaterThan(html.indexOf('dashboard-tabs.js"></script>'));
-    expect(labelsJs).toContain("querySelectorAll('table.m-table:not(#rc-table)')");
+    // #1722: #rc-table joins card layout at 390 (equal fixed columns were unreadable).
+    expect(labelsJs).toContain("querySelectorAll('table.m-table')");
+    expect(labelsJs).not.toContain("querySelectorAll('table.m-table:not(#rc-table)')");
     expect(labelsJs).toContain("setAttribute('data-label'");
 
-    const marker = '/* Phone layout (#1147)';
+    const marker = '/* Phone layout (#1147';
     const at = dashboardCss.indexOf(marker);
     expect(at).toBeGreaterThanOrEqual(0);
     const block = extractAtMediaBlock(dashboardCss.slice(at), '(max-width: 30rem)');
-    expect(block).toMatch(/\.m-table:not\(#rc-table\) td\[data-label\]::before \{[^}]*content: attr\(data-label\);/s);
+    expect(block).toMatch(/\.m-table td\[data-label\]::before \{[^}]*content: attr\(data-label\);/s);
+    expect(block).not.toMatch(/\.m-table:not\(#rc-table\)/);
     expect(block).toMatch(/\.m-stat-grid \{\s*grid-template-columns: repeat\(2, minmax\(0, 1fr\)\);/);
     expect(block).toMatch(/:is\(button, select, summary, textarea,[\s\S]*?\) \{\s*min-width: var\(--size-touch\);\s*min-height: var\(--size-touch\);/);
     expect(block).not.toMatch(/#[0-9a-fA-F]{3,8}\b(?![-\w])/);
