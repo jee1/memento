@@ -59,7 +59,6 @@
         <div class="m-nav-group session-only" role="presentation" data-nav-group="spatial">
           <span class="m-nav-group__label" aria-hidden="true">공간</span>
           <button type="button" id="dashboard-tab-anchor" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-anchor-map" data-tab="anchor">앵커 맵</button>
-          <button type="button" id="dashboard-tab-embedding" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-embedding-map" data-tab="embedding">임베딩 상태</button>
           <button type="button" id="dashboard-tab-graph" class="m-tab-btn session-only" role="tab" tabindex="-1" aria-selected="false" aria-controls="tab-graph" data-tab="graph">기억 그래프</button>
         </div>
         <div class="m-nav-group session-only" role="presentation" data-nav-group="ops">
@@ -178,64 +177,6 @@
       </main>
     </div>
 
-    <div id="tab-embedding-map" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-embedding" aria-hidden="true">
-      <div class="embedding-map-layout">
-        <div class="em-controls">
-          <label>
-            제공자
-            <select id="em-provider" class="m-input">
-              <option value="minilm" selected>minilm</option>
-              <option value="tfidf">tfidf</option>
-              <option value="openai">openai</option>
-              <option value="gemini">gemini</option>
-            </select>
-          </label>
-          <button type="button" id="em-load-btn" class="m-button m-button--primary">새로고침</button>
-          <span id="em-cache-info" class="em-cache-info"></span>
-        </div>
-        <section class="em-health-panel m-panel" aria-labelledby="em-health-title">
-          <h2 id="em-health-title" class="m-panel__title">임베딩 상태</h2>
-          <p class="m-panel__note">현재 provider로 검색 가능한 임베딩 coverage와 재색인 조사 대상을 보여 줍니다.</p>
-          <div id="em-health-error" class="m-error hidden" role="alert"></div>
-          <div id="em-health-summary" class="m-stat-grid" aria-live="polite"></div>
-          <h3 class="m-panel__subtitle">문제</h3>
-          <div id="em-health-problems" class="m-stat-grid"></div>
-          <div id="em-problem-list" class="em-problem-list hidden" aria-live="polite"></div>
-          <p class="m-panel__note">재색인 전 확인: <code class="m-code-inline">npm run reindex-embeddings -- --provider &lt;provider&gt; --dry-run</code></p>
-        </section>
-
-        <section class="em-explorer" aria-labelledby="em-explorer-title">
-          <div class="em-explorer-header">
-            <div>
-              <h2 id="em-explorer-title">의미 공간 탐색</h2>
-              <p id="em-sample-info" class="m-panel__note"></p>
-            </div>
-            <details class="em-advanced">
-              <summary>고급</summary>
-              <label>
-                한도
-                <input id="em-limit" class="m-input" type="number" min="1" max="500" value="300">
-              </label>
-              <label>
-                k
-                <input id="em-k" class="m-input" type="number" min="2" max="20" value="6">
-              </label>
-            </details>
-          </div>
-          <p class="em-color-legend">
-            점 색상은 <strong>K-Means 클러스터</strong>입니다. 위치와 클러스터는 상대적 유사성 탐색용이며 품질 점수나 시간 비교 기준이 아닙니다.
-          </p>
-          <div id="em-cluster-summary" class="em-cluster-summary"></div>
-        </section>
-        <div id="em-loading" class="m-loading hidden">UMAP 계산 중…</div>
-        <div id="em-error" class="m-error hidden"></div>
-        <div class="embedding-plot-row">
-          <div id="em-scatter" class="embedding-scatter-wrap"></div>
-          <aside id="em-side-panel" class="em-side-panel" aria-hidden="true"></aside>
-        </div>
-      </div>
-    </div>
-
     <div id="tab-graph" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-graph" aria-hidden="true">
       <!-- iframe src는 dashboard-tabs.js의 GRAPH_IFRAME_SRC(기본 '/graph?embed=dashboard')와 동일해야 함. 동일 출처·신뢰 경로(/graph)이므로 sandbox 미사용: allow-scripts+allow-same-origin 조합은 부모 DOM 접근이 가능해 사실상 격리 효과가 없음 -->
       <iframe
@@ -293,8 +234,34 @@
           <button type="button" id="ops-status-refresh-btn" class="m-button m-button--secondary">새로고침</button>
         </header>
         <div id="ops-status-loading" class="m-loading hidden" aria-live="polite">운영 상태 불러오는 중…</div>
-        <div id="ops-status-error" class="m-error hidden" role="alert"></div>
         <div id="ops-status-zones" class="ops-status-zones" aria-live="polite"></div>
+        <section id="em-health-card" class="ops-status-card m-panel em-health-card" aria-labelledby="em-health-title">
+          <div class="em-health-card__head">
+            <h3 id="em-health-title">임베딩 상태</h3>
+            <label for="em-provider">
+              제공자
+              <select id="em-provider" class="m-input">
+                <option value="minilm" selected>minilm</option>
+                <option value="tfidf">tfidf</option>
+                <option value="openai">openai</option>
+                <option value="gemini">gemini</option>
+              </select>
+            </label>
+          </div>
+          <p id="em-health-headline" class="em-health-headline" aria-live="polite"></p>
+          <div id="em-health-error" class="m-error hidden" role="alert"></div>
+          <div id="em-health-guide"></div>
+          <details class="em-health-more">
+            <summary class="em-health-more__summary">상세와 용어</summary>
+            <div class="em-health-more__body">
+              <div id="em-health-summary" class="m-stat-grid" aria-live="polite"></div>
+              <h4 class="m-panel__subtitle">문제 종류별 건수 (눌러서 기억 목록 보기)</h4>
+              <div id="em-health-problems" class="m-stat-grid"></div>
+              <div id="em-problem-list" class="em-problem-list hidden" aria-live="polite"></div>
+              <dl id="em-health-terms" class="em-health-terms"></dl>
+            </div>
+          </details>
+        </section>
       </div>
     </div>
 
@@ -822,15 +789,6 @@
   <script src="/static/js/dashboard-tabs-init.js"></script>
   <script src="/static/js/dashboard-tabs.js"></script>
   <script src="/static/js/table-card-labels.js"></script>
-  <script src="/static/js/embedding-map-state.js"></script>
-  <script src="/static/js/embedding-map-tooltip.js"></script>
-  <script src="/static/js/embedding-map-panel.js"></script>
-  <script src="/static/js/embedding-map-chart-colors.js"></script>
-  <script src="/static/js/embedding-map-chart-setup.js"></script>
-  <script src="/static/js/embedding-map-chart-scatter.js"></script>
-  <script src="/static/js/embedding-map-fetch-status.js"></script>
-  <script src="/static/js/embedding-map-fetch.js"></script>
-  <script src="/static/js/embedding-map.js"></script>
   <!--MEMENTO_REVIEW_QUEUE_BOOT-->
   <script src="/static/js/review-candidates-panel-shared.js"></script>
   <script src="/static/js/review-candidates-panel-filters.js"></script>
@@ -857,6 +815,7 @@
   <script src="/static/js/memory-finder-panel.js"></script>
   <script src="/static/js/memory-finder-search.js"></script>
   <script src="/static/js/ops-status-panel.js"></script>
+  <script src="/static/js/embedding-health-card.js"></script>
   <script src="/static/js/ops-overview-panel.js"></script>
   <script src="/static/js/memory-inspector.js"></script>
   <script src="/static/js/jobs-panel-shared.js"></script>

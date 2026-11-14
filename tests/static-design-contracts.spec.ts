@@ -626,7 +626,7 @@ describe('static design contracts', () => {
   it('issue #1143 m-stat is a KPI tile with numeric value, caller-chosen delta and an inline-svg sparkline', () => {
     const componentsSource = readStaticFile('static/css/components.css');
     const dashboardSource = readStaticFile('static/dashboard.html');
-    const embeddingHealthSource = readStaticFile('static/js/embedding-map-fetch-status.js');
+    const embeddingHealthSource = readStaticFile('static/js/embedding-health-card.js');
     const hexLiteral = /#[0-9a-fA-F]{3,8}\b/;
 
     function ruleBody(src: string, selector: string): string {
@@ -741,7 +741,7 @@ describe('static design contracts', () => {
     expect(html.indexOf('id="dashboard-auth-session"')).toBeGreaterThan(headerCloseIdx);
 
     const tabpanelMatches = html.match(/role="tabpanel"[^>]*aria-labelledby="(dashboard-tab-[a-z-]+)"/g) ?? [];
-    expect(tabpanelMatches).toHaveLength(10);
+    expect(tabpanelMatches).toHaveLength(9);
     for (const match of tabpanelMatches) {
       const idMatch = match.match(/aria-labelledby="(dashboard-tab-[a-z-]+)"/);
       expect(idMatch).not.toBeNull();
@@ -926,10 +926,9 @@ describe('static design contracts', () => {
     const panelEntries = [
       ...panelsJs.matchAll(/\{\s*name:\s*'([^']+)',\s*id:\s*'([^']+)'\s*\}/g),
     ].map((m) => ({ name: m[1], id: m[2] }));
-    expect(panelEntries).toHaveLength(10);
+    expect(panelEntries).toHaveLength(9);
     expect(panelEntries.map((p) => p.name)).toEqual([
       'anchor',
-      'embedding',
       'graph',
       'ops-overview',
       'ops-status',
@@ -947,7 +946,8 @@ describe('static design contracts', () => {
     }
 
     const runTabInit = extractNamedFunction(initJs, 'runTabInit');
-    expect(runTabInit).toContain("name === 'embedding'");
+    expect(runTabInit).not.toContain("name === 'embedding'");
+    expect(runTabInit).toContain('initEmbeddingHealthCard');
     expect(runTabInit).toContain("name === 'review'");
     expect(runTabInit).toContain("name === 'supersede'");
     expect(runTabInit).toContain("name === 'memory-finder'");
@@ -1003,7 +1003,7 @@ describe('static design contracts', () => {
   });
 
   it('issue #1149 panel states use only the shared .m-empty/.m-loading/.m-error components', () => {
-    const LOCAL = ['rc-banner', 'as-banner', 'no-data', 'em-error', 'em-loading'];
+    const LOCAL = ['rc-banner', 'as-banner', 'no-data'];
     const html = readStaticFile('static/dashboard.html');
     const classAttrs = [...html.matchAll(/class="([^"]*)"/g)].map((m) => m[1].split(/\s+/)).flat();
     const css = readStaticFile('static/css/dashboard.css') + readStaticFile('static/css/components.css');
@@ -1015,10 +1015,10 @@ describe('static design contracts', () => {
       expect(js, name).not.toMatch(new RegExp(`['"\\s]${name}['"\\s]`));
     }
     const expected: Record<string, string> = {
-      'rc-loading': 'm-loading', 'em-loading': 'm-loading',
+      'rc-loading': 'm-loading',
       'rc-empty': 'm-empty', 'rc-batch-history-empty': 'm-empty',
-      'rc-error': 'm-error', 'rc-health-error': 'm-error', 'rc-batch-history-error': 'm-error', 'ops-status-error': 'm-error',
-      'em-error': 'm-error', 'em-health-error': 'm-error',
+      'rc-error': 'm-error', 'rc-health-error': 'm-error', 'rc-batch-history-error': 'm-error',
+      'em-health-error': 'm-error',
     };
     for (const [id, cls] of Object.entries(expected)) {
       expect(html, id).toMatch(new RegExp(`id="${id}" class="[^"]*\\b${cls}\\b`));
@@ -1038,11 +1038,11 @@ describe('static design contracts', () => {
     const classAttrs = [...html.matchAll(/class="([^"]*)"/g)].map((m) => m[1]);
     expect(classAttrs.filter((c) => moved.test(c))).toEqual([]);
     expect(dashboardCss).not.toMatch(/\.rc-health-(panel|title|subtitle|hint|code)(?![\w-])/);
-    for (const f of ['embedding-map-fetch-status.js', 'review-candidates-panel-health-render.js']) {
+    for (const f of ['embedding-health-card.js', 'review-candidates-panel-health-render.js']) {
       expect(readStaticFile(`static/js/${f}`), f).not.toMatch(moved);
     }
-    const embeddingTab = html.slice(html.indexOf('id="tab-embedding-map"'), html.indexOf('id="tab-graph"'));
-    expect(embeddingTab).not.toMatch(/class="[^"]*\brc-/);
+    const embeddingCard = html.slice(html.indexOf('id="em-health-card"'), html.indexOf('id="tab-review-candidates"'));
+    expect(embeddingCard).not.toMatch(/class="[^"]*\brc-/);
   });
 
   it('issue #1151 operator UI shows no issue numbers and keeps tab intros behind the about disclosure', () => {

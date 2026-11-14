@@ -116,7 +116,6 @@ function createOpsStatusHarness(options: HarnessOptions = {}) {
 
   el('ops-status-refresh-btn');
   el('ops-status-loading');
-  el('ops-status-error');
 
   const fetchCalls: string[] = [];
   const sandbox: Record<string, unknown> = {
@@ -354,7 +353,6 @@ describe('dashboard ops status panel (#1699)', () => {
       fetchReject: new Error('network down'),
     });
     await harness.ns.refresh();
-    expect(harness.elements['ops-status-error'].textContent).toContain('network down');
     const banner = harness.zonesHost.children[0] as {
       id: string;
       attributes: Record<string, string>;
@@ -373,9 +371,12 @@ describe('dashboard ops status panel (#1699)', () => {
       fetchImpl: async () => ({ error: 'unavailable' }),
     });
     await harness.ns.refresh();
-    expect(harness.elements['ops-status-error'].textContent).toContain('HTTP 503');
-    const banner = harness.zonesHost.children[0] as { attributes: Record<string, string> };
+    const banner = harness.zonesHost.children[0] as {
+      attributes: Record<string, string>;
+      children: Array<{ textContent?: string }>;
+    };
     expect(banner.attributes['data-severity']).toBe('crit');
+    expect(banner.children.some((c) => String(c.textContent).includes('HTTP 503'))).toBe(true);
   });
 
   it('labels LLM feature metrics as attempts / other_failures / rate_limited', () => {
@@ -417,9 +418,12 @@ describe('dashboard ops status panel (#1699)', () => {
   it('paints a 200 response without zones as fetch failure', async () => {
     const harness = createOpsStatusHarness({ fetchImpl: async () => ({ window: window7d() }) });
     await harness.ns.refresh();
-    expect(harness.elements['ops-status-error'].textContent).toContain('zones');
-    const banner = harness.zonesHost.children[0] as { attributes: Record<string, string> };
+    const banner = harness.zonesHost.children[0] as {
+      attributes: Record<string, string>;
+      children: Array<{ textContent?: string }>;
+    };
     expect(banner.attributes['data-severity']).toBe('crit');
+    expect(banner.children.some((c) => String(c.textContent).includes('zones'))).toBe(true);
   });
 
   it('has a label for every fixed zone key the server emits', () => {
