@@ -195,7 +195,7 @@ With semantic embeddings active, a search for "car" can match memories containin
 
 ## HTTP dashboard — Status (first screen)
 
-After sign-in, `/dashboard` opens on the **Status** tab. Three zones (system OK / doing work / needs action) render `/admin/ops/summary` `zones`. Colors come only from server `severity`. Refresh is manual.
+After sign-in, `/dashboard` opens on the **Status** tab. Three zones (system OK / doing work / needs action) render `/admin/ops/summary` `zones`. Colors come only from server `severity`. Refresh is manual. Row names are shown in Korean; window labels read as “last 7 days” / “last 30 days” (Korean UI: 「최근 7일」「최근 30일」). Opaque rows (item-filter kept/dropped, empty injection, gate drift, review net flow, and similar) get a one-line gloss on hover and in **What is this?**.
 
 Below the zones, the **Embedding health** card shows how many problems the selected provider (default `minilm`, the same count as the zone's embedding row) has and the coverage: the share of active memories whose embedding exists, is readable, and matches the expected dimensions and model. It reads `GET /admin/embedding-health` directly. With 0 problems it says no action is needed. With problems it lists each kind with its fix and the command to check targets first: `npm run reindex-embeddings -- --provider <provider> --dry-run`. Expand **Details and terms** for per-kind counts and definitions (missing, unreadable, dimension mismatch, provider drift, model drift). Click a count to list the affected memories, and click an ID to open it in the Memory finder tab.
 

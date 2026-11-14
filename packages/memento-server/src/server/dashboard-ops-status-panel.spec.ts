@@ -7,10 +7,45 @@ import vm from 'node:vm';
 
 import { describe, expect, it, vi } from 'vitest';
 
+import { LLM_USAGE_FEATURES } from '@memento/core/shared/services/llm-usage/llm-usage-types.js';
+
 const root = resolve(process.cwd());
 const dashboardHtml = readFileSync(resolve(root, 'static/dashboard.html'), 'utf8');
 const opsStatusPanelJs = readFileSync(resolve(root, 'static/js/ops-status-panel.js'), 'utf8');
 const tabsPanelsJs = readFileSync(resolve(root, 'static/js/dashboard-tabs-panels.js'), 'utf8');
+
+/** Static zone keys emitted by admin-ops-summary-zones (minus llm_* rows). */
+const STATIC_ZONE_KEYS = [
+  'process_database',
+  'scheduler_running',
+  'batch_failed_run_count',
+  'paused_job_count',
+  'job_interval_overdue_count',
+  'server_version',
+  'schema_version',
+  'auth_denied_count',
+  'migration_backup',
+  'migration_backup_file_count',
+  'db_size_mb',
+  'wal_size_mb',
+  'injection_item_filtered_events',
+  'item_filter_kept',
+  'item_filter_dropped',
+  'item_filter_empty',
+  'injection_empty',
+  'feedback_positive_count',
+  'feedback_negative_count',
+  'search_query_count',
+  'search_empty_rejected',
+  'search_empty_no_result',
+  'gate_drift_alert',
+  'relation_extraction_failures',
+  'review_pending_total',
+  'review_last_human_decision_at',
+  'review_net_flow_1h',
+  'supersede_pending_count',
+  'embedding_problem_count',
+] as const;
 
 function createClassList() {
   const classes = new Set<string>();
@@ -56,6 +91,10 @@ function createElementMock(tag: string) {
     },
     appendChild(c: unknown) {
       (this as { children: unknown[] }).children.push(c);
+      const parts = (this as { children: Array<{ textContent?: string }> }).children.map(
+        (kid) => kid.textContent ?? '',
+      );
+      (this as { textContent: string }).textContent = parts.join('');
       return c;
     },
     removeChild(c: unknown) {
@@ -64,6 +103,10 @@ function createElementMock(tag: string) {
       if (idx >= 0) {
         kids.splice(idx, 1);
       }
+      const parts = (this as { children: Array<{ textContent?: string }> }).children.map(
+        (kid) => kid.textContent ?? '',
+      );
+      (this as { textContent: string }).textContent = parts.join('');
       return c;
     },
     addEventListener: vi.fn(),
@@ -116,6 +159,9 @@ function createOpsStatusHarness(options: HarnessOptions = {}) {
 
   el('ops-status-refresh-btn');
   el('ops-status-loading');
+  const termList = createElementMock('ul');
+  termList.id = 'ops-status-term-list';
+  elements['ops-status-term-list'] = termList;
 
   const fetchCalls: string[] = [];
   const sandbox: Record<string, unknown> = {
@@ -125,6 +171,7 @@ function createOpsStatusHarness(options: HarnessOptions = {}) {
       addEventListener: vi.fn(),
       getElementById: (id: string) => elements[id] ?? null,
       createElement: (tag: string) => createElementMock(tag),
+      createTextNode: (text: string) => ({ nodeType: 3, textContent: text }),
     },
     fetch: vi.fn(async (url: string) => {
       fetchCalls.push(String(url));
@@ -159,6 +206,11 @@ function createOpsStatusHarness(options: HarnessOptions = {}) {
     renderZones: (zones: unknown, options?: unknown) => void;
     labelForKey: (key: string) => string;
     formatValue: (item: unknown) => string;
+    formatWindowPeriod: (period: string | null | undefined) => string;
+    descriptionForKey: (key: string) => string;
+    isKnownLabelKey: (key: string) => boolean;
+    ZONE_KEY_LABELS: Record<string, string>;
+    renderTermHelp: () => void;
   };
 
   return {
@@ -204,6 +256,14 @@ function sampleZones() {
       },
     ],
     doing_work: [
+      {
+        key: 'item_filter_kept',
+        value: 3,
+        unit: 'count',
+        severity: null,
+        as_of: null,
+        window: w,
+      },
       {
         key: 'injection_empty',
         value: 0,
@@ -307,7 +367,7 @@ describe('dashboard ops status panel (#1699)', () => {
     expect(systemRows[0].attributes['data-key']).toBe('process_database');
     expect(systemRows[0].attributes['data-severity']).toBe('ok');
     const windowText = systemRows[0].children.find((c) => c.className === 'ops-row__window');
-    expect(windowText?.textContent).toBe('30d');
+    expect(windowText?.textContent).toBe('최근 30일');
 
     const doingRows = (cards[1].children[1] as { children: Array<{ attributes: Record<string, string>; children: Array<{ className?: string; textContent?: string }> }> }).children;
     expect(doingRows[0].attributes['data-severity']).toBeUndefined();
@@ -344,7 +404,7 @@ describe('dashboard ops status panel (#1699)', () => {
     expect(probe).toBeTruthy();
     const label = probe?.children.find((c) => c.className === 'ops-row__label');
     const value = probe?.children.find((c) => c.className === 'ops-row__value');
-    expect(label?.textContent).toBe('custom_probe_signal');
+    expect(label?.textContent).toBe('미등록 항목');
     expect(value?.textContent).toBe('42');
   });
 
@@ -385,9 +445,74 @@ describe('dashboard ops status panel (#1699)', () => {
     expect(harness.ns.labelForKey('llm_agent_chat_attempts')).toBe('에이전트 채팅 / 시도');
     expect(harness.ns.labelForKey('llm_directive_recall_other_failures')).toBe('지침 회상 / 기타 실패');
     expect(harness.ns.labelForKey('llm_supersede_judge_rate_limited')).toBe('대체 판정 / 호출 한도');
-    expect(harness.ns.labelForKey('llm_gemini_other_failures')).toBe('gemini / 기타 실패');
-    expect(harness.ns.labelForKey('llm_gemini_rate_limited')).toBe('gemini / 호출 한도');
-    expect(harness.ns.labelForKey('llm_typesafe_attempts')).toBe('typesafe / 시도');
+    expect(harness.ns.labelForKey('llm_unknown_feature_attempts')).toBe('미등록 작업 / 시도');
+  });
+
+  it('covers every server zone key in the label table with Korean text (#1716)', () => {
+    const harness = createOpsStatusHarness();
+    const englishToken = /\b(attempts|other_failures|rate_limited)\b|_/;
+    const missing: string[] = [];
+    for (const key of STATIC_ZONE_KEYS) {
+      expect(harness.ns.isKnownLabelKey(key), key).toBe(true);
+      const label = harness.ns.labelForKey(key);
+      if (label === key || englishToken.test(label)) {
+        missing.push(key + '=' + label);
+      }
+    }
+    for (const feature of LLM_USAGE_FEATURES) {
+      for (const metric of ['attempts', 'other_failures', 'rate_limited'] as const) {
+        const key = `llm_${feature}_${metric}`;
+        expect(harness.ns.isKnownLabelKey(key), key).toBe(true);
+        const label = harness.ns.labelForKey(key);
+        if (englishToken.test(label) || label.includes(feature)) {
+          missing.push(key + '=' + label);
+        }
+      }
+    }
+    expect(missing, `label table gaps: ${missing.join(', ')}`).toEqual([]);
+    expect(Object.keys(harness.ns.ZONE_KEY_LABELS).sort()).toEqual([...STATIC_ZONE_KEYS].sort());
+  });
+
+  it('formats window periods in Korean and attaches descriptions (#1716)', async () => {
+    const harness = createOpsStatusHarness();
+    expect(harness.ns.formatWindowPeriod('7d')).toBe('최근 7일');
+    expect(harness.ns.formatWindowPeriod('30d')).toBe('최근 30일');
+    expect(harness.ns.formatWindowPeriod('24h')).toBe('최근 24시간');
+    expect(harness.ns.formatWindowPeriod(null)).toBe('현재');
+    expect(harness.ns.descriptionForKey('item_filter_kept')).toContain('점수 기준');
+    expect(dashboardHtml).toContain('id="ops-status-term-list"');
+
+    const zones = sampleZones();
+    const harness2 = createOpsStatusHarness({
+      fetchImpl: async () => ({ zones, window: window7d() }),
+    });
+    await harness2.ns.refresh();
+    const termHost = harness2.elements['ops-status-term-list'] as {
+      children: Array<{ textContent?: string }>;
+    };
+    expect(termHost.children.length).toBeGreaterThan(0);
+    expect(termHost.children.some((c) => String(c.textContent).includes('항목 필터 남김'))).toBe(true);
+
+    const cards = harness2.zonesHost.children as Array<{
+      children: Array<{
+        children?: Array<{
+          attributes: Record<string, string>;
+          children: Array<{ className?: string; attributes?: Record<string, string> }>;
+        }>;
+      }>;
+    }>;
+    const doingRows = cards[1].children[1].children as Array<{
+      attributes: Record<string, string>;
+      children: Array<{ className?: string; attributes?: Record<string, string> }>;
+    }>;
+    const kept = doingRows.find((r) => r.attributes['data-key'] === 'item_filter_kept');
+    expect(kept).toBeTruthy();
+    const label = kept?.children.find((c) => c.className === 'ops-row__label');
+    expect(label?.attributes?.title).toContain('점수 기준');
+    const windowEl = kept?.children.find((c) => c.className === 'ops-row__window') as
+      | { textContent?: string }
+      | undefined;
+    expect(windowEl?.textContent).toBe('최근 7일');
   });
 
   it('shows labels, MB unit and current window for the #1704 disk signals', async () => {
