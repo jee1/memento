@@ -371,8 +371,12 @@ describe('dashboard ops status panel (#1699)', () => {
       fetchImpl: async () => ({ error: 'unavailable' }),
     });
     await harness.ns.refresh();
-    const banner = harness.zonesHost.children[0] as { attributes: Record<string, string> };
+    const banner = harness.zonesHost.children[0] as {
+      attributes: Record<string, string>;
+      children: Array<{ textContent?: string }>;
+    };
     expect(banner.attributes['data-severity']).toBe('crit');
+    expect(banner.children.some((c) => String(c.textContent).includes('HTTP 503'))).toBe(true);
   });
 
   it('labels LLM feature metrics as attempts / other_failures / rate_limited', () => {
