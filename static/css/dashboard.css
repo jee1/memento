@@ -1734,8 +1734,10 @@ circle.em-dot:focus-visible {
 
 .ops-row {
   display: grid;
-  /* Label = max-content (not crushed); empty action col must not reserve 9.5rem. */
-  grid-template-columns: auto max-content minmax(0, 1fr) auto auto;
+  /* Row1: sev (fixed) + label (content) + spacer + window.
+     Value and link each take the next full content row so action buttons
+     never steal width from the value track. */
+  grid-template-columns: var(--size-ops-sev-col) max-content minmax(0, 1fr) auto;
   align-items: center;
   gap: var(--spacing-sm) var(--spacing-md);
   padding: var(--spacing-sm) 0;
@@ -1753,23 +1755,9 @@ circle.em-dot:focus-visible {
 
 .ops-row__label {
   grid-column: 2;
-  max-width: var(--layout-track-12);
   color: var(--color-text-muted);
   overflow-wrap: normal;
   word-break: keep-all;
-}
-
-.ops-row__value {
-  grid-column: 3;
-  min-width: 0;
-  justify-self: stretch;
-  text-align: end;
-  overflow-wrap: anywhere;
-  white-space: normal;
-  font-family: var(--font-numeric);
-  font-variant-numeric: tabular-nums;
-  font-weight: 600;
-  color: var(--color-text-main);
 }
 
 .ops-row__window {
@@ -1777,11 +1765,25 @@ circle.em-dot:focus-visible {
   justify-self: end;
   color: var(--color-text-muted);
   font-size: var(--font-size-xs);
+  white-space: nowrap;
+}
+
+.ops-row__value {
+  grid-column: 2 / -1;
+  justify-self: end;
+  text-align: end;
+  overflow-wrap: normal;
+  word-break: keep-all;
+  white-space: nowrap;
+  font-family: var(--font-numeric);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  color: var(--color-text-main);
 }
 
 .ops-row__link {
-  grid-column: 5;
-  justify-self: end;
+  grid-column: 2 / -1;
+  justify-self: start;
 }
 
 .ops-row[data-severity='crit'] .ops-row__label,
@@ -1796,12 +1798,7 @@ circle.em-dot:focus-visible {
 }
 
 @media (max-width: 30rem) {
-  .ops-row {
-    grid-template-columns: auto max-content minmax(0, 1fr);
-  }
-
-  .ops-row__window,
-  .ops-row__link {
+  .ops-row__window {
     grid-column: 1 / -1;
     justify-self: start;
   }

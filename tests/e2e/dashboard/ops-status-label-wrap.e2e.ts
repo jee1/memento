@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-// #1716: at 1280px (3-column zones) ops-row labels must stay ≤2 lines — not one glyph per line.
+// #1716: at 1280px (3-column zones) ops-row labels and values must not glyph-wrap.
 
 const LONG_BACKUP = '2026-11-13T11:33:16.000Z';
 
@@ -58,6 +58,14 @@ const ZONES = {
       as_of: null,
       window: { period: '30d' },
     },
+    {
+      key: 'embedding_problem_count',
+      value: 12,
+      unit: 'count',
+      severity: 'warn',
+      as_of: null,
+      window: { period: '30d' },
+    },
   ],
 };
 
@@ -100,17 +108,16 @@ async function installOpsStatusRoutes(page: Page): Promise<void> {
 test.describe('ops-status label wrap (#1716)', () => {
   test.use({ viewport: { width: 1280, height: 900 } });
 
-  test('ops-row labels stay at most two lines at 1280px', async ({ page }) => {
+  test('ops-row labels and values stay one line at 1280px', async ({ page }) => {
     await installOpsStatusRoutes(page);
     await page.goto('/dashboard');
-    // Width-0 crushed labels count as Playwright "hidden"; wait on attachment + heading.
     await expect(page.getByRole('heading', { name: '정상인가' })).toBeVisible();
-    await expect(page.locator('.ops-row[data-key="migration_backup"]')).toHaveCount(1);
+    await expect(page.locator('.ops-row[data-key="review_pending_total"]')).toHaveCount(1);
+    await expect(page.locator('.ops-row[data-key="review_pending_total"] .ops-row__link')).toHaveCount(1);
 
-    const tall = await page.evaluate(() => {
-      const labels = Array.from(document.querySelectorAll('.ops-row__label'));
-      return labels
-        .map((el) => {
+    const report = await page.evaluate(() => {
+      const measure = (sel: string) =>
+        Array.from(document.querySelectorAll(sel)).map((el) => {
           const cs = getComputedStyle(el);
           const fontSize = parseFloat(cs.fontSize) || 14;
           const lineHeightRaw = cs.lineHeight;
@@ -123,10 +130,16 @@ test.describe('ops-status label wrap (#1716)', () => {
             height: Math.round(box.height * 10) / 10,
             lines: box.height / lineHeight,
           };
-        })
-        .filter((row) => row.lines > 2.15 || row.width < 1);
+        });
+      const bad = (rows: Array<{ text: string; width: number; height: number; lines: number }>) =>
+        rows.filter((row) => row.lines > 1.15 || row.width < 1);
+      return {
+        labels: bad(measure('.ops-row__label')),
+        values: bad(measure('.ops-row__value')),
+      };
     });
 
-    expect(tall, `labels taller than 2 lines or width-crushed: ${JSON.stringify(tall)}`).toEqual([]);
+    expect(report.labels, `labels not one line: ${JSON.stringify(report.labels)}`).toEqual([]);
+    expect(report.values, `values not one line: ${JSON.stringify(report.values)}`).toEqual([]);
   });
 });

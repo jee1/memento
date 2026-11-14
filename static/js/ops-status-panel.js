@@ -101,11 +101,14 @@
   };
 
   const LLM_FEATURE_LABELS = {
+    agent_chat: '에이전트 채팅',
     cluster_judge: '클러스터 판정',
     consolidation_summarize: '증류 요약',
+    directive_recall: '지침 회상',
     procedural_extraction: '절차 추출',
     relation_extraction: '관계 추출',
     relevance_gate: '관련성 게이트',
+    supersede_judge: '대체 판정',
   };
 
   const LLM_METRIC_LABELS = {

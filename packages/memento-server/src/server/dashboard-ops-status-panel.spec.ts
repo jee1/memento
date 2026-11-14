@@ -381,6 +381,9 @@ describe('dashboard ops status panel (#1699)', () => {
   it('labels LLM feature metrics with Korean names and metric suffixes (#1716)', () => {
     const harness = createOpsStatusHarness();
     expect(harness.ns.labelForKey('llm_cluster_judge_attempts')).toBe('클러스터 판정 / 시도');
+    expect(harness.ns.labelForKey('llm_agent_chat_attempts')).toBe('에이전트 채팅 / 시도');
+    expect(harness.ns.labelForKey('llm_directive_recall_other_failures')).toBe('지침 회상 / 기타 실패');
+    expect(harness.ns.labelForKey('llm_supersede_judge_rate_limited')).toBe('대체 판정 / 호출 한도');
     expect(harness.ns.labelForKey('llm_gemini_other_failures')).toBe('gemini / 기타 실패');
     expect(harness.ns.labelForKey('llm_gemini_rate_limited')).toBe('gemini / 호출 한도');
     expect(harness.ns.labelForKey('llm_typesafe_attempts')).toBe('typesafe / 시도');
