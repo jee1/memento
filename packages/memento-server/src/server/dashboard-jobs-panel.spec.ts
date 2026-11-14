@@ -8,11 +8,14 @@ import vm from 'node:vm';
 
 import { describe, expect, it, vi } from 'vitest';
 
+import { REGISTERED_MANUAL_BATCH_JOB_TYPES } from '@memento/core/infrastructure/scheduler/batch-scheduler/batch-scheduler-job-runners.js';
+
 const root = resolve(process.cwd());
 const dashboardHtml = readFileSync(resolve(root, 'static/dashboard.html'), 'utf8');
 
 const JOBS_PANEL_SCRIPTS = [
   'jobs-panel-shared.js',
+  'jobs-panel-format.js',
   'jobs-panel-render.js',
   'jobs-panel-fetch.js',
   'jobs-panel.js',
@@ -363,7 +366,8 @@ describe('dashboard jobs panel (#832)', () => {
     expect(dashboardHtml).toContain('id="jobs-run-history"');
     expect(dashboardHtml).toContain('id="jobs-batch-guide-list"');
     expect(dashboardHtml).toContain('id="jobs-drawer-description"');
-    expect(dashboardHtml).toMatch(/process-local|#833/i);
+    expect(dashboardHtml).toContain('jobs-panel-format.js');
+    expect(dashboardHtml).toMatch(/수동 실행 이력|확인 후 적용/);
     for (const name of JOBS_PANEL_SCRIPTS) {
       expect(dashboardHtml).toContain(`/static/js/${name}`);
     }
@@ -382,10 +386,10 @@ describe('dashboard jobs panel (#832)', () => {
   it('dashboard.html registers durable job_run timeline markup and disclaimer (#833)', () => {
     expect(dashboardHtml).toContain('id="jobs-timeline-tbody"');
     expect(dashboardHtml).toContain('id="jobs-drawer"');
-    expect(dashboardHtml).toContain('/admin/batch/runs');
-    expect(dashboardHtml).toMatch(/job_run/i);
-    expect(dashboardHtml).toMatch(/durable/i);
+    expect(dashboardHtml).toMatch(/실행 이력/);
+    expect(dashboardHtml).toMatch(/실시간 스트림 없음/);
     expect(dashboardHtml).not.toMatch(/재시작 후 소멸/);
+    expect(dashboardHtml).not.toContain('/admin/batch/runs');
   });
 
   it('dashboard.html registers Phase 3 logs + drawer tabs (#834 / #1152)', () => {
@@ -401,11 +405,12 @@ describe('dashboard jobs panel (#832)', () => {
       expect(dashboardHtml).toContain(`id="jobs-dtab-${t}"`);
       expect(dashboardHtml).toContain(`id="jobs-dpanel-${t}"`);
     }
-    expect(dashboardHtml).toMatch(/\/admin\/batch\/runs\/:runId\/logs|runs\/:runId\/logs/i);
+    expect(dashboardHtml).toMatch(/로그를 새로고침|로그 새로고침/);
     expect(dashboardHtml).toMatch(/일시정지/);
     expect(dashboardHtml).toMatch(/재개/);
     expect(dashboardHtml).toMatch(/지금 실행/);
     expect(dashboardHtml).not.toMatch(/#83[34]/);
+    expect(dashboardHtml).not.toMatch(/\/admin\/batch\/runs\/:runId\/logs/);
   });
 
   it('dashboard tabs register jobs panel and init on tab open', () => {
@@ -708,7 +713,7 @@ describe('dashboard jobs panel (#832)', () => {
       ).toBe(true);
     });
     await vi.waitFor(() => {
-      expect(h.elements['jobs-drawer-job'].textContent).toBe('cleanup');
+      expect(h.elements['jobs-drawer-job'].textContent).toBe('망각 정책 배치');
     });
     expect(h.elements['jobs-drawer-badge'].className).toContain('m-badge--ok');
     expect(h.elements['jobs-dtab-runs'].attributes['aria-selected']).toBe('true');
@@ -1103,7 +1108,7 @@ describe('dashboard jobs panel (#832)', () => {
     expect(h.elements['jobs-error'].textContent).toBe(
       '요청이 너무 많습니다 — 900초 후 다시 시도하세요.',
     );
-    expect(h.elements['jobs-status-line'].textContent).toBe('지금 실행 cleanup 실패');
+    expect(h.elements['jobs-status-line'].textContent).toBe('지금 실행 망각 정책 배치 실패');
   });
 
   it('does not claim 완료 when the post-write refresh fails (#1158)', async () => {
@@ -1125,11 +1130,47 @@ describe('dashboard jobs panel (#832)', () => {
     await h.sandbox.__MEMENTO_JOBS_PANEL__.runJobNow('cleanup');
 
     expect(h.elements['jobs-status-line'].textContent).toBe(
-      '지금 실행 cleanup 완료 — 화면 갱신 실패, 새로고침하세요',
+      '지금 실행 망각 정책 배치 완료 — 화면 갱신 실패, 새로고침하세요',
     );
     expect(h.elements['jobs-error'].textContent).toBe(
       '요청이 너무 많습니다 — 900초 후 다시 시도하세요.',
     );
     expect(h.elements['jobs-loading'].classList.contains('hidden')).toBe(true);
+  });
+
+  it('covers every registered manual job type with a Korean label (#1724)', () => {
+    const h = createJobsHarness();
+    const ns = h.sandbox.__MEMENTO_JOBS_PANEL__;
+    for (const name of REGISTERED_MANUAL_BATCH_JOB_TYPES) {
+      expect(ns.isKnownJobTypeLabel(name), name).toBe(true);
+      const label = ns.formatJobTypeLabel(name);
+      expect(label, name).toBeTruthy();
+      expect(label, name).not.toBe(name);
+      expect(label, name).toMatch(/[가-힣]/);
+    }
+    expect(ns.formatIntervalHuman(86400000)).toBe('매일');
+    expect(ns.formatIntervalHuman(300000)).toBe('5분마다');
+    expect(ns.formatTrigger('schedule')).toBe('예약');
+    expect(ns.formatQueueSummary({ size: 0, runningCount: 0, runningNames: [], queuedNames: [] })).toMatch(
+      /대기열/,
+    );
+    expect(ns.formatQueueSummary({ size: 0, runningCount: 0, runningNames: [], queuedNames: [] })).not.toMatch(
+      /runningCount/,
+    );
+  });
+
+  it('schedule row shows Korean name, human interval, not raw ms (#1724)', async () => {
+    const h = createJobsHarness();
+    await h.sandbox.__MEMENTO_JOBS_PANEL__.refresh();
+    const row = h.elements['jobs-schedule-tbody'].children[0] as {
+      children: Array<{ className?: string; textContent?: string; children?: Array<{ className?: string; textContent?: string }> }>;
+    };
+    const nameTd = row.children[1];
+    const nameEl = (nameTd.children || []).find((c) => c.className === 'jobs-schedule__name');
+    const keyEl = (nameTd.children || []).find((c) => c.className === 'jobs-schedule__key');
+    expect(nameEl?.textContent).toBe('망각 정책 배치');
+    expect(keyEl?.textContent).toBe('cleanup');
+    expect(row.children[2].textContent).toBe('1시간마다');
+    expect(h.elements['jobs-queue-summary'].textContent).toMatch(/대기열/);
   });
 });

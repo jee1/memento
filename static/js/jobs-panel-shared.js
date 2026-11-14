@@ -19,7 +19,9 @@
     allJobs: '전체 작업',
     runPrefix: ' › 실행 ',
     rowMenuLabel: function (name) {
-      return name + ' 동작';
+      const label =
+        typeof ns.formatJobTypeLabel === 'function' ? ns.formatJobTypeLabel(name) : name;
+      return label + ' 동작';
     },
     pause: '일시정지',
     resume: '재개',
@@ -82,11 +84,17 @@
   };
 
   ns.formatIso = function (value) {
-    if (!value) {
-      return '—';
-    }
-    const date = new Date(String(value));
-    return Number.isNaN(date.getTime()) ? String(value) : date.toLocaleString();
+    return typeof ns.formatKoDateTime === 'function'
+      ? ns.formatKoDateTime(value)
+      : (function () {
+          if (!value) {
+            return '—';
+          }
+          const date = new Date(String(value));
+          return Number.isNaN(date.getTime())
+            ? String(value)
+            : date.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+        })();
   };
 
   ns.formatNumber = function (value) {
@@ -177,7 +185,12 @@
     const S = ns.S;
     const jobEl = ns.$('jobs-drawer-job');
     if (jobEl) {
-      jobEl.textContent = ns.state.selectedJob || S.allJobs;
+      jobEl.textContent = ns.state.selectedJob
+        ? typeof ns.formatJobTypeLabel === 'function'
+          ? ns.formatJobTypeLabel(ns.state.selectedJob)
+          : ns.state.selectedJob
+        : S.allJobs;
+      jobEl.title = ns.state.selectedJob || '';
     }
     const runEl = ns.$('jobs-drawer-run');
     if (runEl) {

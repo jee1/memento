@@ -202,10 +202,12 @@ describe('dashboard memory finder panel (#1118)', () => {
     expect(harness.mementoAdminFetch).toHaveBeenCalledTimes(1);
     expect(harness.mementoAdminFetch.mock.calls[0][0]).toBe('/admin/memory/items/mem_abc');
     expect(harness.elements['mf-d-id'].textContent).toBe('mem_abc');
-    expect(harness.elements['mf-d-type'].textContent).toBe('semantic');
+    expect(harness.elements['mf-d-type'].textContent).toBe('의미');
     expect(harness.elements['mf-d-importance'].textContent).toBe('0.7');
     expect(harness.elements['mf-d-pinned'].textContent).toBe('예');
-    expect(harness.elements['mf-d-accessed'].textContent).toBe('2026-10-02T00:00:00Z');
+    expect(harness.elements['mf-d-accessed'].textContent).toBe(
+      new Date('2026-10-02T00:00:00Z').toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
+    );
     expect(harness.elements['mf-d-tags'].textContent).toBe('—');
     expect(harness.elements['mf-d-project'].textContent).toBe('—');
     expect(harness.elements['mf-d-owner'].textContent).toBe('agent-1');
@@ -234,7 +236,9 @@ describe('dashboard memory finder panel (#1118)', () => {
     await flushPromises();
 
     expect(harness.elements['mf-d-pinned'].textContent).toBe('아니오');
-    expect(harness.elements['mf-d-accessed'].textContent).toBe('2026-09-30T00:00:00Z');
+    expect(harness.elements['mf-d-accessed'].textContent).toBe(
+      new Date('2026-09-30T00:00:00Z').toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' }),
+    );
   });
 
   it('open hides detail after 404 following a successful open', async () => {
@@ -258,7 +262,7 @@ describe('dashboard memory finder panel (#1118)', () => {
     await harness.ns.open('mem_missing');
     await flushPromises();
 
-    expect(harness.elements['mf-status'].textContent).toBe('해당 Memory ID 의 기억이 없습니다');
+    expect(harness.elements['mf-status'].textContent).toBe('해당 기억 ID의 기억이 없습니다');
     expect(harness.elements['mf-detail'].classList.contains('hidden')).toBe(true);
   });
 
@@ -273,7 +277,7 @@ describe('dashboard memory finder panel (#1118)', () => {
     await harness.ns.open('bad-id');
     await flushPromises();
 
-    expect(harness.elements['mf-status'].textContent).toBe('올바른 Memory ID 형식이 아닙니다 (mem_…)');
+    expect(harness.elements['mf-status'].textContent).toBe('올바른 기억 ID 형식이 아닙니다 (mem_…)');
   });
 
   it('open surfaces server error body on 500', async () => {
@@ -296,7 +300,7 @@ describe('dashboard memory finder panel (#1118)', () => {
     await harness.ns.open('   ');
     await flushPromises();
 
-    expect(harness.elements['mf-status'].textContent).toBe('Memory ID 를 입력하세요');
+    expect(harness.elements['mf-status'].textContent).toBe('기억 ID를 입력하세요');
     expect(harness.mementoAdminFetch).not.toHaveBeenCalled();
   });
 

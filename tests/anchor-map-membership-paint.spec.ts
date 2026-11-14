@@ -57,7 +57,7 @@ describe('issue #1692 memory node membership paint', () => {
     expect(paint.stroke).toBe('stroke-c');
     expect(paint.fillOpacity).toBe(1);
     expect(paint.primarySlot).toBe('A');
-    expect(paint.membershipLabel).toBe('A(1-hop), C(3-hop)');
+    expect(paint.membershipLabel).toBe('A(1홉), C(3홉)');
   });
 
   it('breaks hop ties with slot order A then B then C', () => {

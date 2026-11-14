@@ -61,6 +61,45 @@ async function installSettingsRoutes(page: Page, puts: Array<Record<string, unkn
                 last_change: { action: 'set', actor: 'session:abc', reason: 'e2e 사유', created_at: '2026-11-01T00:00:00.000Z' },
               })
             : setting({}),
+          setting({
+            key: 'SEARCH_REJECTION_GATE_THRESHOLD',
+            description: '검색 기각 게이트 임계값. 낮으면 더 많은 질의를 거부한다.',
+            kind: 'number',
+            allowed: null,
+            risk: 'high',
+            value: '0.35',
+            default_value: '0.5',
+            default_source: 'shared/config/constants.ts DEFAULT_MEMORY_INJECTION_THRESHOLD',
+            inactive_reason: '상위 스위치가 꺼져 이 값을 읽지 않습니다.',
+            last_change: {
+              action: 'set',
+              actor: 'session:abc',
+              reason: '임계 조정',
+              created_at: '2026-11-14T05:00:00.000Z',
+            },
+          }),
+          setting({
+            key: 'CLUSTER_JUDGE_MODE',
+            description: '군집 판정 모드.',
+            kind: 'string',
+            allowed: ['off', 'on'],
+            risk: 'low',
+            value: 'off',
+            source: 'env',
+            default_value: 'off',
+            default_source: 'shared/config/environment.ts ENV_DEFAULTS isClusterJudgeEnabled',
+          }),
+          setting({
+            key: 'PROCEDURAL_EXTRACTION_STRATEGY',
+            description: '절차 추출 전략.',
+            kind: 'enum',
+            allowed: ['rule_only', 'llm_only', 'hybrid'],
+            risk: 'low',
+            value: 'rule_only',
+            source: 'default',
+            default_value: 'rule_only',
+            default_source: 'shared/config/constants.ts',
+          }),
         ],
         read_only: [
           { key: 'OPENAI_API_KEY', secret: true, set: true, value: null },
@@ -76,12 +115,162 @@ async function installSettingsRoutes(page: Page, puts: Array<Record<string, unkn
   });
 }
 
+async function openSettingsTab(page: Page): Promise<void> {
+  const tab = page.locator('#dashboard-tab-settings');
+  if (!(await tab.isVisible())) {
+    await page.locator('#dashboard-nav-toggle').click();
+    await expect(tab).toBeVisible();
+  }
+  await tab.click();
+  await expect(page.locator('#settings-tbody tr')).toHaveCount(4, { timeout: 10_000 });
+}
+
+async function measureSettingsTable(page: Page) {
+  return page.evaluate(() => {
+    function lineCount(el: HTMLElement): number {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      return new Set(Array.from(range.getClientRects()).map((r) => Math.round(r.top))).size;
+    }
+
+    function measureKeys(table: HTMLTableElement) {
+      const keyClip: Array<{ scroll: number; client: number; lines: number; text: string }> = [];
+      const keyTruncated: Array<{ text: string; scroll: number; client: number }> = [];
+      for (const key of Array.from(table.querySelectorAll('.settings-key')) as HTMLElement[]) {
+        const text = (key.textContent || '').trim();
+        const lines = lineCount(key);
+        if (lines > 1 || key.scrollWidth > key.clientWidth + 1) {
+          keyClip.push({
+            scroll: key.scrollWidth,
+            client: key.clientWidth,
+            lines,
+            text: text.slice(0, 40),
+          });
+        }
+        if (key.scrollWidth > key.clientWidth + 1) {
+          keyTruncated.push({ text: text.slice(0, 40), scroll: key.scrollWidth, client: key.clientWidth });
+        }
+      }
+      return { keyClip, keyTruncated };
+    }
+
+    function measureDefaultCells(table: HTMLTableElement) {
+      const defaultOverlap: Array<{ key: string; defaultRight: number; nextLeft: number }> = [];
+      const pathInCell: string[] = [];
+      const missingSource: string[] = [];
+      const valueClipped: Array<{ key: string; kind: string; text: string; scroll: number; client: number }> = [];
+      for (const row of Array.from(table.querySelectorAll('tbody tr')) as HTMLTableRowElement[]) {
+        const key = row.dataset.key || '';
+        const cells = row.querySelectorAll('td');
+        const def = cells[2] as HTMLElement | undefined;
+        const next = cells[3] as HTMLElement | undefined;
+        if (def && next) {
+          const dr = def.getBoundingClientRect();
+          const nr = next.getBoundingClientRect();
+          if (dr.right > nr.left + 1) {
+            defaultOverlap.push({
+              key,
+              defaultRight: Math.round(dr.right),
+              nextLeft: Math.round(nr.left),
+            });
+          }
+          const visible = (def.innerText || '').replace(/\s+/g, ' ');
+          if (visible.includes('shared/config')) pathInCell.push(key + ':' + visible.slice(0, 80));
+          if (!def.querySelector('.settings-default__source')) missingSource.push(key);
+        }
+        const defVal = row.querySelector('.settings-default__value') as HTMLElement | null;
+        if (defVal && defVal.scrollWidth > defVal.clientWidth + 1) {
+          valueClipped.push({
+            key,
+            kind: 'default',
+            text: (defVal.textContent || '').trim(),
+            scroll: defVal.scrollWidth,
+            client: defVal.clientWidth,
+          });
+        }
+        const sel = row.querySelector('.settings-edit select') as HTMLSelectElement | null;
+        if (sel && sel.scrollWidth > sel.clientWidth + 1) {
+          valueClipped.push({
+            key,
+            kind: 'select',
+            text: sel.value,
+            scroll: sel.scrollWidth,
+            client: sel.clientWidth,
+          });
+        }
+      }
+      return { defaultOverlap, pathInCell, missingSource, valueClipped };
+    }
+
+    function measureChrome(table: HTMLTableElement) {
+      const thLines: Array<{ text: string; lines: number }> = [];
+      for (const th of Array.from(table.querySelectorAll('thead th')) as HTMLElement[]) {
+        const lines = lineCount(th);
+        if (lines > 1) thLines.push({ text: (th.textContent || '').trim(), lines });
+      }
+      const btnLines: Array<{ text: string; lines: number; w: number }> = [];
+      for (const btn of Array.from(table.querySelectorAll('.settings-btn')) as HTMLElement[]) {
+        const lines = lineCount(btn);
+        if (lines > 1) {
+          btnLines.push({
+            text: (btn.textContent || '').trim(),
+            lines,
+            w: Math.round(btn.getBoundingClientRect().width),
+          });
+        }
+      }
+      const badgeLines: Array<{ text: string; lines: number; w: number }> = [];
+      const emptyBadges: Array<{ w: number; h: number; cls: string }> = [];
+      for (const badge of Array.from(table.querySelectorAll('.m-badge')) as HTMLElement[]) {
+        const text = (badge.textContent || '').trim();
+        const box = badge.getBoundingClientRect();
+        const lines = lineCount(badge);
+        if (lines > 1) badgeLines.push({ text, lines, w: Math.round(box.width) });
+        if (!text || box.width < 8) {
+          emptyBadges.push({ w: Math.round(box.width), h: Math.round(box.height), cls: badge.className });
+        }
+      }
+      return { thLines, btnLines, badgeLines, emptyBadges };
+    }
+
+    const table = document.querySelector('#settings-table') as HTMLTableElement | null;
+    if (!table) {
+      return { ok: false as const };
+    }
+    const cols = Array.from(table.querySelectorAll('col')).map((c) => getComputedStyle(c).width);
+    const keys = measureKeys(table);
+    const cells = measureDefaultCells(table);
+    const chrome = measureChrome(table);
+    const sourceLabels = Array.from(table.querySelectorAll('.m-badge')).map((b) =>
+      (b.textContent || '').trim(),
+    );
+    const stackedPhone =
+      window.innerWidth <= 480 &&
+      Array.from(table.querySelectorAll('tbody td')).some(
+        (td) => getComputedStyle(td).flexDirection === 'column',
+      );
+    const intro = document.querySelector('.settings-intro') as HTMLElement | null;
+
+    return {
+      ok: true as const,
+      colCount: cols.length,
+      equalCols: cols.length >= 2 && cols.every((w) => w === cols[0]),
+      ...chrome,
+      ...keys,
+      ...cells,
+      sourceLabels,
+      stackedPhone,
+      introBreak: intro ? getComputedStyle(intro).wordBreak : '',
+    };
+  });
+}
+
 test.describe('Settings dashboard tab (#1583)', () => {
   test('changes a setting only after a reason, then offers revert, and never renders secrets', async ({ page }) => {
     const puts: Array<Record<string, unknown>> = [];
     await installSettingsRoutes(page, puts);
     await page.goto('/dashboard');
-    await page.locator('#dashboard-tab-settings').click();
+    await openSettingsTab(page);
 
     const row = page.locator('#settings-tbody tr[data-key="SUPERSEDE_APPLY_ENABLED"]');
     await expect(row).toBeVisible();
@@ -105,5 +294,179 @@ test.describe('Settings dashboard tab (#1583)', () => {
     await expect(row.getByRole('button', { name: '되돌리기' })).toBeVisible();
     await expect(page.locator('#settings-events-tbody')).toContainText('e2e 사유');
     await page.screenshot({ path: test.info().outputPath('settings-tab.png'), fullPage: true });
+  });
+
+  for (const width of [390, 768, 1280] as const) {
+    test(`settings cells stay readable at ${width}px (#1724 r2)`, async ({ page }) => {
+      const puts: Array<Record<string, unknown>> = [];
+      await page.setViewportSize({ width, height: 900 });
+      await installSettingsRoutes(page, puts);
+      await page.goto('/dashboard');
+      await openSettingsTab(page);
+
+      await expect(page.locator('#settings-table thead')).toContainText('마지막 변경');
+      await expect(page.locator('#settings-tbody .settings-default__source').first()).toContainText('코드');
+      await expect(page.locator('#settings-tbody')).toContainText('환경 기본값');
+      await expect(page.locator('#settings-tbody')).toContainText('상수 기본값');
+      await expect(page.locator('#settings-tbody')).toContainText('환경 파일 값');
+      await expect(page.locator('#settings-tbody')).not.toContainText('.ENV');
+      await expect(page.locator('#settings-tbody')).not.toContainText('.env');
+
+      const report = await measureSettingsTable(page);
+      expect(report.ok).toBe(true);
+      if (!report.ok) return;
+      expect(report.colCount).toBe(6);
+      expect(report.equalCols, `equal cols (missing widths)`).toBe(false);
+      expect(report.thLines, `header wrap: ${JSON.stringify(report.thLines)}`).toEqual([]);
+      expect(report.pathInCell, `path in cell: ${JSON.stringify(report.pathInCell)}`).toEqual([]);
+      expect(report.missingSource, `missing source node: ${JSON.stringify(report.missingSource)}`).toEqual([]);
+      expect(report.btnLines, `btn wrap: ${JSON.stringify(report.btnLines)}`).toEqual([]);
+      expect(report.badgeLines, `badge wrap: ${JSON.stringify(report.badgeLines)}`).toEqual([]);
+      expect(report.emptyBadges, `empty badge: ${JSON.stringify(report.emptyBadges)}`).toEqual([]);
+      expect(report.valueClipped, `value clip: ${JSON.stringify(report.valueClipped)}`).toEqual([]);
+      expect(report.introBreak, 'settings intro must keep-all Korean words').toBe('keep-all');
+      await expect(page.locator('#settings-tbody')).toContainText('rule_only');
+      if (width === 390) {
+        // Stacked cards: side-by-side overlap metric does not apply
+        expect(report.stackedPhone, '390 settings cells must stack full-width').toBe(true);
+        expect(report.keyTruncated, `390 key truncate: ${JSON.stringify(report.keyTruncated)}`).toEqual([]);
+        await expect(page.locator('#settings-tbody')).toContainText('SEARCH_REJECTION_GATE_THRESHOLD');
+        await expect(page.locator('#settings-tbody')).toContainText('CLUSTER_JUDGE_MODE');
+        await expect(page.locator('#settings-tbody .settings-inactive-reason').first()).toBeVisible();
+        await expect(page.locator('#settings-tbody .settings-default__source').first()).toBeVisible();
+      } else {
+        expect(report.defaultOverlap, `default overlap: ${JSON.stringify(report.defaultOverlap)}`).toEqual([]);
+        expect(
+          report.keyClip.filter((k) => k.lines > 1),
+          `key glyph wrap: ${JSON.stringify(report.keyClip)}`,
+        ).toEqual([]);
+      }
+    });
+  }
+
+  test('narrow default column + ellipsis clips rule_only (counter-check)', async ({ page }) => {
+    const puts: Array<Record<string, unknown>> = [];
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await installSettingsRoutes(page, puts);
+    await page.goto('/dashboard');
+    await openSettingsTab(page);
+
+    const before = await measureSettingsTable(page);
+    expect(before.ok && before.valueClipped.length === 0).toBe(true);
+
+    await page.evaluate(() => {
+      const style = document.createElement('style');
+      style.textContent = `
+        .settings-col-default { width: 4.5rem !important; }
+        .settings-col-actions { width: 4.5rem !important; }
+        .settings-default { overflow: hidden !important; max-width: 0 !important; }
+        .settings-default__value {
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          white-space: nowrap !important;
+        }
+      `;
+      document.head.appendChild(style);
+    });
+
+    const after = await measureSettingsTable(page);
+    expect(after.ok).toBe(true);
+    if (!after.ok) return;
+    expect(after.valueClipped.length, `revert should clip: ${JSON.stringify(after.valueClipped)}`).toBeGreaterThan(0);
+  });
+
+  test('removing settings colgroup equalizes columns (counter-check)', async ({ page }) => {
+    const puts: Array<Record<string, unknown>> = [];
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await installSettingsRoutes(page, puts);
+    await page.goto('/dashboard');
+    await openSettingsTab(page);
+
+    const before = await measureSettingsTable(page);
+    expect(before.ok && !before.equalCols).toBe(true);
+
+    await page.evaluate(() => {
+      document.querySelector('#settings-table colgroup')?.remove();
+      const style = document.createElement('style');
+      style.textContent = `
+        #settings-table { table-layout: fixed; width: 100%; }
+        .settings-key { overflow-wrap: anywhere !important; white-space: normal !important; }
+      `;
+      document.head.appendChild(style);
+    });
+
+    const after = await measureSettingsTable(page);
+    expect(after.ok).toBe(true);
+    if (!after.ok) return;
+    expect(after.colCount).toBe(0);
+    const broken =
+      after.thLines.length > 0 || after.keyClip.some((k) => k.lines > 1) || after.equalCols;
+    expect(broken, `revert should break layout: ${JSON.stringify(after)}`).toBe(true);
+  });
+
+  test('reverting defaultCell to path concat overflows and exposes shared/config (counter-check)', async ({
+    page,
+  }) => {
+    const puts: Array<Record<string, unknown>> = [];
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await installSettingsRoutes(page, puts);
+    await page.goto('/dashboard');
+    await openSettingsTab(page);
+
+    const before = await measureSettingsTable(page);
+    expect(before.ok && before.defaultOverlap.length === 0 && before.pathInCell.length === 0).toBe(true);
+
+    await page.evaluate(() => {
+      const ns = (window as unknown as {
+        __MEMENTO_SETTINGS_PANEL__: {
+          state: { settings: Array<Record<string, unknown>> };
+          formatValue: (v: unknown) => string;
+          el: (tag: string, cls?: string, text?: string) => HTMLElement;
+          clearNode: (n: HTMLElement | null) => void;
+          $: (id: string) => HTMLElement | null;
+          renderSettings: () => void;
+        };
+      }).__MEMENTO_SETTINGS_PANEL__;
+      ns.renderSettings = function () {
+        const tbody = ns.$('settings-tbody');
+        ns.clearNode(tbody);
+        ns.state.settings.forEach(function (setting) {
+          const row = document.createElement('tr');
+          row.dataset.key = String(setting.key || '');
+          for (let i = 0; i < 6; i++) {
+            const td = document.createElement('td');
+            if (i === 2) {
+              td.textContent =
+                ns.formatValue(setting.default_value) + ' (' + String(setting.default_source || '') + ')';
+            } else if (i === 0) {
+              const key = document.createElement('code');
+              key.className = 'm-code-inline settings-key';
+              key.textContent = String(setting.key || '');
+              td.appendChild(key);
+            } else {
+              td.textContent = i === 5 ? '변경' : 'x';
+            }
+            row.appendChild(td);
+          }
+          tbody?.appendChild(row);
+        });
+      };
+      const style = document.createElement('style');
+      style.textContent = `
+        .settings-col-default { width: 6.5rem !important; }
+        .settings-default, .settings-default__value, .settings-default__source { all: unset; }
+      `;
+      document.head.appendChild(style);
+      ns.renderSettings();
+    });
+
+    const after = await measureSettingsTable(page);
+    expect(after.ok).toBe(true);
+    if (!after.ok) return;
+    const broken =
+      after.pathInCell.length > 0 ||
+      after.defaultOverlap.length > 0 ||
+      after.missingSource.length > 0;
+    expect(broken, `concat revert should fail gate: ${JSON.stringify(after)}`).toBe(true);
   });
 });

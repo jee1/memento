@@ -116,7 +116,7 @@
 ## Content voice
 - Tone: Operator-direct, short, no marketing fluff.
 - Locale decision: **KO-first** — visible chrome (titles, tabs, buttons, empty/error, auth) Korean. Keep stable domain tokens in Latin where operators already know them: slot `A`/`B`/`C`, type names, provider ids (`minilm`, …). Specs that assert EN strings must update with the KO pass.
-- Terminology: 앵커 슬롯 A/B/C; 기억 유형 episodic/semantic/procedural/working; Jobs = 배치 작업; Review Queue = 검토 대기열.
+- Terminology: 앵커 슬롯 A/B/C; 기억 유형 episodic/semantic/procedural/working (UI labels 일화/의미/절차/작업); Jobs = 배치 작업 (Korean name + English key); Review Queue = 검토 대기열. Operator-facing copy avoids raw internal keys, ISO timestamps, and raw interval ms (#1724).
 - Microcopy rules: No emoji in `h1`; `title` tooltips OK for dense controls; prefer one KO string over bilingual clutter.
 
 ## Implementation constraints

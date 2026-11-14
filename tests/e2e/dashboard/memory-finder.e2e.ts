@@ -118,7 +118,7 @@ test.describe('Memory finder dashboard (#1118)', () => {
     await page.locator('#mf-id-input').fill('mem_missing');
     await page.locator('#mf-id-input').press('Enter');
 
-    await expect(page.locator('#mf-status')).toHaveText('해당 Memory ID 의 기억이 없습니다');
+    await expect(page.locator('#mf-status')).toHaveText('해당 기억 ID의 기억이 없습니다');
     await expect(page.locator('#mf-detail')).toBeHidden();
   });
 

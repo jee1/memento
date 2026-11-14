@@ -82,13 +82,13 @@
     <div id="tab-anchor-map" class="tab-panel session-only" role="tabpanel" aria-labelledby="dashboard-tab-anchor" aria-hidden="true">
       <div class="anchor-map-toolbar m-toolbar" aria-label="앵커 맵 컨트롤">
         <div class="m-toolbar-primary">
-          <label for="agent-id-select" title="맵·검색 API에 사용할 에이전트 식별자입니다. 앵커가 설정된 agent_id 목록에서 선택합니다.">Agent ID:</label>
+          <label for="agent-id-select" title="맵·검색 API에 사용할 에이전트 식별자입니다. 앵커가 설정된 agent_id 목록에서 선택합니다.">에이전트</label>
           <select id="agent-id-select" class="m-input" title="맵·검색 API에 사용할 에이전트 식별자입니다. 앵커가 설정된 agent_id 목록에서 선택합니다.">
             <option value="default">default (앵커 없음)</option>
           </select>
           <label for="search-query-input" title="선택한 앵커 슬롯 주변에서 검색합니다. 국소 결과가 부족하면 전역 검색으로 확장됩니다.">검색:</label>
           <input type="text" id="search-query-input" class="m-input" placeholder="기억 검색..." title="검색어를 입력하고 검색 또는 Enter를 누르세요.">
-          <select id="search-slot-select" class="m-input" title="검색 기준 앵커 슬롯입니다. A=1-hop, B=2-hop, C=3-hop 범위가 적용됩니다.">
+          <select id="search-slot-select" class="m-input" title="검색 기준 앵커 슬롯입니다. A=1홉, B=2홉, C=3홉 범위가 적용됩니다.">
             <option value="A" selected>슬롯 A</option>
             <option value="B">슬롯 B</option>
             <option value="C">슬롯 C</option>
@@ -142,15 +142,15 @@
           <div id="anchor-map"></div>
           <div class="map-legend">
             <h3 title="맵 노드 색상과 의미입니다.">범례</h3>
-            <div class="legend-item" title="슬롯 A 앵커와 그 기억 — 검색 범위 A=1-hop">
+            <div class="legend-item" title="슬롯 A 앵커와 그 기억 — 검색 범위 A=1홉">
               <span class="legend-color anchor-a"></span>
               <span>슬롯 A 앵커와 그 기억</span>
             </div>
-            <div class="legend-item" title="슬롯 B 앵커와 그 기억 — 검색 범위 B=2-hop">
+            <div class="legend-item" title="슬롯 B 앵커와 그 기억 — 검색 범위 B=2홉">
               <span class="legend-color anchor-b"></span>
               <span>슬롯 B 앵커와 그 기억</span>
             </div>
-            <div class="legend-item" title="슬롯 C 앵커와 그 기억 — 검색 범위 C=3-hop">
+            <div class="legend-item" title="슬롯 C 앵커와 그 기억 — 검색 범위 C=3홉">
               <span class="legend-color anchor-c"></span>
               <span>슬롯 C 앵커와 그 기억</span>
             </div>
@@ -273,11 +273,11 @@
               <table id="rc-health-history-table" class="m-table m-table--dense">
                 <thead>
                   <tr>
-                    <th scope="col">샘플 시각 (UTC)</th>
+                    <th scope="col">샘플 시각</th>
                     <th scope="col">대기</th>
-                    <th scope="col">순유입 1h</th>
-                    <th scope="col">생성 1h</th>
-                    <th scope="col">처리 1h</th>
+                    <th scope="col">순유입 1시간</th>
+                    <th scope="col">생성 1시간</th>
+                    <th scope="col">처리 1시간</th>
                   </tr>
                 </thead>
                 <tbody></tbody>
@@ -508,23 +508,23 @@
           <h2 class="memory-finder-title">기억 찾기</h2>
         </header>
         <div class="memory-finder-mode" role="radiogroup" aria-label="찾기 방식">
-          <label class="memory-finder-mode__option"><input type="radio" name="mf-mode" id="mf-mode-id" value="id" checked> Memory ID</label>
+          <label class="memory-finder-mode__option"><input type="radio" name="mf-mode" id="mf-mode-id" value="id" checked> 기억 ID</label>
           <label class="memory-finder-mode__option"><input type="radio" name="mf-mode" id="mf-mode-search" value="search"> 검색어</label>
         </div>
         <form id="mf-id-form" class="memory-finder-form" autocomplete="off">
-          <label for="mf-id-input">Memory ID</label>
+          <label for="mf-id-input">기억 ID</label>
           <input type="text" id="mf-id-input" class="m-input" placeholder="mem_…" spellcheck="false">
           <button type="submit" id="mf-id-open" class="m-button m-button--secondary">열기</button>
         </form>
         <form id="mf-search-form" class="memory-finder-form hidden" autocomplete="off">
           <label for="mf-search-input">검색어</label>
           <input type="search" id="mf-search-input" class="m-input" placeholder="기억 내용이나 문장">
-          <select id="mf-search-type" class="m-select" aria-label="type 필터">
-            <option value="">전체 type</option>
-            <option value="episodic">episodic</option>
-            <option value="semantic">semantic</option>
-            <option value="procedural">procedural</option>
-            <option value="working">working</option>
+          <select id="mf-search-type" class="m-select" aria-label="기억 유형 필터">
+            <option value="">전체 유형</option>
+            <option value="episodic">일화</option>
+            <option value="semantic">의미</option>
+            <option value="procedural">절차</option>
+            <option value="working">작업</option>
           </select>
           <select id="mf-search-limit" class="m-select" aria-label="결과 수">
             <option value="25">25건</option>
@@ -534,11 +534,11 @@
         </form>
         <p id="mf-status" class="rc-preview-memory-status" aria-live="polite"></p>
         <ul id="mf-results" class="memory-finder-results hidden" aria-label="검색 결과"></ul>
-        <p id="mf-empty" class="m-empty">Memory ID 를 입력하고 열기를 누르면 상세가 표시됩니다</p>
+        <p id="mf-empty" class="m-empty">기억 ID를 입력하고 열기를 누르면 상세가 표시됩니다</p>
         <section id="mf-detail" class="m-panel hidden" aria-label="기억 상세">
           <dl class="rc-preview-dl">
-            <div><dt>Memory ID</dt><dd id="mf-d-id" class="rc-cell-mono"></dd></div>
-            <div><dt>type</dt><dd id="mf-d-type"></dd></div>
+            <div><dt>기억 ID</dt><dd id="mf-d-id" class="rc-cell-mono"></dd></div>
+            <div><dt>유형</dt><dd id="mf-d-type"></dd></div>
             <div><dt>중요도</dt><dd id="mf-d-importance"></dd></div>
             <div><dt>공개 범위</dt><dd id="mf-d-privacy"></dd></div>
             <div><dt>고정</dt><dd id="mf-d-pinned"></dd></div>
@@ -546,8 +546,8 @@
             <div><dt>마지막 접근</dt><dd id="mf-d-accessed" class="rc-cell-mono"></dd></div>
             <div><dt>태그</dt><dd id="mf-d-tags"></dd></div>
             <div><dt>출처</dt><dd id="mf-d-source"></dd></div>
-            <div><dt>Project ID</dt><dd id="mf-d-project"></dd></div>
-            <div><dt>Agent ID</dt><dd id="mf-d-owner" class="rc-cell-mono"></dd></div>
+            <div><dt>프로젝트</dt><dd id="mf-d-project"></dd></div>
+            <div><dt>에이전트</dt><dd id="mf-d-owner" class="rc-cell-mono"></dd></div>
           </dl>
           <pre id="mf-d-content" class="rc-preview-content"></pre>
         </section>
@@ -562,18 +562,17 @@
               <summary class="m-about__summary">이건 뭔가요</summary>
               <div class="m-about__body">
                 <p class="jobs-intro">
-                  스케줄 표, 메모리 내 큐 스냅샷, durable 실행 이력, 실행 로그.
-                  일시정지 / 재개 / 지금 실행 / 재시도는 확인 대화상자를 사용하며, 수동 새로고침만 지원합니다.
+                  예약된 배치 작업의 상태, 대기열, 실행 이력과 로그를 봅니다.
+                  일시정지·재개·지금 실행·재시도는 확인 후 적용되며, 화면은 수동 새로고침만 합니다.
                 </p>
                 <h3 class="m-about__heading">데이터 출처</h3>
                 <ul class="m-about__list">
-                  <li>작업 실행은 <strong>job_run</strong> / <strong>job_run_log</strong>에 보존됩니다.</li>
-                  <li>실행 타임라인: <code>GET /admin/batch/runs</code> (durable; 행 선택 시 로그)</li>
-                  <li>실행 로그: <code>GET /admin/batch/runs/:runId/logs</code> (수동 새로고침; SSE 없음)</li>
-                  <li>수동 실행 이력: <code>GET /admin/batch/run-history</code> (process-local 링 버퍼, 보조; POST /admin/batch/run만)</li>
+                  <li>실행 이력은 DB에 남고, 행을 고르면 그 실행의 로그를 봅니다.</li>
+                  <li>로그는 새로고침 버튼으로만 다시 불러옵니다(실시간 스트림 없음).</li>
+                  <li>수동 실행 이력은 이 프로세스 안의 짧은 기록이며, 「지금 실행」에만 해당합니다.</li>
                 </ul>
                 <h3 class="m-about__heading">등록 배치 역할</h3>
-                <p class="jobs-intro">새로고침 후 <code class="m-code-inline">GET /admin/batch/stats</code>의 <code class="m-code-inline">jobs[].description</code>과 동일한 요약입니다.</p>
+                <p class="jobs-intro">새로고침 후 서버가 내려준 작업 설명과 같습니다.</p>
                 <ul id="jobs-batch-guide-list" class="m-about__list"></ul>
               </div>
             </details>
@@ -591,12 +590,20 @@
             <p class="jobs-disclaimer">행을 선택하면 오른쪽에서 실행 이력과 로그를 봅니다. 일시정지·재개·지금 실행은 행의 ⋯ 메뉴에 있고 확인을 거칩니다.</p>
             <div id="jobs-schedule-empty" class="m-empty hidden">예약된 배치 작업이 없습니다.</div>
             <div id="jobs-schedule-table-wrap" class="jobs-table-wrap m-table-wrap">
-              <table id="jobs-schedule-table" class="m-table">
+              <table id="jobs-schedule-table" class="m-table jobs-schedule-table">
+                <colgroup>
+                  <col class="jobs-col-state" />
+                  <col class="jobs-col-name" />
+                  <col class="jobs-col-interval" />
+                  <col class="jobs-col-last" />
+                  <col class="jobs-col-errors" />
+                  <col class="jobs-col-actions" />
+                </colgroup>
                 <thead>
                   <tr>
                     <th scope="col">상태</th>
                     <th scope="col">이름</th>
-                    <th scope="col">간격 ms</th>
+                    <th scope="col">간격</th>
                     <th scope="col">마지막 실행</th>
                     <th scope="col">오류</th>
                     <th scope="col">동작</th>
@@ -622,14 +629,23 @@
             <div id="jobs-dpanel-runs" class="jobs-drawer__panel" role="tabpanel" aria-labelledby="jobs-dtab-runs">
               <p class="jobs-disclaimer">실패한 실행만 재시도할 수 있습니다.</p>
               <div id="jobs-timeline" class="jobs-table-wrap m-table-wrap">
-                <table class="m-table">
+                <table id="jobs-timeline-table" class="m-table jobs-timeline-table">
+                  <colgroup>
+                    <col class="jobs-tl-col-job" />
+                    <col class="jobs-tl-col-trigger" />
+                    <col class="jobs-tl-col-started" />
+                    <col class="jobs-tl-col-ended" />
+                    <col class="jobs-tl-col-duration" />
+                    <col class="jobs-tl-col-outcome" />
+                    <col class="jobs-tl-col-actions" />
+                  </colgroup>
                   <thead>
                     <tr>
                       <th scope="col">작업</th>
                       <th scope="col">트리거</th>
                       <th scope="col">시작</th>
                       <th scope="col">종료</th>
-                      <th scope="col">소요 ms</th>
+                      <th scope="col">소요</th>
                       <th scope="col">성공</th>
                       <th scope="col">동작</th>
                     </tr>
@@ -686,7 +702,15 @@
         <section class="settings-section" aria-labelledby="settings-adjustable-heading">
           <h3 id="settings-adjustable-heading">조정 가능한 설정</h3>
           <div class="m-table-wrap settings-table-wrap">
-            <table id="settings-table" class="m-table">
+            <table id="settings-table" class="m-table settings-table">
+              <colgroup>
+                <col class="settings-col-key" />
+                <col class="settings-col-value" />
+                <col class="settings-col-default" />
+                <col class="settings-col-risk" />
+                <col class="settings-col-changed" />
+                <col class="settings-col-actions" />
+              </colgroup>
               <thead>
                 <tr>
                   <th scope="col">설정</th>
@@ -794,6 +818,7 @@
   <script src="/static/js/embedding-health-card.js"></script>
   <script src="/static/js/memory-inspector.js"></script>
   <script src="/static/js/jobs-panel-shared.js"></script>
+  <script src="/static/js/jobs-panel-format.js"></script>
   <script src="/static/js/jobs-panel-render.js"></script>
   <script src="/static/js/jobs-panel-fetch.js"></script>
   <script src="/static/js/jobs-panel.js"></script>

@@ -295,6 +295,7 @@ body {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   font-family: var(--font-family-mono);
+  overflow-wrap: anywhere;
   word-break: break-all;
 }
 
@@ -329,7 +330,8 @@ body {
 
 .memory-detail-item .value {
   color: var(--color-text-main);
-  word-break: break-word;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 /* Map Container */
@@ -722,6 +724,9 @@ body {
   min-height: 0;
   flex-direction: column;
   overflow: hidden;
+  word-break: keep-all;
+  /* anywhere shrinks table min-content to 1 glyph and crushes cells (1726 r5). */
+  overflow-wrap: break-word;
 }
 
 .tab-panel.active {
@@ -888,6 +893,8 @@ body {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   line-height: var(--line-height-relaxed, 1.45);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 .rc-howto {
@@ -1116,6 +1123,8 @@ body {
 
 .rc-cell-mono {
   font-family: var(--font-family-mono);
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .rc-cell-select,
@@ -1134,13 +1143,13 @@ body {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
+  overflow-wrap: anywhere;
   word-break: normal;
 }
 
 .rc-cell-reason {
   white-space: normal;
-  overflow-wrap: break-word;
-  word-break: normal;
+  overflow-wrap: anywhere;
   max-height: 4.2em;
   overflow: hidden;
 }
@@ -1320,6 +1329,8 @@ body {
   font-size: var(--font-size-sm, 0.875rem);
   color: var(--color-text-muted);
   line-height: 1.5;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 
@@ -1331,6 +1342,8 @@ body {
 
 .jobs-table-wrap {
   max-height: var(--layout-track-28);
+  overflow-x: auto;
+  min-width: 0;
 }
 
 .jobs-retry-btn {
@@ -1344,6 +1357,12 @@ body {
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   gap: var(--spacing-md);
   align-items: start;
+  min-width: 0;
+}
+
+.jobs-section.jobs-schedule {
+  min-width: 0;
+  overflow: hidden;
 }
 
 .jobs-schedule th,
@@ -1351,12 +1370,58 @@ body {
   white-space: nowrap;
 }
 
-.jobs-schedule td:nth-child(2) {
-  overflow-wrap: anywhere;
+/* #1724: fixed columns so Korean labels keep-all and keys do not glyph-wrap. */
+.jobs-schedule-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.jobs-col-state {
+  width: 6.5rem;
+}
+
+.jobs-col-name {
+  width: auto;
+}
+
+.jobs-col-interval {
+  width: 5.5rem;
+}
+
+/* Compact 「11. 14. 오후 4:23」 fits; full stamp stays in title (#1724 review). */
+.jobs-col-last {
+  width: 9rem;
+}
+
+.jobs-col-errors {
+  width: 3rem;
+}
+
+.jobs-col-actions {
+  width: 7rem;
+}
+
+.jobs-schedule__name-cell {
+  overflow: hidden;
 }
 
 .jobs-schedule__name {
   font-weight: var(--font-weight-medium, 600);
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.jobs-schedule__key {
+  margin-top: 0.125rem;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-text-muted, #6b7280);
+  font-weight: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .jobs-schedule__desc {
@@ -1364,6 +1429,87 @@ body {
   font-size: var(--font-size-xs, 0.8125rem);
   color: var(--color-text-muted, #6b7280);
   font-weight: normal;
+  line-height: 1.45;
+  max-height: calc(1.45em * 2);
+  overflow: hidden;
+  word-break: keep-all;
+  overflow-wrap: normal;
+}
+
+.jobs-schedule__interval,
+.jobs-schedule__last {
+  word-break: keep-all;
+  white-space: nowrap;
+  overflow: visible;
+}
+
+/* #1724 r2: drawer is narrow at every desktop width — always card-stack the timeline. */
+.jobs-timeline-table {
+  table-layout: auto;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.jobs-timeline-table thead {
+  position: absolute;
+  width: var(--size-hairline);
+  height: var(--size-hairline);
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+.jobs-timeline-table,
+.jobs-timeline-table tbody,
+.jobs-timeline-table tr,
+.jobs-timeline-table td {
+  display: block;
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+}
+
+.jobs-timeline-table tr {
+  padding: var(--spacing-xs) 0;
+  border-bottom: 1px solid var(--color-border-light);
+}
+
+.jobs-timeline-table td {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: var(--spacing-sm);
+  padding: var(--spacing-px-2) 0;
+  border-bottom: none;
+  text-align: right;
+  overflow: visible;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  white-space: normal;
+}
+
+.jobs-timeline-table td[data-label]::before {
+  content: attr(data-label);
+  flex: none;
+  max-width: 45%;
+  color: var(--color-text-muted);
+  font-size: var(--font-size-xs);
+  text-align: left;
+}
+
+.jobs-timeline__job {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.jobs-timeline__time {
+  white-space: nowrap;
+}
+
+.jobs-guide__key {
+  font-size: var(--font-size-xs, 0.75rem);
 }
 
 .jobs-drawer__description {
@@ -1389,6 +1535,11 @@ body {
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
   background: var(--color-bg-card);
+  min-width: 0;
+  overflow: hidden;
+  /* Drawer stays ~360px even at 1280 — stack timeline like phone cards. */
+  container-type: inline-size;
+  container-name: jobs-drawer;
 }
 
 .jobs-drawer__header {
@@ -1435,6 +1586,10 @@ body {
   flex-direction: column;
   gap: var(--spacing-xs);
   margin-top: var(--spacing-xs);
+}
+
+.jobs-row-menu__list .m-button {
+  white-space: nowrap;
 }
 
 @media (max-width: 48rem) {
@@ -1496,10 +1651,21 @@ body {
 }
 
 @media (max-width: 48rem) {
+  /* #1724 r2: stacked anchor tab must scroll so 기억 상세 stays reachable (390 clip). */
+  #tab-anchor-map.tab-panel.active {
+    overflow-y: auto;
+  }
+
+  #tab-anchor-map .dashboard-main {
+    flex: 0 0 auto;
+    overflow: visible;
+    height: auto;
+  }
+
   .memory-inspector {
     width: 100%;
     flex: 0 0 auto;
-    max-height: 40vh;
+    max-height: none;
     border-left: none;
     border-top: 1px solid var(--color-border-light);
   }
@@ -1571,6 +1737,14 @@ body {
   flex-direction: column;
   min-height: 0;
   overflow-y: auto;
+}
+
+/* 1726 r4: Korean prose wraps on word boundaries across tabs; long Latin tokens still wrap. */
+.ops-status-intro,
+.memory-finder-title + p,
+.tab-panel > .m-empty {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 /* Ops status zones (#1699) */
@@ -1721,8 +1895,7 @@ body {
     padding: var(--spacing-px-2) 0;
     border-bottom: none;
     text-align: right;
-    overflow-wrap: break-word;
-    word-break: normal;
+    overflow-wrap: anywhere;
   }
 
   .m-table td[data-label]::before {
@@ -1756,6 +1929,62 @@ body {
     white-space: normal;
     -webkit-line-clamp: unset;
     display: flex;
+  }
+
+  /* 1726 r3: settings cards stack full-width — not label | narrow value. */
+  #settings-table td {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: var(--spacing-2xs);
+    text-align: left;
+  }
+
+  #settings-table td[data-label]::before {
+    max-width: none;
+    width: 100%;
+    margin-bottom: var(--spacing-4xs);
+  }
+
+  #settings-table .settings-key {
+    display: block;
+    width: 100%;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+    word-break: normal;
+  }
+
+  #settings-table .settings-desc,
+  #settings-table .settings-inactive-reason,
+  #settings-table .settings-value,
+  #settings-table .settings-default,
+  #settings-table .settings-default__value,
+  #settings-table .settings-default__source,
+  #settings-table .settings-edit {
+    width: 100%;
+    max-width: none;
+    text-align: left;
+    white-space: normal;
+    overflow: visible;
+  }
+
+  #settings-table .m-badge {
+    align-self: flex-start;
+    white-space: nowrap;
+    overflow: visible;
+  }
+
+  #settings-table .settings-btn {
+    white-space: nowrap;
+    word-break: keep-all;
+  }
+
+  .settings-events-filter {
+    flex-wrap: nowrap;
+    white-space: nowrap;
   }
 
   .m-stat-grid {
@@ -1895,6 +2124,8 @@ body {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   line-height: 1.45;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 .settings-section h3 {
@@ -1907,9 +2138,67 @@ body {
   max-height: var(--layout-track-32);
 }
 
-.settings-key,
-.settings-value {
+/* #1724 r2: fixed + col widths; default cell no longer dumps shared/config paths. */
+.settings-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.settings-col-key {
+  width: auto;
+}
+
+.settings-col-value {
+  width: 7rem;
+}
+
+/* r4: rule_only 같은 enum 값이 ellipsis 로 잘리지 않게 칸을 넓히고 줄바꿈 허용. */
+.settings-col-default {
+  width: 7.5rem;
+}
+
+.settings-col-risk {
+  width: 8.5rem;
+}
+
+.settings-col-changed {
+  width: 7.5rem;
+}
+
+#settings-table .settings-last-change__actor,
+#settings-events-table .settings-last-change__actor {
+  min-width: 0;
+  max-width: 100%;
   overflow-wrap: anywhere;
+  word-break: break-all;
+}
+
+.settings-col-actions {
+  width: 7.5rem;
+}
+
+.settings-table th,
+#settings-events-table th {
+  word-break: keep-all;
+}
+
+.settings-key {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  overflow-wrap: anywhere;
+  word-break: normal;
+}
+
+.settings-value {
+  overflow-wrap: break-word;
+  word-break: keep-all;
+}
+
+.settings-desc {
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
 .settings-value {
@@ -1917,18 +2206,72 @@ body {
   font-family: var(--font-family-mono);
 }
 
+.settings-default {
+  overflow: visible;
+  max-width: none;
+}
+
+.settings-default__value {
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
+  font-family: var(--font-family-mono);
+}
+
+.settings-default__source {
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+/* Decorative ::before looked like「|」or empty yellow circle when clipped (#1726 r3).
+   Beat .m-badge--*::before in components.css (same 0,2,1) via #settings-table. */
+#settings-table .m-badge {
+  display: inline-flex;
+  white-space: nowrap;
+  overflow: visible;
+  max-width: none;
+  text-transform: none;
+  vertical-align: baseline;
+  gap: 0;
+}
+
+#settings-table .m-badge::before,
+#settings-table .m-badge--ok::before,
+#settings-table .m-badge--warn::before,
+#settings-table .m-badge--crit::before,
+#settings-table .m-badge--idle::before {
+  content: none;
+  display: none;
+  width: 0;
+  height: 0;
+  border: 0;
+  background: none;
+}
+
+.jobs-timeline__actions--empty {
+  color: var(--color-text-muted);
+}
+
 .settings-edit {
-  min-width: var(--layout-track-11);
+  min-width: 0;
 }
 
 .settings-edit .settings-input {
   width: 100%;
   box-sizing: border-box;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .settings-btn {
   margin-top: var(--spacing-xs);
   margin-right: var(--spacing-xs);
+  white-space: nowrap;
+  word-break: keep-all;
 }
 
 .settings-events-filter {

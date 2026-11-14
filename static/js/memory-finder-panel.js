@@ -38,10 +38,10 @@
 
   function statusMessage(status, body) {
     if (status === 400) {
-      return '올바른 Memory ID 형식이 아닙니다 (mem_…)';
+      return '올바른 기억 ID 형식이 아닙니다 (mem_…)';
     }
     if (status === 404) {
-      return '해당 Memory ID 의 기억이 없습니다';
+      return '해당 기억 ID의 기억이 없습니다';
     }
     return (body && (body.error || body.message)) || 'HTTP ' + status;
   }
@@ -51,14 +51,34 @@
     setHidden($('mf-empty'), visible);
   }
 
+  const TYPE_LABELS = {
+    episodic: '일화',
+    semantic: '의미',
+    procedural: '절차',
+    working: '작업',
+    core: '핵심',
+    vault: '볼트',
+  };
+
+  function formatWhen(value) {
+    if (!value) {
+      return '—';
+    }
+    const d = new Date(String(value));
+    if (Number.isNaN(d.getTime())) {
+      return String(value);
+    }
+    return d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+  }
+
   function renderDetail(mem) {
     setField('mf-d-id', mem.id);
-    setField('mf-d-type', mem.type);
+    setField('mf-d-type', TYPE_LABELS[mem.type] || mem.type);
     setField('mf-d-importance', mem.importance);
     setField('mf-d-privacy', mem.privacy_scope);
     setField('mf-d-pinned', mem.pinned ? '예' : '아니오');
-    setField('mf-d-created', mem.created_at);
-    setField('mf-d-accessed', mem.last_accessed_at || mem.last_accessed);
+    setField('mf-d-created', formatWhen(mem.created_at));
+    setField('mf-d-accessed', formatWhen(mem.last_accessed_at || mem.last_accessed));
     setField('mf-d-tags', mem.tags);
     setField('mf-d-source', mem.source);
     setField('mf-d-project', mem.project_id);
@@ -75,7 +95,7 @@
     const id = String(memoryId || '').trim();
     if (!id) {
       showDetail(false);
-      setStatus('Memory ID 를 입력하세요');
+      setStatus('기억 ID를 입력하세요');
       return;
     }
     const generation = ++state.generation;

@@ -199,7 +199,9 @@
     const ts = body && body.timestamp;
     const line = $('rc-status-line');
     if (line && ts) {
-      line.textContent = '마지막 갱신: ' + ts;
+      line.textContent =
+        '마지막 갱신: ' +
+        (typeof ns.formatDue === 'function' ? ns.formatDue(ts) : String(ts));
     }
     if (body && body.pagination && typeof body.pagination.page === 'number') {
       state.listPage = body.pagination.page;

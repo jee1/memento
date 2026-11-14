@@ -120,7 +120,9 @@
         ns.renderLogs([], null);
       }
       ns.renderDrawerHeader();
-      ns.setStatus('갱신 ' + (stats.timestamp || new Date().toISOString()));
+      ns.setStatus(
+        '갱신 ' + ns.formatIso(stats.timestamp || new Date().toISOString()),
+      );
       outcome = 'ok';
     } catch (err) {
       if (generation !== ns.state.refreshGeneration) {
@@ -158,7 +160,7 @@
       ns.state.lastRuns = runs;
       ns.setError('');
       ns.renderTimeline(runs.runs);
-      ns.setStatus('갱신 ' + new Date().toISOString());
+      ns.setStatus('갱신 ' + ns.formatIso(new Date().toISOString()));
     } catch (err) {
       if (generation !== ns.state.refreshGeneration) {
         return;
@@ -186,7 +188,7 @@
       ns.state.lastLogs = payload;
       ns.setError('');
       ns.renderLogs(payload.logs, id);
-      ns.setStatus('로그 갱신 ' + new Date().toISOString());
+      ns.setStatus('로그 갱신 ' + ns.formatIso(new Date().toISOString()));
     } catch (err) {
       if (generation !== ns.state.refreshGeneration) {
         return;
@@ -241,30 +243,33 @@
     if (!jobType) {
       return;
     }
-    if (!ns.confirmWrite('"' + jobType + '" 스케줄을 일시정지할까요?')) {
+    const label = ns.formatJobTypeLabel(jobType);
+    if (!ns.confirmWrite('"' + label + '" 스케줄을 일시정지할까요?')) {
       return;
     }
-    await writeThenRefresh(ns.PAUSE_URL, jobType, '일시정지 ' + jobType);
+    await writeThenRefresh(ns.PAUSE_URL, jobType, '일시정지 ' + label);
   };
 
   ns.resumeJob = async function (jobType) {
     if (!jobType) {
       return;
     }
-    if (!ns.confirmWrite('"' + jobType + '" 스케줄을 재개할까요?')) {
+    const label = ns.formatJobTypeLabel(jobType);
+    if (!ns.confirmWrite('"' + label + '" 스케줄을 재개할까요?')) {
       return;
     }
-    await writeThenRefresh(ns.RESUME_URL, jobType, '재개 ' + jobType);
+    await writeThenRefresh(ns.RESUME_URL, jobType, '재개 ' + label);
   };
 
   ns.runJobNow = async function (jobType) {
     if (!jobType) {
       return;
     }
-    if (!ns.confirmWrite('"' + jobType + '"을(를) 지금 실행할까요?')) {
+    const label = ns.formatJobTypeLabel(jobType);
+    if (!ns.confirmWrite('"' + label + '"을(를) 지금 실행할까요?')) {
       return;
     }
-    await writeThenRefresh(ns.RUN_URL, jobType, '지금 실행 ' + jobType);
+    await writeThenRefresh(ns.RUN_URL, jobType, '지금 실행 ' + label);
   };
 
   /** Issue #834 US4: Retry failed run = same POST /batch/run for row jobName. */
@@ -272,9 +277,10 @@
     if (!jobType) {
       return;
     }
-    if (!ns.confirmWrite('"' + jobType + '"을(를) 재시도할까요?')) {
+    const label = ns.formatJobTypeLabel(jobType);
+    if (!ns.confirmWrite('"' + label + '"을(를) 재시도할까요?')) {
       return;
     }
-    await writeThenRefresh(ns.RUN_URL, jobType, '재시도 ' + jobType);
+    await writeThenRefresh(ns.RUN_URL, jobType, '재시도 ' + label);
   };
 })(typeof window !== 'undefined' ? window : globalThis);

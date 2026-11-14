@@ -131,7 +131,7 @@
     return ns.BATCH_JOB_TYPE_LABELS[key] || key;
   }
 
-  /** Locale datetime for batch-history 「완료 (로컬)」 and similar. */
+  /** Korea-local datetime for status lines and batch-history (#1724). */
   function formatDue(iso) {
     if (!iso) {
       return '';
@@ -140,7 +140,7 @@
     if (Number.isNaN(d.getTime())) {
       return String(iso);
     }
-    return d.toLocaleString();
+    return d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
   }
 
   /** One-line due for the review-queue table/preview only (#1722 I2). */

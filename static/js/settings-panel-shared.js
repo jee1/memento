@@ -12,7 +12,7 @@
 
   // Korean UI strings. Code references ns.S.* only; edit text here, not in the logic.
   ns.S = {
-    sourceLabel: { override: 'DB', env: '.env', default: '기본값' },
+    sourceLabel: { override: 'DB 값', env: '환경 파일 값', default: '기본값' },
     riskLabel: { low: '위험 낮음', medium: '위험 중간', high: '위험 높음' },
     applyImmediate: '즉시 반영',
     applyRestart: '재기동 필요',
@@ -31,6 +31,11 @@
     sameValue: '현재 값과 같습니다.',
     actionLabel: { set: '변경', revert: '되돌림' },
     allKeys: '전체',
+    // default_source 경로 대신 칸에 보이는 한국어. 전체 경로는 title.
+    defaultSourceCode: '코드 기본값',
+    defaultSourceConstants: '상수 기본값',
+    defaultSourceEnvironment: '환경 기본값',
+    defaultSourceUnknown: '기본값 출처 없음',
     reasonRequired: '사유를 입력하세요.',
     loadFailed: '설정을 불러오지 못했습니다.',
     dialogTitleSet: function (key) {
@@ -113,7 +118,9 @@
       return ns.S.none;
     }
     const date = new Date(String(iso));
-    return Number.isNaN(date.getTime()) ? String(iso) : date.toLocaleString();
+    return Number.isNaN(date.getTime())
+      ? String(iso)
+      : date.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
   };
 
   /** null means "not set" in the API; an empty string is shown as such, not as unset. */
@@ -122,6 +129,21 @@
       return ns.S.unset;
     }
     return value === '' ? ns.S.emptyValue : String(value);
+  };
+
+  /** Korean label for default_source; full path stays in title, not the cell. */
+  ns.formatDefaultSourceLabel = function (source) {
+    if (source === null || source === undefined || source === '') {
+      return ns.S.defaultSourceUnknown;
+    }
+    const text = String(source);
+    if (text.indexOf('constants') !== -1) {
+      return ns.S.defaultSourceConstants;
+    }
+    if (text.indexOf('environment') !== -1) {
+      return ns.S.defaultSourceEnvironment;
+    }
+    return ns.S.defaultSourceCode;
   };
 
   /** Resolves to { ok, status, data } and never rejects on an HTTP error. */

@@ -192,7 +192,7 @@
     if (Number.isNaN(date.getTime())) {
       return String(iso);
     }
-    const abs = date.toLocaleString();
+    const abs = date.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
     const diffMs = Date.now() - date.getTime();
     if (diffMs < 0) {
       return abs;

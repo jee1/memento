@@ -52,22 +52,33 @@
     ns.debugAnchorMap('map-fit', { nodes: placed.length, scale: scale });
   }
 
+  function formatKoDateTime(iso) {
+    if (!iso) {
+      return '—';
+    }
+    const d = new Date(iso);
+    if (Number.isNaN(d.getTime())) {
+      return String(iso);
+    }
+    return d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+  }
+
   function buildAnchorDetailHtml(node) {
     const slot = escapeHtml(node.slot);
     const id = escapeHtml(node.id);
     const content = escapeHtml(node.content);
-    const importance = escapeHtml(node.importance != null ? node.importance : 'N/A');
-    const created = node.created_at ? escapeHtml(new Date(node.created_at).toLocaleString()) : 'N/A';
+    const importance = escapeHtml(node.importance != null ? node.importance : '—');
+    const created = node.created_at ? escapeHtml(formatKoDateTime(node.created_at)) : '—';
     return [
-      '<div class="memory-detail-item"><label>Type:</label><div class="value">Anchor (Slot ' + slot + ')</div></div>',
-      '<div class="memory-detail-item"><label>Memory ID:</label><div class="value">' + id + '</div></div>',
-      '<div class="memory-detail-item"><label>Content:</label><div class="value">' + content + '</div></div>',
-      '<div class="memory-detail-item"><label>Hop Distance:</label><div class="value">0 (Anchor)</div></div>',
-      '<div class="memory-detail-item"><label>Similarity:</label><div class="value">1.0 (100.0%)</div></div>',
-      '<div class="memory-detail-item"><label>Importance:</label><div class="value">' + importance + '</div></div>',
-      '<div class="memory-detail-item"><label>Created:</label><div class="value">' + created + '</div></div>',
+      '<div class="memory-detail-item"><label>종류</label><div class="value">앵커 (슬롯 ' + slot + ')</div></div>',
+      '<div class="memory-detail-item"><label>기억 ID</label><div class="value">' + id + '</div></div>',
+      '<div class="memory-detail-item"><label>내용</label><div class="value">' + content + '</div></div>',
+      '<div class="memory-detail-item"><label>홉 거리</label><div class="value">0 (앵커)</div></div>',
+      '<div class="memory-detail-item"><label>유사도</label><div class="value">1.0 (100.0%)</div></div>',
+      '<div class="memory-detail-item"><label>중요도</label><div class="value">' + importance + '</div></div>',
+      '<div class="memory-detail-item"><label>생성</label><div class="value">' + created + '</div></div>',
       node.pinned
-        ? '<div class="memory-detail-item"><label>배치:</label><div class="value">📌 고정됨 ' +
+        ? '<div class="memory-detail-item"><label>배치</label><div class="value">📌 고정됨 ' +
           '<button type="button" class="m-button m-button--ghost js-unpin-node" data-memory-id="' + id + '">고정 해제</button></div></div>'
         : '',
     ].join('');
@@ -77,29 +88,29 @@
     const ranked = ns.rankAnchorMemberships(node && node.anchors);
     if (ranked.length === 0) return '없음';
     return ranked
-      .map(function (entry) { return entry.slot + '(' + entry.hop_distance + '-hop)'; })
+      .map(function (entry) { return entry.slot + '(' + entry.hop_distance + '홉)'; })
       .join(', ');
   }
 
   function buildMemoryDetailHtml(node) {
     const id = escapeHtml(node.id);
     const content = escapeHtml(node.content);
-    const hopDistance = escapeHtml(node.hop_distance != null ? node.hop_distance : 'N/A');
+    const hopDistance = escapeHtml(node.hop_distance != null ? node.hop_distance : '—');
     const membership = escapeHtml(formatMembershipLabel(node));
-    const similarity = node.similarity != null ? escapeHtml((node.similarity * 100).toFixed(1) + '%') : 'N/A';
-    const importance = escapeHtml(node.importance != null ? node.importance : 'N/A');
-    const created = node.created_at ? escapeHtml(new Date(node.created_at).toLocaleString()) : 'N/A';
+    const similarity = node.similarity != null ? escapeHtml((node.similarity * 100).toFixed(1) + '%') : '—';
+    const importance = escapeHtml(node.importance != null ? node.importance : '—');
+    const created = node.created_at ? escapeHtml(formatKoDateTime(node.created_at)) : '—';
     return [
-      '<div class="memory-detail-item"><label>Type:</label><div class="value">Memory</div></div>',
-      '<div class="memory-detail-item"><label>Memory ID:</label><div class="value">' + id + '</div></div>',
-      '<div class="memory-detail-item"><label>Content:</label><div class="value">' + content + '</div></div>',
-      '<div class="memory-detail-item"><label>소속:</label><div class="value">' + membership + '</div></div>',
-      '<div class="memory-detail-item"><label>Hop Distance:</label><div class="value">' + hopDistance + '</div></div>',
-      '<div class="memory-detail-item"><label>Similarity:</label><div class="value">' + similarity + '</div></div>',
-      '<div class="memory-detail-item"><label>Importance:</label><div class="value">' + importance + '</div></div>',
-      '<div class="memory-detail-item"><label>Created:</label><div class="value">' + created + '</div></div>',
+      '<div class="memory-detail-item"><label>종류</label><div class="value">기억</div></div>',
+      '<div class="memory-detail-item"><label>기억 ID</label><div class="value">' + id + '</div></div>',
+      '<div class="memory-detail-item"><label>내용</label><div class="value">' + content + '</div></div>',
+      '<div class="memory-detail-item"><label>소속</label><div class="value">' + membership + '</div></div>',
+      '<div class="memory-detail-item"><label>홉 거리</label><div class="value">' + hopDistance + '</div></div>',
+      '<div class="memory-detail-item"><label>유사도</label><div class="value">' + similarity + '</div></div>',
+      '<div class="memory-detail-item"><label>중요도</label><div class="value">' + importance + '</div></div>',
+      '<div class="memory-detail-item"><label>생성</label><div class="value">' + created + '</div></div>',
       node.pinned
-        ? '<div class="memory-detail-item"><label>배치:</label><div class="value">📌 고정됨 ' +
+        ? '<div class="memory-detail-item"><label>배치</label><div class="value">📌 고정됨 ' +
           '<button type="button" class="m-button m-button--ghost js-unpin-node" data-memory-id="' + id + '">고정 해제</button></div></div>'
         : '',
     ].join('');
@@ -286,7 +297,7 @@
       return '앵커 ' + d.slot + '\n' + d.content + warning + pinHint;
     }
     return '기억\n' + d.content + '\n소속: ' + formatMembershipLabel(d) +
-      '\nHop: ' + (d.hop_distance || 'N/A') + pinHint;
+      '\n홉: ' + (d.hop_distance != null ? d.hop_distance : '—') + pinHint;
   }
 
   function applyPinVisual() {
@@ -423,7 +434,7 @@
       if (g.node()) g.selectAll('*').remove();
       else state.svg.selectAll('*').remove();
       const agentId = mapData && mapData.agent_id ? mapData.agent_id : ns.getSelectedAgentId();
-      setMapStatusMessage('empty', 'agent "' + agentId + '" 에는 앵커가 없습니다 — set_anchor 로 설정하세요');
+      setMapStatusMessage('empty', '에이전트 "' + agentId + '"에는 앵커가 없습니다 — set_anchor로 설정하세요');
       return;
     }
 
@@ -515,7 +526,7 @@
         const memoryId = escapeHtml(anchor.memory_id);
         const contentPreview = memory ? escapeHtml(memory.content.substring(0, 50)) + '...' : '';
         return '<div class="anchor-item slot-' + slotClass + ' js-select-anchor" data-memory-id="' + memoryId + '">' +
-          '<div class="slot-label">Slot ' + slot + '</div>' +
+          '<div class="slot-label">슬롯 ' + slot + '</div>' +
           '<div class="memory-id">' + memoryId + '</div>' +
           (memory ? '<div class="anchor-item-preview">' + contentPreview + '</div>' : '') +
           '</div>';
