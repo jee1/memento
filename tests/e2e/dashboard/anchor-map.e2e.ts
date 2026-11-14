@@ -294,7 +294,9 @@ test.describe('Anchor Map dashboard', () => {
     expect(searchBodies[0]).toMatchObject({ query: 'alpha', slot: 'B', agent_id: 'default', limit: 100 });
 
     await page.locator('#anchor-list .slot-c').click();
-    await expect(page.locator('#memory-details')).toContainText('Anchor (Slot C)');
+    await expect(page.locator('#memory-details')).toContainText('앵커 (슬롯 C)');
+    await expect(page.locator('#memory-details')).toContainText('홉 거리');
+    await expect(page.locator('#memory-details')).not.toContainText('Anchor (Slot');
 
     await page.locator('#search-slot-select').selectOption('C');
     await page.locator('#search-btn').click();
