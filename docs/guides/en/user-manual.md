@@ -197,6 +197,8 @@ With semantic embeddings active, a search for "car" can match memories containin
 
 After sign-in, `/dashboard` opens on the **Status** tab. Three zones (system OK / doing work / needs action) render `/admin/ops/summary` `zones`. Colors come only from server `severity`. Refresh is manual.
 
+Below the zones, the **Embedding health** card shows how many problems the selected provider (default `minilm`, the same count as the zone's embedding row) has and the coverage: the share of active memories whose embedding exists, is readable, and matches the expected dimensions and model. It reads `GET /admin/embedding-health` directly. With 0 problems it says no action is needed. With problems it lists each kind with its fix and the command to check targets first: `npm run reindex-embeddings -- --provider <provider> --dry-run`. Expand **Details and terms** for per-kind counts and definitions (missing, unreadable, dimension mismatch, provider drift, model drift). Click a count to list the affected memories, and click an ID to open it in the Memory finder tab.
+
 ## HTTP dashboard — Anchor Map
 
 The **Anchor Map** tab on `/dashboard` shows slot A/B/C anchors and nearby memories. Memory nodes fill with the nearest membership color, fade with hop distance, and use a second-membership stroke when multi-owned. Slot letters appear in labels, hover text, and the detail panel. See [how to check anchor connections](./how-to-check-anchor-connections.md) for the `anchors` response field and color rules.

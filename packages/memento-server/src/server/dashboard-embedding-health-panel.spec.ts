@@ -6,183 +6,202 @@ import { describe, expect, it, vi } from 'vitest';
 
 const root = resolve(process.cwd());
 const dashboardHtml = readFileSync(resolve(root, 'static/dashboard.html'), 'utf8');
-const fetchJs = readFileSync(resolve(root, 'static/js/embedding-map-fetch.js'), 'utf8');
-const panelJs = readFileSync(resolve(root, 'static/js/embedding-map-panel.js'), 'utf8');
-const scatterJs = readFileSync(resolve(root, 'static/js/embedding-map-chart-scatter.js'), 'utf8');
+const cardJs = readFileSync(resolve(root, 'static/js/embedding-health-card.js'), 'utf8');
 
-describe('Dashboard embedding health panel (#896)', () => {
-  it('puts diagnostics before the auxiliary map and demotes k/limit to Advanced', () => {
-    expect(dashboardHtml).toContain('임베딩 상태');
-    expect(dashboardHtml).toContain('id="em-health-summary"');
-    expect(dashboardHtml).toContain('id="em-health-problems"');
-    expect(dashboardHtml).toContain('<summary>고급</summary>');
-    expect(dashboardHtml.indexOf('id="em-health-summary"')).toBeLessThan(
-      dashboardHtml.indexOf('id="em-scatter"'),
+class FakeElement {
+  children: FakeElement[] = [];
+  textContent = '';
+  className = '';
+  value = '';
+  type = '';
+  title = '';
+  disabled = false;
+  private hiddenFlag = false;
+  private listeners: Record<string, Array<() => void>> = {};
+  classList = {
+    add: (name: string) => { if (name === 'hidden') this.hiddenFlag = true; },
+    remove: (name: string) => { if (name === 'hidden') this.hiddenFlag = false; },
+    toggle: (name: string, force: boolean) => { if (name === 'hidden') this.hiddenFlag = force; },
+  };
+  constructor(readonly tag = 'div') {}
+  get firstChild() { return this.children[0] || null; }
+  get hidden() { return this.hiddenFlag; }
+  appendChild(child: FakeElement) { this.children.push(child); return child; }
+  replaceChildren(...nodes: FakeElement[]) { this.children = nodes; }
+  setAttribute() {}
+  addEventListener(event: string, fn: () => void) { (this.listeners[event] ||= []).push(fn); }
+  click() { (this.listeners['click'] || []).forEach((fn) => fn()); }
+  fire(event: string) { (this.listeners[event] || []).forEach((fn) => fn()); }
+  text(): string { return this.textContent + this.children.map((c) => c.text()).join(' '); }
+  find(predicate: (el: FakeElement) => boolean): FakeElement[] {
+    return [
+      ...(predicate(this) ? [this] : []),
+      ...this.children.flatMap((c) => c.find(predicate)),
+    ];
+  }
+}
+
+const HEALTH_IDS = [
+  'em-provider', 'em-health-headline', 'em-health-guide', 'em-health-summary', 'em-health-problems',
+  'em-problem-list', 'em-health-error', 'em-health-terms', 'ops-status-refresh-btn', 'mf-id-input',
+];
+
+function diagnostics(provider: string, counts: Partial<Record<string, number>> = {}) {
+  return {
+    diagnostics: {
+      provider, memoryCount: 100, validEmbeddingCount: 90, coverage: 0.9, diagnosedAt: '2026-11-14T00:00:00.000Z',
+      missingEmbeddingCount: 0, unreadableEmbeddingCount: 0, dimensionMismatchCount: 0,
+      providerDriftCount: 0, modelDriftCount: 0, ...counts,
+    },
+  };
+}
+
+function createHarness() {
+  const pending = new Map<string, (value: unknown) => void>();
+  const requested: string[] = [];
+  const elements: Record<string, FakeElement> = {};
+  HEALTH_IDS.forEach((id) => { elements[id] = new FakeElement(id === 'em-provider' ? 'select' : 'div'); });
+  elements['em-provider'].value = 'minilm';
+  const activateTab = vi.fn();
+  const open = vi.fn();
+  const context: any = {
+    mementoAdminFetch: (url: string) => new Promise((resolvePromise) => {
+      requested.push(url);
+      pending.set(url, resolvePromise);
+    }),
+    document: {
+      getElementById: (id: string) => elements[id] ?? null,
+      createElement: (tag: string) => new FakeElement(tag),
+      createTextNode: (text: string) => Object.assign(new FakeElement('#text'), { textContent: text }),
+    },
+    __MEMENTO_DASHBOARD_TABS__: { activateTab },
+    __MEMENTO_MEMORY_FINDER__: { open },
+    console,
+  };
+  context.window = context;
+  vm.runInNewContext(cardJs, context);
+  const respond = (url: string, body: unknown, ok = true) => pending.get(url)?.({
+    ok, status: ok ? 200 : 500, json: async () => body,
+  });
+  const settle = () => new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
+  return { context, elements, requested, respond, settle, activateTab, open };
+}
+
+describe('Dashboard embedding health card on the ops status tab (#1701)', () => {
+  it('lives in the status tab next to the zones, with no embedding tab or scatter left', () => {
+    const statusTab = dashboardHtml.slice(
+      dashboardHtml.indexOf('id="tab-ops-status"'),
+      dashboardHtml.indexOf('id="tab-review-candidates"'),
     );
-    expect(dashboardHtml).toContain('품질 점수나 시간 비교 기준이 아닙니다');
-  });
-
-  it('loads health independently and removes meaningless plot axes', () => {
-    expect(fetchJs).toContain('/admin/embedding-health');
-    expect(scatterJs).not.toContain('axisBottom');
-    expect(scatterJs).not.toContain('axisLeft');
-    expect(scatterJs).toContain(".attr('tabindex', 0)");
-    expect(scatterJs).toContain(".attr('role', 'button')");
-    expect(scatterJs).toContain(".on('keydown'");
-  });
-
-  it('ignores stale responses after the provider changes', async () => {
-    const pending = new Map<string, (value: unknown) => void>();
-    const renderedHealth: string[] = [];
-    const renderedMaps: string[] = [];
-    const state: any = {
-      lastMeta: {}, currentPoints: [], lastHealth: null, requestGeneration: 0, problemRequestGeneration: 0,
-      setEmbeddingMapLoading: vi.fn(), setEmbeddingMapError: vi.fn(),
-      updateEmbeddingMapCacheInfo: vi.fn(), renderEmbeddingMapMeta: vi.fn(),
-      renderEmbeddingHealthError: vi.fn(), renderEmbeddingProblemList: vi.fn(),
-      renderEmbeddingHealth: vi.fn((health: { provider: string }) => renderedHealth.push(health.provider)),
-      renderScatter: vi.fn((body: { meta: { provider: string } }) => renderedMaps.push(body.meta.provider)),
-    };
-    const context: any = {
-      __MEMENTO_EMBEDDING_MAP__: state,
-      mementoAdminFetch: (url: string) => new Promise((resolvePromise) => pending.set(url, resolvePromise)),
-      document: { getElementById: () => null },
-      console,
-    };
-    context.window = context;
-    vm.runInNewContext(fetchJs, context);
-
-    state.loadEmbeddingMap({ provider: 'minilm', limit: 300, k: 6 });
-    state.loadEmbeddingMap({ provider: 'tfidf', limit: 300, k: 6 });
-    const respond = (url: string, body: unknown) => pending.get(url)?.({ ok: true, status: 200, json: async () => body });
-    respond('/admin/embedding-health?provider=tfidf', { diagnostics: { provider: 'tfidf' } });
-    respond('/admin/embedding-map?provider=tfidf&limit=300&k=6', { points: [], meta: { provider: 'tfidf' } });
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
-    respond('/admin/embedding-health?provider=minilm', { diagnostics: { provider: 'minilm' } });
-    respond('/admin/embedding-map?provider=minilm&limit=300&k=6', { points: [], meta: { provider: 'minilm' } });
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
-
-    expect(renderedHealth).toEqual(['tfidf']);
-    expect(renderedMaps).toEqual(['tfidf']);
-  });
-
-  it('does not reuse map metadata from the previous provider when the next map fails', async () => {
-    const pending = new Map<string, (value: unknown) => void>();
-    const renderedMeta: string[] = [];
-    const state: any = {
-      lastMeta: null, currentPoints: [], lastHealth: null, requestGeneration: 0, problemRequestGeneration: 0,
-      setEmbeddingMapLoading: vi.fn(), setEmbeddingMapError: vi.fn(),
-      updateEmbeddingMapCacheInfo: vi.fn(), renderEmbeddingHealthError: vi.fn(),
-      renderEmbeddingProblemList: vi.fn(), renderEmbeddingHealth: vi.fn(), renderScatter: vi.fn(),
-      renderEmbeddingMapMeta: vi.fn((body: { meta?: { provider?: string } }) => {
-        if (body.meta?.provider) renderedMeta.push(body.meta.provider);
-      }),
-    };
-    const context: any = {
-      __MEMENTO_EMBEDDING_MAP__: state,
-      mementoAdminFetch: (url: string) => new Promise((resolvePromise) => pending.set(url, resolvePromise)),
-      document: { getElementById: () => null },
-      console,
-    };
-    context.window = context;
-    vm.runInNewContext(fetchJs, context);
-    const respond = (url: string, body: unknown, ok = true) => pending.get(url)?.({
-      ok, status: ok ? 200 : 500, json: async () => body,
-    });
-
-    state.loadEmbeddingMap({ provider: 'minilm', limit: 300, k: 6 });
-    respond('/admin/embedding-health?provider=minilm', { diagnostics: { provider: 'minilm' } });
-    respond('/admin/embedding-map?provider=minilm&limit=300&k=6', {
-      points: [], meta: { provider: 'minilm' },
-    });
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
-    renderedMeta.length = 0;
-
-    state.loadEmbeddingMap({ provider: 'tfidf', limit: 300, k: 6 });
-    expect(state.lastMeta).toBeNull();
-    respond('/admin/embedding-health?provider=tfidf', { diagnostics: { provider: 'tfidf' } });
-    respond('/admin/embedding-map?provider=tfidf&limit=300&k=6', { error: 'map failed' }, false);
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
-
-    expect(renderedMeta).toEqual([]);
-  });
-
-  it('ignores stale memory details after refreshes and rapid selections', async () => {
-    class FakeElement {
-      children: FakeElement[] = [];
-      textContent = '';
-      className = '';
-      classList = { add: vi.fn(), remove: vi.fn() };
-      get firstChild() { return this.children[0] || null; }
-      appendChild(child: FakeElement) { this.children.push(child); return child; }
-      removeChild(child: FakeElement) { this.children = this.children.filter((item) => item !== child); }
-      setAttribute() {}
-      addEventListener() {}
+    expect(statusTab.indexOf('id="ops-status-zones"')).toBeGreaterThan(-1);
+    expect(statusTab.indexOf('id="em-health-card"')).toBeGreaterThan(statusTab.indexOf('id="ops-status-zones"'));
+    for (const id of ['em-provider', 'em-health-headline', 'em-health-guide', 'em-health-summary', 'em-health-problems', 'em-problem-list', 'em-health-terms']) {
+      expect(statusTab).toContain(`id="${id}"`);
     }
-    const pending = new Map<string, (value: unknown) => void>();
-    const panel = new FakeElement();
-    const state: any = {
-      lastMeta: null, currentPoints: [], lastHealth: null, requestGeneration: 0,
-      problemRequestGeneration: 0, detailRequestGeneration: 0,
-      setEmbeddingMapLoading: vi.fn(), setEmbeddingMapError: vi.fn(),
-      updateEmbeddingMapCacheInfo: vi.fn(), renderEmbeddingMapMeta: vi.fn(), renderScatter: vi.fn(),
-      renderEmbeddingHealthError: vi.fn(), renderEmbeddingProblemList: vi.fn(), renderEmbeddingHealth: vi.fn(),
-    };
-    const context: any = {
-      __MEMENTO_EMBEDDING_MAP__: state,
-      mementoAdminFetch: (url: string) => new Promise((resolvePromise) => pending.set(url, resolvePromise)),
-      document: {
-        getElementById: (id: string) => id === 'em-side-panel' ? panel : null,
-        createElement: () => new FakeElement(),
-        createTextNode: (text: string) => Object.assign(new FakeElement(), { textContent: text }),
-      },
-      navigator: {},
-      console,
-    };
-    context.window = context;
-    vm.runInNewContext(panelJs, context);
-    vm.runInNewContext(fetchJs, context);
-    const respondDetail = (id: string) => pending.get('/admin/memory/items/' + id)?.({
-      ok: true,
-      json: async () => ({
-        memory: { id, type: 'semantic', importance: 0.5, created_at: '2026-09-10', tags: '[]', content: id },
-      }),
+    expect(dashboardHtml).toContain('/static/js/embedding-health-card.js');
+    expect(dashboardHtml).not.toContain('tab-embedding-map');
+    expect(dashboardHtml).not.toContain('data-tab="embedding"');
+    expect(dashboardHtml).not.toContain('em-scatter');
+    expect(dashboardHtml).not.toContain('embedding-map');
+  });
+
+  it('shows the no-action guidance when nothing is wrong', async () => {
+    const h = createHarness();
+    h.context.initEmbeddingHealthCard();
+    expect(h.requested).toEqual(['/admin/embedding-health?provider=minilm']);
+    h.respond('/admin/embedding-health?provider=minilm', diagnostics('minilm'));
+    await h.settle();
+
+    expect(h.elements['em-health-headline'].textContent).toContain('문제 0건');
+    expect(h.elements['em-health-headline'].textContent).toContain('90.0%');
+    expect(h.elements['em-health-guide'].text()).toContain('조치 불필요');
+    expect(h.elements['em-health-guide'].text()).not.toContain('reindex-embeddings');
+  });
+
+  it('lists each problem kind with its action and the dry-run command when problems exist', async () => {
+    const h = createHarness();
+    h.context.initEmbeddingHealthCard();
+    h.respond('/admin/embedding-health?provider=minilm', diagnostics('minilm', {
+      missingEmbeddingCount: 3, providerDriftCount: 2,
+    }));
+    await h.settle();
+
+    expect(h.elements['em-health-headline'].textContent).toContain('문제 5건');
+    const guide = h.elements['em-health-guide'].text();
+    expect(guide).toContain('누락 3건');
+    expect(guide).toContain('제공자 드리프트 2건');
+    expect(guide).toContain('--prune-foreign-providers');
+    expect(guide).not.toContain('모델 드리프트');
+    expect(guide).toContain('npm run reindex-embeddings -- --provider minilm --dry-run');
+    expect(h.elements['em-health-problems'].children).toHaveLength(5);
+  });
+
+  it('defines the coverage term and the five problem kinds', () => {
+    const h = createHarness();
+    h.context.initEmbeddingHealthCard();
+    const terms = h.elements['em-health-terms'].children.map((c) => c.textContent);
+    for (const label of ['커버리지', '누락', '읽기 불가/손상', '차원 불일치', '제공자 드리프트', '모델 드리프트']) {
+      expect(terms).toContain(label);
+    }
+  });
+
+  it('ignores a stale response after the provider changes', async () => {
+    const h = createHarness();
+    h.context.initEmbeddingHealthCard();
+    h.elements['em-provider'].value = 'tfidf';
+    h.elements['em-provider'].fire('change');
+    h.respond('/admin/embedding-health?provider=tfidf', diagnostics('tfidf'));
+    await h.settle();
+    h.respond('/admin/embedding-health?provider=minilm', diagnostics('minilm', { missingEmbeddingCount: 9 }));
+    await h.settle();
+
+    expect(h.elements['em-health-headline'].textContent).toContain('tfidf');
+    expect(h.elements['em-health-headline'].textContent).not.toContain('문제 9건');
+  });
+
+  it('reloads when the status tab refresh button is pressed', () => {
+    const h = createHarness();
+    h.context.initEmbeddingHealthCard();
+    h.elements['ops-status-refresh-btn'].click();
+    expect(h.requested).toHaveLength(2);
+  });
+
+  it('shows the server message when the diagnosis request fails', async () => {
+    const h = createHarness();
+    h.context.initEmbeddingHealthCard();
+    h.respond('/admin/embedding-health?provider=minilm', { message: '진단 실패' }, false);
+    await h.settle();
+
+    expect(h.elements['em-health-error'].textContent).toBe('진단 실패');
+    expect(h.elements['em-health-error'].hidden).toBe(false);
+  });
+
+  it('pages the problem list and opens a memory in the memory finder tab', async () => {
+    const h = createHarness();
+    h.context.initEmbeddingHealthCard();
+    h.respond('/admin/embedding-health?provider=minilm', diagnostics('minilm', { missingEmbeddingCount: 60 }));
+    await h.settle();
+
+    const missingCard = h.elements['em-health-problems'].children[0];
+    missingCard.click();
+    const listUrl = '/admin/embedding-health?provider=minilm&problem=missing_embedding&limit=50&offset=0';
+    expect(h.requested).toContain(listUrl);
+    h.respond(listUrl, {
+      problem: 'missing_embedding', total: 60, limit: 50, offset: 0,
+      memories: [{ id: 'mem_1', type: 'semantic', ownerId: 'o', projectId: null }],
     });
-    const panelText = () => {
-      const visit = (element: FakeElement): string => element.textContent + element.children.map(visit).join('');
-      return visit(panel);
-    };
+    await h.settle();
 
-    state.openMemoryById('old-provider');
-    state.loadEmbeddingMap({ provider: 'tfidf', limit: 300, k: 6 });
-    respondDetail('old-provider');
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
-    expect(panel.children).toHaveLength(0);
+    const list = h.elements['em-problem-list'];
+    expect(list.hidden).toBe(false);
+    const idButton = list.find((el) => el.tag === 'button' && el.textContent === 'mem_1')[0];
+    idButton.click();
+    expect(h.activateTab).toHaveBeenCalledWith('memory-finder');
+    expect(h.elements['mf-id-input'].value).toBe('mem_1');
+    expect(h.open).toHaveBeenCalledWith('mem_1');
 
-    state.openMemoryById('first');
-    state.openMemoryById('second');
-    respondDetail('second');
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
-    respondDetail('first');
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
-
-    expect(panelText()).toContain('second');
-    expect(panelText()).not.toContain('first');
-
-    state.openMemoryById('pending-before-dot');
-    state.openSidePanel({
-      id: 'scatter-dot', type: 'semantic', importance: 0.5,
-      created_at: '2026-09-10', tags: [], content: 'scatter-dot',
-    });
-    respondDetail('pending-before-dot');
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
-    expect(panelText()).toContain('scatter-dot');
-    expect(panelText()).not.toContain('pending-before-dot');
-
-    state.openMemoryById('pending-before-close');
-    state.closeSidePanel();
-    respondDetail('pending-before-close');
-    await new Promise((resolvePromise) => setTimeout(resolvePromise, 0));
-    expect(panelText()).not.toContain('pending-before-close');
+    const next = list.find((el) => el.tag === 'button' && el.textContent === '다음')[0];
+    next.click();
+    expect(h.requested).toContain('/admin/embedding-health?provider=minilm&problem=missing_embedding&limit=50&offset=50');
   });
 });

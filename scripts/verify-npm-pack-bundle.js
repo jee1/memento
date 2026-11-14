@@ -3,7 +3,7 @@
  * tarball에 server 런타임 closure가 실제로 포함되는지 검증한다.
  *
  * - bundled: `@memento/core`, `@memento/agent-integration` (prepack 복사 → node_modules)
- * - root dependencies: `express-rate-limit`, `helmet`, `umap-js` (설치 시 registry에서 해석;
+ * - root dependencies: `express-rate-limit`, `helmet` (설치 시 registry에서 해석;
  *   tarball 안의 package/package.json에 선언되어 있어야 함)
  *
  * `npm pack --dry-run`은 bundled files: 0처럼 잘못 표시되는 경우가 있어(특히 private 워크스페이스 패키지),
@@ -45,7 +45,7 @@ const REQUIRED_BUNDLED_PATHS = [
  * 루트 package.json dependencies에 선언되어 tarball 메타데이터에 실려야 하는
  * server 런타임 external (registry 패키지).
  */
-const REQUIRED_ROOT_DEPS = ['express-rate-limit', 'helmet', 'umap-js'];
+const REQUIRED_ROOT_DEPS = ['express-rate-limit', 'helmet'];
 
 /** empty-temp install 후 resolve해야 하는 패키지 (closure 누락 시 실패) */
 const SMOKE_RESOLVE_PACKAGES = [
@@ -53,7 +53,6 @@ const SMOKE_RESOLVE_PACKAGES = [
   '@memento/agent-integration',
   'express-rate-limit',
   'helmet',
-  'umap-js',
 ];
 
 /** Windows에서는 PATH의 `npm`이 .cmd 배치 파일이라 spawn 시 npm.cmd를 쓴다. */

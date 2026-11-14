@@ -61,7 +61,6 @@
     review_last_human_decision_at: { tab: 'review', label: '검토 대기열 보기' },
     review_net_flow_1h: { tab: 'review', label: '검토 대기열 보기' },
     supersede_pending_count: { tab: 'supersede', label: '대체 후보 보기' },
-    embedding_problem_count: { tab: 'embedding', label: '임베딩 상태 보기' },
   };
 
   ns.SUMMARY_URL = '/admin/ops/summary?period=7d';
@@ -84,20 +83,6 @@
 
   ns.setLoading = function (loading) {
     ns.setHidden(ns.$('ops-status-loading'), !loading);
-  };
-
-  ns.setError = function (message) {
-    const el = ns.$('ops-status-error');
-    if (!el) {
-      return;
-    }
-    if (message) {
-      el.textContent = message;
-      ns.setHidden(el, false);
-    } else {
-      el.textContent = '';
-      ns.setHidden(el, true);
-    }
   };
 
   const LLM_FEATURE_LABELS = {
@@ -307,14 +292,12 @@
         throw new Error('응답에 zones 가 없습니다');
       }
       ns.state.lastSnapshot = data;
-      ns.setError('');
       ns.renderZones(data.zones);
     } catch (err) {
       if (generation !== ns.state.refreshGeneration) {
         return;
       }
       const message = err && err.message ? String(err.message) : '운영 상태 새로고침 실패';
-      ns.setError(message);
       ns.renderZones(null, { fetchFailed: true, message: message });
     } finally {
       if (generation === ns.state.refreshGeneration) {

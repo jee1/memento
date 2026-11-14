@@ -10,7 +10,6 @@ import {
   findMemoryProvenancePreviews,
   findMemoryResourceRowById,
   listActiveMemoryIdAndContent,
-  listMemoryEmbeddingMapCandidates,
   listProjectMemoryCleanupCandidates,
   listRecentMemoryResourceIds,
   queryMemoryCountsByTypeStats,
@@ -123,7 +122,7 @@ describe('memory-item-repository query helpers (#1531)', () => {
     expect(findMemoryResourceRowById(db, 'old', scope, true)?.id).toBe('old');
   });
 
-  it('임베딩 맵 후보와 그래프 노드를 필터 조건에 맞춰 조회한다', () => {
+  it('그래프 노드를 필터 조건에 맞춰 조회한다', () => {
     db.prepare(
       `INSERT INTO memory_item (id, type, content, importance, created_at, pinned, is_deleted)
        VALUES
@@ -132,17 +131,9 @@ describe('memory-item-repository query helpers (#1531)', () => {
        ('m3', 'working', 'orphan', 0.3, '2026-01-03T00:00:00Z', 0, 0)`,
     ).run();
     db.prepare(
-      `INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions, model)
-       VALUES ('m1', 'minilm', 'native', '[0.1,0.2]', 2, 2, 'all-MiniLM')`,
-    ).run();
-    db.prepare(
       `INSERT INTO memory_relation (source_id, target_id, relation_type)
        VALUES ('m1', 'm2', 'supports')`,
     ).run();
-
-    const candidates = listMemoryEmbeddingMapCandidates(db, 'minilm', 10);
-    expect(candidates).toHaveLength(1);
-    expect(candidates[0]?.id).toBe('m1');
 
     const graphResult = queryMemoryGraphNodes(db, {
       exclude_orphans: true,

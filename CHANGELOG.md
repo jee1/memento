@@ -23,6 +23,7 @@
 
 ### Changed
 
+- 상태 탭 요청이 실패하면 구역 영역의 실패 배너 한 곳에만 이유를 그린다. 같은 문구를 따로 그리던 `#ops-status-error` 를 지웠다 (#1699 후속).
 - Admin 대시보드 첫 화면을 「상태」 탭으로 바꾸고 `/admin/ops/summary?period=7d` 의 `zones` 세 구역(정상인가 / 제 일을 하고 있나 / 손댈 것)을 범용으로 그린다. 상단 ops-strip 과 개발자용 4질문 문자열을 제거한다. 색은 서버 `severity` 만 쓴다. 집계 창이 없는 항목은 「현재」로, `unit` 이 `MB` 인 값은 단위를 붙여 그리고, `zones` 가 없는 응답은 요청 실패(빨강)로 본다. 검토 대기는 서버가 상한을 주지 않으므로 숫자만 그린다 (#1699).
 - 관계 추출 제공자 설정 `LLM_PROVIDER_RELATION_EXTRACTION` 의 정본 값을 `jev` 에서 `typesafe` 로 바꾼다. 제공자는 typesafe, 모델은 jev 로 용어를 가른다(`GLOSSARY.md`). 옛 값 `jev` 는 별칭으로 계속 받아 `typesafe` 로 정규화한다: 옛 `.env`, 설정 화면 PUT, DB 에 저장된 옛 override 행 모두 그대로 동작하고 설정 화면에는 `typesafe` 로 보인다. `llm_usage_*` 의 provider 문자열, 관계 `method='jev'`, 마이그레이션 066 값, env 키 `TYPESAFE_*` 는 바꾸지 않는다 (#1687).
 - 설정에 남은 `[ranking_weights]` 의 옛 키(`delta`, `epsilon`, `zeta`, `consolidation` 등 알 수 없는 키)는 어떤 값이어도 기동을 깨지 않고, 로더가 버린 키 이름을 기동 때 `console.warn` 한 줄로 알린다. 버려진 키는 `ranking_version` 해시에도 섞이지 않는다. `ranking:preview --changes` 에 `delta`, `epsilon` 을 주면 `UNKNOWN_KNOB` 으로 거부된다 (#1694).
@@ -44,6 +45,7 @@
 - 검색 랭킹에서 순위에 영향이 없던 두 항을 지웠다. `usage` 는 모든 후보에 같은 상수(`min(1, ln2/10)`)였고 `duplication_penalty` 는 융합 레인에서 0 고정이었다. `[ranking_weights].delta`, `.epsilon`, 두 knob(`ranking_weights.delta`, `.epsilon`), `calculateUsage`, `calculateBatchUsage`, `calculateUsageSimple`, `calculateDuplicationPenalty` 가 사라지고 `config/ranking-weights.toml`, `config/ranking-profiles/*.toml` 에서도 키를 지웠다. 순위는 그대로이고 최종 점수는 모든 후보에서 기본 `delta = 0.10` 기준 0.00693(= 0.10·ln2/10)만큼 내려간다(`feedback-heavy` 프로파일은 `delta = 0.08` 이라 0.00554). 새 `ranking_version` 해시가 생겨 텔레메트리 `ranking_versions` 에 옛 값과 새 값이 함께 보인다 (#1694).
 - **응답 계약 변경**: recall `include_score_breakdown` 응답과 `feedback` 스냅샷의 `score_breakdown` 에서 `usage`, `duplication_penalty` 필드를 뺐다(6슬롯 → relevance, recency, importance, feedback 4슬롯과 `total`). 옛 스냅샷은 그대로 둔다 (#1694).
 - 대시보드 「기억 진화 데모」 탭과 `GET /admin/evolution-demo/*` 라우트, 전용 정적 셸, `docs/ko/evolution-demo.md` 를 지웠다. 데이터는 고정 시나리오 fixture 뿐이라 시스템 상태를 말하지 않았다. 로그아웃 상태에서는 탭을 활성화하지 않고 로그인 안내만 보인다. 되살리려면 마지막 머지면 이 변경을 되돌리고, 아니면 태그 `pre-dashboard-b` 에서 해당 파일을 복원한다 (#1703).
+- 대시보드 「임베딩 상태」 탭과 의미 공간 탐색(UMAP 산점도, K-Means 클러스터)을 지웠다. 임베딩 상태는 「상태」 탭의 임베딩 카드(문제 건수, 제공자 선택, 종류별 상세와 문제 기억 목록, 용어 설명, 0건/N건 안내)로 합쳤다. `GET /admin/embedding-map` 라우트, `umap-js` 의존성(루트와 `memento-server`, `scripts/verify-npm-pack-bundle.js` 필수 목록 포함), 코어 `listMemoryEmbeddingMapCandidates` 와 `static/js/embedding-map-*.js` 를 함께 지웠다. `GET /admin/embedding-health` 응답은 그대로다. 복원: 태그 `pre-dashboard-b` 에서 해당 파일을 되살리거나 이 변경을 되돌린다 (#1701, #1690, #1691).
 
 ## [2.3.10] - 2026-11-09
 

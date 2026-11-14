@@ -6,7 +6,6 @@
 
   const TAB_PANELS = [
     { name: 'anchor', id: 'tab-anchor-map' },
-    { name: 'embedding', id: 'tab-embedding-map' },
     { name: 'graph', id: 'tab-graph' },
     { name: 'ops-overview', id: 'tab-ops-overview' },
     { name: 'ops-status', id: 'tab-ops-status' },
