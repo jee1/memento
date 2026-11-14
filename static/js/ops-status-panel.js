@@ -74,7 +74,7 @@
     review_pending_total: { tab: 'review', label: '검토 대기열 보기' },
     review_last_human_decision_at: { tab: 'review', label: '검토 대기열 보기' },
     review_net_flow_1h: { tab: 'review', label: '검토 대기열 보기' },
-    supersede_pending_count: { tab: 'supersede', label: '대체 후보 보기' },
+    supersede_pending_count: { tab: 'review', section: 'rc-supersede-section', label: '대체 후보 보기' },
   };
 
   ns.SUMMARY_URL = '/admin/ops/summary?period=7d';
@@ -280,7 +280,7 @@
     meta.appendChild(windowEl);
 
     const linkSpec = LINKS[item.key];
-    if (linkSpec && (sev === 'warn' || sev === 'crit')) {
+    if (linkSpec && (sev === 'warn' || sev === 'crit' || (linkSpec.section && Number(item.value) > 0))) {
       const btn = doc.createElement('button');
       btn.type = 'button';
       btn.className = 'm-button m-button--ghost ops-row__link';
@@ -290,6 +290,11 @@
         const tabs = global.__MEMENTO_DASHBOARD_TABS__;
         if (tabs && typeof tabs.activateTab === 'function') {
           tabs.activateTab(linkSpec.tab);
+        }
+        const section = linkSpec.section ? doc.getElementById(linkSpec.section) : null;
+        if (section) {
+          section.open = true;
+          section.scrollIntoView({ block: 'start' });
         }
       });
       meta.appendChild(btn);

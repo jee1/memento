@@ -21,6 +21,7 @@ class FakeEl {
   className = '';
   value = '';
   disabled = false;
+  open = false;
   private ownText = '';
   constructor(readonly tag: string) {}
   classList = {
@@ -122,6 +123,9 @@ function createHarness(
   for (const id of ['sc-detail', 'sc-table-body', 'sc-status-line', 'sc-refresh-btn', 'sc-filter-apply', 'sc-filter-project', 'sc-filter-lifecycle']) {
     elements.set(id, new FakeEl('div'));
   }
+  const section = new FakeEl('details');
+  section.open = true;
+  elements.set('rc-supersede-section', section);
   const tbody = elements.get('sc-table-body')!;
   const detail = elements.get('sc-detail')!;
   const restoreBodies: string[] = [];
@@ -164,6 +168,7 @@ function createHarness(
   return {
     tbody,
     detail,
+    section,
     elements,
     fetchMock,
     restoreBodies,
@@ -177,14 +182,40 @@ function createHarness(
 
 describe('supersede candidates dashboard panel (#1618)', () => {
   it('wires tab, panel markup, and admin list URL', () => {
-    expect(dashboardHtml).toContain('data-tab="supersede"');
-    expect(dashboardHtml).toContain('id="tab-supersede-candidates"');
+    const reviewPanel = dashboardHtml.slice(
+      dashboardHtml.indexOf('id="tab-review-candidates"'),
+      dashboardHtml.indexOf('id="tab-memory-finder"'),
+    );
+    expect(reviewPanel).toContain('<details id="rc-supersede-section"');
+    expect(reviewPanel).toContain('id="sc-table-body"');
+    expect(dashboardHtml).not.toContain('data-tab="supersede"');
+    expect(dashboardHtml).not.toContain('id="tab-supersede-candidates"');
     expect(dashboardHtml).toContain('/static/js/supersede-candidates-panel.js');
-    expect(tabsPanels).toContain("'supersede'");
+    expect(tabsPanels).not.toContain("'supersede'");
     expect(shared).toContain('/admin/memory/supersede-candidates');
     expect(shared).toContain('mementoAdminFetch');
-    expect(shared).toContain('SUPERSEDE_APPLY_ENABLED');
+    expect(shared).toContain('대체 승인이 꺼져 있어');
     expect(panel).toContain('/supersede/restore');
+  });
+
+  it('loads the list only while the section is open', async () => {
+    const page = createHarness();
+    page.section.open = false;
+    await page.init();
+    expect(page.fetchMock).not.toHaveBeenCalled();
+
+    page.section.open = true;
+    page.section.listeners.toggle!.forEach((handler) => handler());
+    await flushPromises();
+    expect(page.fetchMock.mock.calls.map(([url]) => url)).toContain('/admin/memory/supersede-candidates?page_size=25&page=1');
+  });
+
+  it('shows verdicts and lifecycle states in Korean', async () => {
+    const page = createHarness();
+    await page.init();
+    expect(page.tbody.textContent).toContain('확정 대체');
+    expect(page.tbody.textContent).not.toContain('confirmed');
+    expect(page.tbody.textContent).toContain('미적용');
   });
 
   it('does not assign candidate list cells through innerHTML', () => {

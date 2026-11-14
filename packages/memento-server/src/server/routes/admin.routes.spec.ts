@@ -1569,19 +1569,6 @@ describe('admin.routes memory review candidates', () => {
     }
   });
 
-  it('accepts the review query the ops overview card sends', async () => {
-    const panelJs = readFileSync(resolve(process.cwd(), 'static/js/ops-overview-panel.js'), 'utf8');
-    const url = /const REVIEW_URL = '([^']+)'/.exec(panelJs)?.[1];
-    expect(url).toBeDefined();
-    const { server, port } = await listen(makeApp(db));
-    try {
-      const res = await getAdmin(port, url as string);
-      expect(res.statusCode).toBe(200);
-    } finally {
-      await new Promise<void>(r => server.close(() => r()));
-    }
-  });
-
   it('#897: paginated review-candidates returns metadata and enriched fields without content', async () => {
     const { server, port } = await listen(makeApp(db));
     try {

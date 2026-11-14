@@ -210,6 +210,7 @@ function createOpsStatusHarness(options: HarnessOptions = {}) {
 
   return {
     ns,
+    sandbox,
     elements,
     fetchCalls,
     zonesHost,
@@ -555,6 +556,30 @@ describe('dashboard ops status panel (#1699)', () => {
     expect(text('wal_size_mb', 'ops-row__value')).toBe('—');
     expect(text('db_size_mb', 'ops-row__window')).toBe('현재');
     expect(rowOf('db_size_mb').attributes['data-severity']).toBeUndefined();
+  });
+
+  it('대체 후보 대기 링크는 검토 대기열 탭을 열고 대체 후보 구역을 펼친다', async () => {
+    const zones = sampleZones();
+    zones.system_ok.push({ key: 'supersede_pending_count', value: 63, unit: 'count', severity: null, as_of: null, window: null });
+    zones.system_ok.push({ key: 'db_size_mb', value: 12.5, unit: 'MB', severity: null, as_of: null, window: null });
+    const harness = createOpsStatusHarness({ fetchImpl: async () => ({ zones, window: window7d() }) });
+    const activateTab = vi.fn();
+    harness.sandbox.__MEMENTO_DASHBOARD_TABS__ = { activateTab };
+    const section = { open: false, scrollIntoView: vi.fn() };
+    harness.elements['rc-supersede-section'] = section;
+    await harness.ns.refresh();
+
+    type Row = { attributes: Record<string, string>; children: Array<{ attributes: Record<string, string>; addEventListener: { mock: { calls: Array<[string, () => void]> } } }> };
+    const cards = harness.zonesHost.children as Array<{ children: Array<{ children?: Row[] }> }>;
+    const rows = cards[0].children[1].children!;
+    const link = rows.find((r) => r.attributes['data-key'] === 'supersede_pending_count')!.children.find((c) => c.attributes['data-ops-goto']);
+    expect(link!.attributes['data-ops-goto']).toBe('review');
+    expect(rows.find((r) => r.attributes['data-key'] === 'db_size_mb')!.children.some((c) => c.attributes['data-ops-goto'])).toBe(false);
+
+    link!.addEventListener.mock.calls[0]![1]();
+    expect(activateTab).toHaveBeenCalledWith('review');
+    expect(section.open).toBe(true);
+    expect(section.scrollIntoView).toHaveBeenCalled();
   });
 
   it('paints a 200 response without zones as fetch failure', async () => {
