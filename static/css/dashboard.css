@@ -329,7 +329,8 @@ body {
 
 .memory-detail-item .value {
   color: var(--color-text-main);
-  word-break: break-word;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 /* Map Container */
@@ -888,6 +889,8 @@ body {
   font-size: var(--font-size-sm);
   color: var(--color-text-muted);
   line-height: var(--line-height-relaxed, 1.45);
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 .rc-howto {
@@ -1320,6 +1323,8 @@ body {
   font-size: var(--font-size-sm, 0.875rem);
   color: var(--color-text-muted);
   line-height: 1.5;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 
@@ -1723,6 +1728,14 @@ body {
   overflow-y: auto;
 }
 
+/* 1726 r4: Korean prose wraps on word boundaries across tabs; long Latin tokens still wrap. */
+.ops-status-intro,
+.memory-finder-title + p,
+.tab-panel > .m-empty {
+  word-break: keep-all;
+  overflow-wrap: anywhere;
+}
+
 /* Ops status zones (#1699) */
 .ops-status-zones {
   display: grid;
@@ -2101,6 +2114,8 @@ body {
   font-size: var(--font-size-xs);
   color: var(--color-text-muted);
   line-height: 1.45;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
 }
 
 .settings-section h3 {
@@ -2127,8 +2142,9 @@ body {
   width: 7rem;
 }
 
+/* r4: rule_only 같은 enum 값이 ellipsis 로 잘리지 않게 칸을 넓히고 줄바꿈 허용. */
 .settings-col-default {
-  width: 5.5rem;
+  width: 7.5rem;
 }
 
 .settings-col-risk {
@@ -2140,7 +2156,7 @@ body {
 }
 
 .settings-col-actions {
-  width: 5.5rem;
+  width: 7.5rem;
 }
 
 .settings-table th {
@@ -2173,14 +2189,16 @@ body {
 }
 
 .settings-default {
-  overflow: hidden;
-  max-width: 0;
+  overflow: visible;
+  max-width: none;
 }
 
 .settings-default__value {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  overflow: visible;
+  text-overflow: clip;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: normal;
   font-family: var(--font-family-mono);
 }
 
@@ -2227,6 +2245,8 @@ body {
   width: 100%;
   box-sizing: border-box;
   min-width: 0;
+  overflow-wrap: anywhere;
+  word-break: normal;
 }
 
 .settings-btn {

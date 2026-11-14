@@ -297,7 +297,7 @@
       return '앵커 ' + d.slot + '\n' + d.content + warning + pinHint;
     }
     return '기억\n' + d.content + '\n소속: ' + formatMembershipLabel(d) +
-      '\nHop: ' + (d.hop_distance || 'N/A') + pinHint;
+      '\n홉: ' + (d.hop_distance != null ? d.hop_distance : '—') + pinHint;
   }
 
   function applyPinVisual() {
@@ -434,7 +434,7 @@
       if (g.node()) g.selectAll('*').remove();
       else state.svg.selectAll('*').remove();
       const agentId = mapData && mapData.agent_id ? mapData.agent_id : ns.getSelectedAgentId();
-      setMapStatusMessage('empty', 'agent "' + agentId + '" 에는 앵커가 없습니다 — set_anchor 로 설정하세요');
+      setMapStatusMessage('empty', '에이전트 "' + agentId + '"에는 앵커가 없습니다 — set_anchor로 설정하세요');
       return;
     }
 
@@ -526,7 +526,7 @@
         const memoryId = escapeHtml(anchor.memory_id);
         const contentPreview = memory ? escapeHtml(memory.content.substring(0, 50)) + '...' : '';
         return '<div class="anchor-item slot-' + slotClass + ' js-select-anchor" data-memory-id="' + memoryId + '">' +
-          '<div class="slot-label">Slot ' + slot + '</div>' +
+          '<div class="slot-label">슬롯 ' + slot + '</div>' +
           '<div class="memory-id">' + memoryId + '</div>' +
           (memory ? '<div class="anchor-item-preview">' + contentPreview + '</div>' : '') +
           '</div>';

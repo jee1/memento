@@ -274,7 +274,7 @@ test.describe('Anchor Map dashboard', () => {
     await page.locator('#dashboard-tab-anchor').click();
 
     await expect(page.locator('#anchor-list .anchor-item')).toHaveCount(3);
-    await expect(page.locator('#anchor-list .slot-a')).toContainText('Slot A');
+    await expect(page.locator('#anchor-list .slot-a')).toContainText('슬롯 A');
     await expect(page.locator('#anchor-list .slot-b')).toContainText('Slot B');
     await expect(page.locator('#anchor-list .slot-c')).toContainText('Slot C');
     await expect(page.locator('#anchor-map svg .node')).toHaveCount(5);

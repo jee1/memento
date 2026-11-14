@@ -89,6 +89,17 @@ async function installSettingsRoutes(page: Page, puts: Array<Record<string, unkn
             default_value: 'off',
             default_source: 'shared/config/environment.ts ENV_DEFAULTS isClusterJudgeEnabled',
           }),
+          setting({
+            key: 'PROCEDURAL_EXTRACTION_STRATEGY',
+            description: '절차 추출 전략.',
+            kind: 'enum',
+            allowed: ['rule_only', 'llm_only', 'hybrid'],
+            risk: 'low',
+            value: 'rule_only',
+            source: 'default',
+            default_value: 'rule_only',
+            default_source: 'shared/config/constants.ts',
+          }),
         ],
         read_only: [
           { key: 'OPENAI_API_KEY', secret: true, set: true, value: null },
@@ -111,109 +122,125 @@ async function openSettingsTab(page: Page): Promise<void> {
     await expect(tab).toBeVisible();
   }
   await tab.click();
-  await expect(page.locator('#settings-tbody tr')).toHaveCount(3, { timeout: 10_000 });
+  await expect(page.locator('#settings-tbody tr')).toHaveCount(4, { timeout: 10_000 });
 }
 
 async function measureSettingsTable(page: Page) {
   return page.evaluate(() => {
+    function lineCount(el: HTMLElement): number {
+      const range = document.createRange();
+      range.selectNodeContents(el);
+      return new Set(Array.from(range.getClientRects()).map((r) => Math.round(r.top))).size;
+    }
+
+    function measureKeys(table: HTMLTableElement) {
+      const keyClip: Array<{ scroll: number; client: number; lines: number; text: string }> = [];
+      const keyTruncated: Array<{ text: string; scroll: number; client: number }> = [];
+      for (const key of Array.from(table.querySelectorAll('.settings-key')) as HTMLElement[]) {
+        const text = (key.textContent || '').trim();
+        const lines = lineCount(key);
+        if (lines > 1 || key.scrollWidth > key.clientWidth + 1) {
+          keyClip.push({
+            scroll: key.scrollWidth,
+            client: key.clientWidth,
+            lines,
+            text: text.slice(0, 40),
+          });
+        }
+        if (key.scrollWidth > key.clientWidth + 1) {
+          keyTruncated.push({ text: text.slice(0, 40), scroll: key.scrollWidth, client: key.clientWidth });
+        }
+      }
+      return { keyClip, keyTruncated };
+    }
+
+    function measureDefaultCells(table: HTMLTableElement) {
+      const defaultOverlap: Array<{ key: string; defaultRight: number; nextLeft: number }> = [];
+      const pathInCell: string[] = [];
+      const missingSource: string[] = [];
+      const valueClipped: Array<{ key: string; kind: string; text: string; scroll: number; client: number }> = [];
+      for (const row of Array.from(table.querySelectorAll('tbody tr')) as HTMLTableRowElement[]) {
+        const key = row.dataset.key || '';
+        const cells = row.querySelectorAll('td');
+        const def = cells[2] as HTMLElement | undefined;
+        const next = cells[3] as HTMLElement | undefined;
+        if (def && next) {
+          const dr = def.getBoundingClientRect();
+          const nr = next.getBoundingClientRect();
+          if (dr.right > nr.left + 1) {
+            defaultOverlap.push({
+              key,
+              defaultRight: Math.round(dr.right),
+              nextLeft: Math.round(nr.left),
+            });
+          }
+          const visible = (def.innerText || '').replace(/\s+/g, ' ');
+          if (visible.includes('shared/config')) pathInCell.push(key + ':' + visible.slice(0, 80));
+          if (!def.querySelector('.settings-default__source')) missingSource.push(key);
+        }
+        const defVal = row.querySelector('.settings-default__value') as HTMLElement | null;
+        if (defVal && defVal.scrollWidth > defVal.clientWidth + 1) {
+          valueClipped.push({
+            key,
+            kind: 'default',
+            text: (defVal.textContent || '').trim(),
+            scroll: defVal.scrollWidth,
+            client: defVal.clientWidth,
+          });
+        }
+        const sel = row.querySelector('.settings-edit select') as HTMLSelectElement | null;
+        if (sel && sel.scrollWidth > sel.clientWidth + 1) {
+          valueClipped.push({
+            key,
+            kind: 'select',
+            text: sel.value,
+            scroll: sel.scrollWidth,
+            client: sel.clientWidth,
+          });
+        }
+      }
+      return { defaultOverlap, pathInCell, missingSource, valueClipped };
+    }
+
+    function measureChrome(table: HTMLTableElement) {
+      const thLines: Array<{ text: string; lines: number }> = [];
+      for (const th of Array.from(table.querySelectorAll('thead th')) as HTMLElement[]) {
+        const lines = lineCount(th);
+        if (lines > 1) thLines.push({ text: (th.textContent || '').trim(), lines });
+      }
+      const btnLines: Array<{ text: string; lines: number; w: number }> = [];
+      for (const btn of Array.from(table.querySelectorAll('.settings-btn')) as HTMLElement[]) {
+        const lines = lineCount(btn);
+        if (lines > 1) {
+          btnLines.push({
+            text: (btn.textContent || '').trim(),
+            lines,
+            w: Math.round(btn.getBoundingClientRect().width),
+          });
+        }
+      }
+      const badgeLines: Array<{ text: string; lines: number; w: number }> = [];
+      const emptyBadges: Array<{ w: number; h: number; cls: string }> = [];
+      for (const badge of Array.from(table.querySelectorAll('.m-badge')) as HTMLElement[]) {
+        const text = (badge.textContent || '').trim();
+        const box = badge.getBoundingClientRect();
+        const lines = lineCount(badge);
+        if (lines > 1) badgeLines.push({ text, lines, w: Math.round(box.width) });
+        if (!text || box.width < 8) {
+          emptyBadges.push({ w: Math.round(box.width), h: Math.round(box.height), cls: badge.className });
+        }
+      }
+      return { thLines, btnLines, badgeLines, emptyBadges };
+    }
+
     const table = document.querySelector('#settings-table') as HTMLTableElement | null;
     if (!table) {
       return { ok: false as const };
     }
     const cols = Array.from(table.querySelectorAll('col')).map((c) => getComputedStyle(c).width);
-    const thLines: Array<{ text: string; lines: number }> = [];
-    for (const th of Array.from(table.querySelectorAll('thead th')) as HTMLElement[]) {
-      const range = document.createRange();
-      range.selectNodeContents(th);
-      const rects = range.getClientRects();
-      const tops = new Set(Array.from(rects).map((r) => Math.round(r.top)));
-      if (tops.size > 1) {
-        thLines.push({ text: (th.textContent || '').trim(), lines: tops.size });
-      }
-    }
-    const keyClip: Array<{ scroll: number; client: number; lines: number; text: string }> = [];
-    const keyTruncated: Array<{ text: string; scroll: number; client: number }> = [];
-    for (const key of Array.from(table.querySelectorAll('.settings-key')) as HTMLElement[]) {
-      const range = document.createRange();
-      range.selectNodeContents(key);
-      const rects = range.getClientRects();
-      const tops = new Set(Array.from(rects).map((r) => Math.round(r.top)));
-      const text = (key.textContent || '').trim();
-      if (tops.size > 1 || key.scrollWidth > key.clientWidth + 1) {
-        keyClip.push({
-          scroll: key.scrollWidth,
-          client: key.clientWidth,
-          lines: tops.size,
-          text: text.slice(0, 40),
-        });
-      }
-      // Ellipsis / overflow clip (390 must not do this — full key on its own line)
-      if (key.scrollWidth > key.clientWidth + 1) {
-        keyTruncated.push({ text: text.slice(0, 40), scroll: key.scrollWidth, client: key.clientWidth });
-      }
-    }
-
-    const defaultOverlap: Array<{ key: string; defaultRight: number; nextLeft: number }> = [];
-    const pathInCell: string[] = [];
-    const missingSource: string[] = [];
-    for (const row of Array.from(table.querySelectorAll('tbody tr')) as HTMLTableRowElement[]) {
-      const key = row.dataset.key || '';
-      const cells = row.querySelectorAll('td');
-      const def = cells[2] as HTMLElement | undefined;
-      const next = cells[3] as HTMLElement | undefined;
-      if (!def || !next) continue;
-      const dr = def.getBoundingClientRect();
-      const nr = next.getBoundingClientRect();
-      if (dr.right > nr.left + 1) {
-        defaultOverlap.push({
-          key,
-          defaultRight: Math.round(dr.right),
-          nextLeft: Math.round(nr.left),
-        });
-      }
-      const visible = (def.innerText || '').replace(/\s+/g, ' ');
-      if (visible.includes('shared/config')) {
-        pathInCell.push(key + ':' + visible.slice(0, 80));
-      }
-      if (!def.querySelector('.settings-default__source')) {
-        missingSource.push(key);
-      }
-    }
-
-    const btnLines: Array<{ text: string; lines: number; w: number }> = [];
-    for (const btn of Array.from(table.querySelectorAll('.settings-btn')) as HTMLElement[]) {
-      const range = document.createRange();
-      range.selectNodeContents(btn);
-      const tops = new Set(Array.from(range.getClientRects()).map((r) => Math.round(r.top)));
-      if (tops.size > 1) {
-        btnLines.push({
-          text: (btn.textContent || '').trim(),
-          lines: tops.size,
-          w: Math.round(btn.getBoundingClientRect().width),
-        });
-      }
-    }
-
-    const badgeLines: Array<{ text: string; lines: number; w: number }> = [];
-    const emptyBadges: Array<{ w: number; h: number; cls: string }> = [];
-    for (const badge of Array.from(table.querySelectorAll('.m-badge')) as HTMLElement[]) {
-      const text = (badge.textContent || '').trim();
-      const box = badge.getBoundingClientRect();
-      const range = document.createRange();
-      range.selectNodeContents(badge);
-      const tops = new Set(Array.from(range.getClientRects()).map((r) => Math.round(r.top)));
-      if (tops.size > 1) {
-        badgeLines.push({
-          text,
-          lines: tops.size,
-          w: Math.round(box.width),
-        });
-      }
-      if (!text || box.width < 8) {
-        emptyBadges.push({ w: Math.round(box.width), h: Math.round(box.height), cls: badge.className });
-      }
-    }
-
+    const keys = measureKeys(table);
+    const cells = measureDefaultCells(table);
+    const chrome = measureChrome(table);
     const sourceLabels = Array.from(table.querySelectorAll('.m-badge')).map((b) =>
       (b.textContent || '').trim(),
     );
@@ -222,22 +249,18 @@ async function measureSettingsTable(page: Page) {
       Array.from(table.querySelectorAll('tbody td')).some(
         (td) => getComputedStyle(td).flexDirection === 'column',
       );
+    const intro = document.querySelector('.settings-intro') as HTMLElement | null;
 
     return {
       ok: true as const,
       colCount: cols.length,
       equalCols: cols.length >= 2 && cols.every((w) => w === cols[0]),
-      thLines,
-      keyClip,
-      keyTruncated,
-      defaultOverlap,
-      pathInCell,
-      missingSource,
-      btnLines,
-      badgeLines,
-      emptyBadges,
+      ...chrome,
+      ...keys,
+      ...cells,
       sourceLabels,
       stackedPhone,
+      introBreak: intro ? getComputedStyle(intro).wordBreak : '',
     };
   });
 }
@@ -300,6 +323,9 @@ test.describe('Settings dashboard tab (#1583)', () => {
       expect(report.btnLines, `btn wrap: ${JSON.stringify(report.btnLines)}`).toEqual([]);
       expect(report.badgeLines, `badge wrap: ${JSON.stringify(report.badgeLines)}`).toEqual([]);
       expect(report.emptyBadges, `empty badge: ${JSON.stringify(report.emptyBadges)}`).toEqual([]);
+      expect(report.valueClipped, `value clip: ${JSON.stringify(report.valueClipped)}`).toEqual([]);
+      expect(report.introBreak, 'settings intro must keep-all Korean words').toBe('keep-all');
+      await expect(page.locator('#settings-tbody')).toContainText('rule_only');
       if (width === 390) {
         // Stacked cards: side-by-side overlap metric does not apply
         expect(report.stackedPhone, '390 settings cells must stack full-width').toBe(true);
@@ -317,6 +343,37 @@ test.describe('Settings dashboard tab (#1583)', () => {
       }
     });
   }
+
+  test('narrow default column + ellipsis clips rule_only (counter-check)', async ({ page }) => {
+    const puts: Array<Record<string, unknown>> = [];
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await installSettingsRoutes(page, puts);
+    await page.goto('/dashboard');
+    await openSettingsTab(page);
+
+    const before = await measureSettingsTable(page);
+    expect(before.ok && before.valueClipped.length === 0).toBe(true);
+
+    await page.evaluate(() => {
+      const style = document.createElement('style');
+      style.textContent = `
+        .settings-col-default { width: 4.5rem !important; }
+        .settings-col-actions { width: 4.5rem !important; }
+        .settings-default { overflow: hidden !important; max-width: 0 !important; }
+        .settings-default__value {
+          overflow: hidden !important;
+          text-overflow: ellipsis !important;
+          white-space: nowrap !important;
+        }
+      `;
+      document.head.appendChild(style);
+    });
+
+    const after = await measureSettingsTable(page);
+    expect(after.ok).toBe(true);
+    if (!after.ok) return;
+    expect(after.valueClipped.length, `revert should clip: ${JSON.stringify(after.valueClipped)}`).toBeGreaterThan(0);
+  });
 
   test('removing settings colgroup equalizes columns (counter-check)', async ({ page }) => {
     const puts: Array<Record<string, unknown>> = [];
