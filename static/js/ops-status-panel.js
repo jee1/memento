@@ -266,15 +266,18 @@
     }
     li.appendChild(label);
 
+    const meta = doc.createElement('div');
+    meta.className = 'ops-row__meta';
+
     const value = doc.createElement('span');
     value.className = 'ops-row__value';
     value.textContent = ns.formatValue(item);
-    li.appendChild(value);
+    meta.appendChild(value);
 
     const windowEl = doc.createElement('span');
     windowEl.className = 'ops-row__window';
     windowEl.textContent = ns.formatWindowPeriod(item.window && item.window.period);
-    li.appendChild(windowEl);
+    meta.appendChild(windowEl);
 
     const linkSpec = LINKS[item.key];
     if (linkSpec && (sev === 'warn' || sev === 'crit')) {
@@ -289,9 +292,10 @@
           tabs.activateTab(linkSpec.tab);
         }
       });
-      li.appendChild(btn);
+      meta.appendChild(btn);
     }
 
+    li.appendChild(meta);
     return li;
   };
 

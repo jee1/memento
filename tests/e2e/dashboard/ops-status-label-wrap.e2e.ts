@@ -1,6 +1,6 @@
 import { expect, test, type Page } from '@playwright/test';
 
-// #1716: at 1280px (3-column zones) ops-row labels and values must not glyph-wrap.
+// #1716: ops-row cells stay inside the card; no glyph wrap. Measure clip + one-line at 1280.
 
 const LONG_BACKUP = '2026-11-13T11:33:16.000Z';
 
@@ -33,8 +33,16 @@ const ZONES = {
   ],
   doing_work: [
     {
-      key: 'llm_cluster_judge_attempts',
-      value: 0,
+      key: 'llm_supersede_judge_other_failures',
+      value: 1200,
+      unit: 'count',
+      severity: null,
+      as_of: null,
+      window: { period: '7d' },
+    },
+    {
+      key: 'llm_agent_chat_rate_limited',
+      value: 44,
       unit: 'count',
       severity: null,
       as_of: null,
@@ -54,6 +62,14 @@ const ZONES = {
       key: 'review_pending_total',
       value: 500,
       unit: 'count',
+      severity: 'warn',
+      as_of: null,
+      window: { period: '30d' },
+    },
+    {
+      key: 'review_last_human_decision_at',
+      value: LONG_BACKUP,
+      unit: null,
       severity: 'warn',
       as_of: null,
       window: { period: '30d' },
@@ -105,41 +121,73 @@ async function installOpsStatusRoutes(page: Page): Promise<void> {
   );
 }
 
-test.describe('ops-status label wrap (#1716)', () => {
-  test.use({ viewport: { width: 1280, height: 900 } });
+type ClipReport = {
+  clipped: Array<{ key: string; cls: string; right: number; cardRight: number }>;
+  multiLine: Array<{ key: string; cls: string; lines: number; width: number }>;
+};
 
-  test('ops-row labels and values stay one line at 1280px', async ({ page }) => {
-    await installOpsStatusRoutes(page);
-    await page.goto('/dashboard');
-    await expect(page.getByRole('heading', { name: '정상인가' })).toBeVisible();
-    await expect(page.locator('.ops-row[data-key="review_pending_total"]')).toHaveCount(1);
-    await expect(page.locator('.ops-row[data-key="review_pending_total"] .ops-row__link')).toHaveCount(1);
-
-    const report = await page.evaluate(() => {
-      const measure = (sel: string) =>
-        Array.from(document.querySelectorAll(sel)).map((el) => {
-          const cs = getComputedStyle(el);
-          const fontSize = parseFloat(cs.fontSize) || 14;
-          const lineHeightRaw = cs.lineHeight;
-          const lineHeight =
-            lineHeightRaw === 'normal' ? fontSize * 1.2 : parseFloat(lineHeightRaw) || fontSize * 1.2;
-          const box = el.getBoundingClientRect();
-          return {
-            text: el.textContent || '',
+async function measureOpsRows(page: Page): Promise<ClipReport> {
+  return page.evaluate(() => {
+    const clipped: Array<{ key: string; cls: string; right: number; cardRight: number }> = [];
+    const multiLine: Array<{ key: string; cls: string; lines: number; width: number }> = [];
+    const parts = ['.ops-row__label', '.ops-row__value', '.ops-row__window', '.ops-row__link'];
+    for (const row of Array.from(document.querySelectorAll('.ops-row'))) {
+      const card = row.closest('.ops-status-card');
+      if (!card) {
+        continue;
+      }
+      const cardRight = card.getBoundingClientRect().right;
+      const key = row.getAttribute('data-key') || '';
+      for (const sel of parts) {
+        const el = row.querySelector(sel);
+        if (!el) {
+          continue;
+        }
+        const box = el.getBoundingClientRect();
+        if (box.right > cardRight + 1) {
+          clipped.push({
+            key,
+            cls: sel.slice(1),
+            right: Math.round(box.right * 10) / 10,
+            cardRight: Math.round(cardRight * 10) / 10,
+          });
+        }
+        const cs = getComputedStyle(el);
+        const fontSize = parseFloat(cs.fontSize) || 14;
+        const lineHeightRaw = cs.lineHeight;
+        const lineHeight =
+          lineHeightRaw === 'normal' ? fontSize * 1.2 : parseFloat(lineHeightRaw) || fontSize * 1.2;
+        const padY = (parseFloat(cs.paddingTop) || 0) + (parseFloat(cs.paddingBottom) || 0);
+        const lines = Math.max(0, box.height - padY) / lineHeight;
+        if (lines > 1.15 || box.width < 1) {
+          multiLine.push({
+            key,
+            cls: sel.slice(1),
+            lines: Math.round(lines * 100) / 100,
             width: Math.round(box.width * 10) / 10,
-            height: Math.round(box.height * 10) / 10,
-            lines: box.height / lineHeight,
-          };
-        });
-      const bad = (rows: Array<{ text: string; width: number; height: number; lines: number }>) =>
-        rows.filter((row) => row.lines > 1.15 || row.width < 1);
-      return {
-        labels: bad(measure('.ops-row__label')),
-        values: bad(measure('.ops-row__value')),
-      };
-    });
-
-    expect(report.labels, `labels not one line: ${JSON.stringify(report.labels)}`).toEqual([]);
-    expect(report.values, `values not one line: ${JSON.stringify(report.values)}`).toEqual([]);
+          });
+        }
+      }
+    }
+    return { clipped, multiLine };
   });
+}
+
+test.describe('ops-status label wrap (#1716)', () => {
+  for (const width of [390, 1280, 1440] as const) {
+    test(`ops-row cells stay inside cards at ${width}px`, async ({ page }) => {
+      await page.setViewportSize({ width, height: 900 });
+      await installOpsStatusRoutes(page);
+      await page.goto('/dashboard');
+      await expect(page.getByRole('heading', { name: '정상인가' })).toBeVisible();
+      await expect(page.locator('.ops-row[data-key="review_pending_total"]')).toHaveCount(1);
+      await expect(page.locator('.ops-row[data-key="llm_supersede_judge_other_failures"]')).toHaveCount(1);
+
+      const report = await measureOpsRows(page);
+      expect(report.clipped, `clipped: ${JSON.stringify(report.clipped)}`).toEqual([]);
+      if (width === 1280) {
+        expect(report.multiLine, `multi-line: ${JSON.stringify(report.multiLine)}`).toEqual([]);
+      }
+    });
+  }
 });

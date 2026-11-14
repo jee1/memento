@@ -7,45 +7,40 @@ import vm from 'node:vm';
 
 import { describe, expect, it, vi } from 'vitest';
 
+import Database from 'better-sqlite3';
+
 import { LLM_USAGE_FEATURES } from '@memento/core/shared/services/llm-usage/llm-usage-types.js';
+
+import { buildAdminStatus } from './routes/admin/admin-status-service.js';
+import { buildOpsSummaryZones } from './routes/admin/admin-ops-summary-zones.js';
 
 const root = resolve(process.cwd());
 const dashboardHtml = readFileSync(resolve(root, 'static/dashboard.html'), 'utf8');
 const opsStatusPanelJs = readFileSync(resolve(root, 'static/js/ops-status-panel.js'), 'utf8');
 const tabsPanelsJs = readFileSync(resolve(root, 'static/js/dashboard-tabs-panels.js'), 'utf8');
 
-/** Static zone keys emitted by admin-ops-summary-zones (minus llm_* rows). */
-const STATIC_ZONE_KEYS = [
-  'process_database',
-  'scheduler_running',
-  'batch_failed_run_count',
-  'paused_job_count',
-  'job_interval_overdue_count',
-  'server_version',
-  'schema_version',
-  'auth_denied_count',
-  'migration_backup',
-  'migration_backup_file_count',
-  'db_size_mb',
-  'wal_size_mb',
-  'injection_item_filtered_events',
-  'item_filter_kept',
-  'item_filter_dropped',
-  'item_filter_empty',
-  'injection_empty',
-  'feedback_positive_count',
-  'feedback_negative_count',
-  'search_query_count',
-  'search_empty_rejected',
-  'search_empty_no_result',
-  'gate_drift_alert',
-  'relation_extraction_failures',
-  'review_pending_total',
-  'review_last_human_decision_at',
-  'review_net_flow_1h',
-  'supersede_pending_count',
-  'embedding_problem_count',
-] as const;
+type RowChild = {
+  className?: string;
+  textContent?: string;
+  attributes?: Record<string, string>;
+  children?: RowChild[];
+};
+
+/** Find sev/label or a part nested under .ops-row__meta. */
+function rowPart(row: { children?: RowChild[] }, className: string): RowChild | undefined {
+  for (const child of row.children ?? []) {
+    if (child.className === className) {
+      return child;
+    }
+    if (child.className === 'ops-row__meta') {
+      const hit = (child.children ?? []).find((c) => c.className === className);
+      if (hit) {
+        return hit;
+      }
+    }
+  }
+  return undefined;
+}
 
 function createClassList() {
   const classes = new Set<string>();
@@ -363,20 +358,17 @@ describe('dashboard ops status panel (#1699)', () => {
     expect(cards[1].children[0].textContent).toBe('제 일을 하고 있나');
     expect(cards[2].children[0].textContent).toBe('손댈 것');
 
-    const systemRows = (cards[0].children[1] as { children: Array<{ attributes: Record<string, string>; children: Array<{ className?: string; textContent?: string }> }> }).children;
+    const systemRows = (cards[0].children[1] as { children: Array<{ attributes: Record<string, string>; children: RowChild[] }> }).children;
     expect(systemRows[0].attributes['data-key']).toBe('process_database');
     expect(systemRows[0].attributes['data-severity']).toBe('ok');
-    const windowText = systemRows[0].children.find((c) => c.className === 'ops-row__window');
-    expect(windowText?.textContent).toBe('최근 30일');
+    expect(rowPart(systemRows[0], 'ops-row__window')?.textContent).toBe('최근 30일');
 
-    const doingRows = (cards[1].children[1] as { children: Array<{ attributes: Record<string, string>; children: Array<{ className?: string; textContent?: string }> }> }).children;
+    const doingRows = (cards[1].children[1] as { children: Array<{ attributes: Record<string, string>; children: RowChild[] }> }).children;
     expect(doingRows[0].attributes['data-severity']).toBeUndefined();
-    const nullSevBadge = doingRows[0].children.find((c) => c.className === 'ops-row__sev');
-    expect(nullSevBadge?.textContent ?? '').toBe('');
+    expect(rowPart(doingRows[0], 'ops-row__sev')?.textContent ?? '').toBe('');
 
-    const actionRows = (cards[2].children[1] as { children: Array<{ attributes: Record<string, string>; children: Array<{ className?: string; textContent?: string }> }> }).children;
-    const pendingValue = actionRows[0].children.find((c) => c.className === 'ops-row__value');
-    expect(pendingValue?.textContent).toBe('500');
+    const actionRows = (cards[2].children[1] as { children: Array<{ attributes: Record<string, string>; children: RowChild[] }> }).children;
+    expect(rowPart(actionRows[0], 'ops-row__value')?.textContent).toBe('500');
   });
 
   it('renders unknown zone items without panel code changes (generic zones)', async () => {
@@ -398,14 +390,12 @@ describe('dashboard ops status panel (#1699)', () => {
     }>;
     const rows = cards[0].children[1].children as Array<{
       attributes: Record<string, string>;
-      children: Array<{ className?: string; textContent?: string }>;
+      children: RowChild[];
     }>;
     const probe = rows.find((r) => r.attributes['data-key'] === 'custom_probe_signal');
     expect(probe).toBeTruthy();
-    const label = probe?.children.find((c) => c.className === 'ops-row__label');
-    const value = probe?.children.find((c) => c.className === 'ops-row__value');
-    expect(label?.textContent).toBe('미등록 항목');
-    expect(value?.textContent).toBe('42');
+    expect(rowPart(probe!, 'ops-row__label')?.textContent).toBe('미등록 항목');
+    expect(rowPart(probe!, 'ops-row__value')?.textContent).toBe('42');
   });
 
   it('paints fetch failure as crit with a visible reason', async () => {
@@ -448,29 +438,56 @@ describe('dashboard ops status panel (#1699)', () => {
     expect(harness.ns.labelForKey('llm_unknown_feature_attempts')).toBe('미등록 작업 / 시도');
   });
 
-  it('covers every server zone key in the label table with Korean text (#1716)', () => {
+  it('covers every key buildOpsSummaryZones emits with a Korean label (#1716)', () => {
     const harness = createOpsStatusHarness();
-    const englishToken = /\b(attempts|other_failures|rate_limited)\b|_/;
-    const missing: string[] = [];
-    for (const key of STATIC_ZONE_KEYS) {
-      expect(harness.ns.isKnownLabelKey(key), key).toBe(true);
-      const label = harness.ns.labelForKey(key);
-      if (label === key || englishToken.test(label)) {
-        missing.push(key + '=' + label);
-      }
-    }
-    for (const feature of LLM_USAGE_FEATURES) {
-      for (const metric of ['attempts', 'other_failures', 'rate_limited'] as const) {
-        const key = `llm_${feature}_${metric}`;
+    const db = new Database(':memory:');
+    try {
+      const window = {
+        period: '7d' as const,
+        since: '2026-11-06T00:00:00.000Z',
+        until: '2026-11-13T00:00:00.000Z',
+      };
+      const zones = buildOpsSummaryZones({
+        db,
+        serverServices: null,
+        window,
+        ownerId: null,
+        nowMs: Date.parse('2026-11-13T00:00:00.000Z'),
+        adminStatus: buildAdminStatus(db),
+        llmPressure: {
+          availability: 'measured',
+          window,
+          by_feature: LLM_USAGE_FEATURES.map((feature) => ({
+            feature,
+            attempts: 1,
+            rate_limited: 0,
+            other_failures: 0,
+            final_fallback: 0,
+            final_deferred: 0,
+          })),
+        },
+        diskSignals: {
+          migration_backup_latest_at: null,
+          migration_backup_file_count: null,
+          db_size_mb: null,
+          wal_size_mb: null,
+        },
+      });
+      const keys = [...zones.system_ok, ...zones.doing_work, ...zones.needs_action].map((item) => item.key);
+      expect(keys.length).toBeGreaterThan(20);
+      const englishToken = /\b(attempts|other_failures|rate_limited)\b/;
+      const missing: string[] = [];
+      for (const key of keys) {
         expect(harness.ns.isKnownLabelKey(key), key).toBe(true);
         const label = harness.ns.labelForKey(key);
-        if (englishToken.test(label) || label.includes(feature)) {
+        if (label === key || label === '미등록 항목' || englishToken.test(label) || /llm_/.test(label)) {
           missing.push(key + '=' + label);
         }
       }
+      expect(missing, `label table gaps: ${missing.join(', ')}`).toEqual([]);
+    } finally {
+      db.close();
     }
-    expect(missing, `label table gaps: ${missing.join(', ')}`).toEqual([]);
-    expect(Object.keys(harness.ns.ZONE_KEY_LABELS).sort()).toEqual([...STATIC_ZONE_KEYS].sort());
   });
 
   it('formats window periods in Korean and attaches descriptions (#1716)', async () => {
@@ -507,12 +524,8 @@ describe('dashboard ops status panel (#1699)', () => {
     }>;
     const kept = doingRows.find((r) => r.attributes['data-key'] === 'item_filter_kept');
     expect(kept).toBeTruthy();
-    const label = kept?.children.find((c) => c.className === 'ops-row__label');
-    expect(label?.attributes?.title).toContain('점수 기준');
-    const windowEl = kept?.children.find((c) => c.className === 'ops-row__window') as
-      | { textContent?: string }
-      | undefined;
-    expect(windowEl?.textContent).toBe('최근 7일');
+    expect(rowPart(kept!, 'ops-row__label')?.attributes?.title).toContain('점수 기준');
+    expect(rowPart(kept!, 'ops-row__window')?.textContent).toBe('최근 7일');
   });
 
   it('shows labels, MB unit and current window for the #1704 disk signals', async () => {
@@ -527,10 +540,10 @@ describe('dashboard ops status panel (#1699)', () => {
     await harness.ns.refresh();
 
     const cards = harness.zonesHost.children as Array<{
-      children: Array<{ children?: Array<{ attributes: Record<string, string>; children: Array<{ className?: string; textContent?: string }> }> }>;
+      children: Array<{ children?: Array<{ attributes: Record<string, string>; children: RowChild[] }> }>;
     }>;
     const rowOf = (key: string) => cards[0].children[1].children!.find((r) => r.attributes['data-key'] === key)!;
-    const text = (key: string, cls: string) => rowOf(key).children.find((c) => c.className === cls)?.textContent;
+    const text = (key: string, cls: string) => rowPart(rowOf(key), cls)?.textContent;
 
     expect(text('migration_backup', 'ops-row__label')).toBe('마이그레이션 백업');
     expect(text('migration_backup', 'ops-row__value')).toContain('2026');
@@ -553,18 +566,6 @@ describe('dashboard ops status panel (#1699)', () => {
     };
     expect(banner.attributes['data-severity']).toBe('crit');
     expect(banner.children.some((c) => String(c.textContent).includes('zones'))).toBe(true);
-  });
-
-  it('has a label for every fixed zone key the server emits', () => {
-    const serverSource = readFileSync(
-      resolve(root, 'packages/memento-server/src/server/routes/admin/admin-ops-summary-zones.ts'),
-      'utf8',
-    );
-    const keys = [...serverSource.matchAll(/\bitem\(\s*'([a-z0-9_]+)'/g)].map((m) => m[1]!);
-    expect(keys.length).toBeGreaterThan(20);
-    const harness = createOpsStatusHarness();
-    const unlabeled = keys.filter((key) => harness.ns.labelForKey(key) === key);
-    expect(unlabeled).toEqual([]);
   });
 
   it('does not embed developer measured/unmeasured strings or client severity thresholds', () => {
