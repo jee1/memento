@@ -1286,12 +1286,15 @@ body {
   pointer-events: none;
 }
 
-/* Jobs panel (#832) */
+/* Jobs panel (#832). Scroll inside layout: .tab-panel is overflow:hidden (#1725). */
 .jobs-layout {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: var(--spacing-md);
   padding: var(--spacing-md);
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .jobs-header {
@@ -1683,6 +1686,15 @@ body {
   }
 }
 
+/* Ops status (#1699). Scroll inside layout: .tab-panel is overflow:hidden (#1725). */
+.ops-status-layout {
+  display: flex;
+  flex: 1;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+}
+
 /* Ops status zones (#1699) */
 .ops-status-zones {
   display: grid;
@@ -1891,12 +1903,15 @@ body {
   }
 }
 
-/* #1118 memory finder */
+/* #1118 memory finder. Scroll inside layout: .tab-panel is overflow:hidden (#1725). */
 .memory-finder-layout {
   display: flex;
+  flex: 1;
   flex-direction: column;
   gap: var(--spacing-md);
   padding: var(--spacing-md);
+  min-height: 0;
+  overflow-y: auto;
 }
 
 .memory-finder-title {
