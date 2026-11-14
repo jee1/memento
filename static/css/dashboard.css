@@ -1908,8 +1908,53 @@ body {
     display: flex;
   }
 
-  .settings-table .settings-btn,
-  .settings-table .m-badge {
+  /* 1726 r3: settings cards stack full-width — not label | narrow value. */
+  #settings-table td {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+    gap: var(--spacing-2xs);
+    text-align: left;
+  }
+
+  #settings-table td[data-label]::before {
+    max-width: none;
+    width: 100%;
+    margin-bottom: var(--spacing-4xs);
+  }
+
+  #settings-table .settings-key {
+    display: block;
+    width: 100%;
+    white-space: normal;
+    overflow: visible;
+    text-overflow: clip;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+  }
+
+  #settings-table .settings-desc,
+  #settings-table .settings-inactive-reason,
+  #settings-table .settings-value,
+  #settings-table .settings-default,
+  #settings-table .settings-default__value,
+  #settings-table .settings-default__source,
+  #settings-table .settings-edit {
+    width: 100%;
+    max-width: none;
+    text-align: left;
+    white-space: normal;
+    overflow: visible;
+  }
+
+  #settings-table .m-badge {
+    align-self: flex-start;
+    white-space: nowrap;
+    overflow: visible;
+  }
+
+  #settings-table .settings-btn {
     white-space: nowrap;
     word-break: keep-all;
   }
@@ -1917,14 +1962,6 @@ body {
   .settings-events-filter {
     flex-wrap: nowrap;
     white-space: nowrap;
-  }
-
-  .settings-default,
-  .settings-default__value,
-  .settings-default__source {
-    max-width: none;
-    white-space: normal;
-    overflow: visible;
   }
 
   .m-stat-grid {
@@ -2148,18 +2185,38 @@ body {
 }
 
 .settings-default__source {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: break-word;
 }
 
-.settings-table .m-badge {
+/* Decorative ::before looked like「|」or empty yellow circle when clipped (#1726 r3).
+   Beat .m-badge--*::before in components.css (same 0,2,1) via #settings-table. */
+#settings-table .m-badge {
+  display: inline-flex;
   white-space: nowrap;
-  display: inline-block;
-  max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
+  overflow: visible;
+  max-width: none;
+  text-transform: none;
   vertical-align: baseline;
+  gap: 0;
+}
+
+#settings-table .m-badge::before,
+#settings-table .m-badge--ok::before,
+#settings-table .m-badge--warn::before,
+#settings-table .m-badge--crit::before,
+#settings-table .m-badge--idle::before {
+  content: none;
+  display: none;
+  width: 0;
+  height: 0;
+  border: 0;
+  background: none;
+}
+
+.jobs-timeline__actions--empty {
+  color: var(--color-text-muted);
 }
 
 .settings-edit {

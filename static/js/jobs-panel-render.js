@@ -274,6 +274,7 @@
       }
       appendCell(row, ns.formatRunOutcome(run));
       const actions = document.createElement('td');
+      actions.className = 'jobs-timeline__actions';
       if (!ns.state.readOnly && run.success === false && run.jobName) {
         const btn = document.createElement('button');
         btn.type = 'button';
@@ -282,6 +283,10 @@
         btn.dataset.action = 'retry';
         btn.dataset.jobName = run.jobName;
         actions.appendChild(btn);
+      } else {
+        // Stacked drawer shows a bare 「동작」 label when empty — keep a value.
+        actions.textContent = '없음';
+        actions.classList.add('jobs-timeline__actions--empty');
       }
       row.appendChild(actions);
       tbody.appendChild(row);

@@ -12,7 +12,7 @@
 
   // Korean UI strings. Code references ns.S.* only; edit text here, not in the logic.
   ns.S = {
-    sourceLabel: { override: 'DB', env: '.env', default: '기본값' },
+    sourceLabel: { override: 'DB 값', env: '환경 파일 값', default: '기본값' },
     riskLabel: { low: '위험 낮음', medium: '위험 중간', high: '위험 높음' },
     applyImmediate: '즉시 반영',
     applyRestart: '재기동 필요',
@@ -33,7 +33,7 @@
     allKeys: '전체',
     // default_source 경로 대신 칸에 보이는 한국어. 전체 경로는 title.
     defaultSourceCode: '코드 기본값',
-    defaultSourceConstants: '코드 상수 기본값',
+    defaultSourceConstants: '상수 기본값',
     defaultSourceEnvironment: '환경 기본값',
     defaultSourceUnknown: '기본값 출처 없음',
     reasonRequired: '사유를 입력하세요.',

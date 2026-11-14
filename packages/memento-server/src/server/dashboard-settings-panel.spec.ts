@@ -318,7 +318,8 @@ describe('dashboard settings panel', () => {
       expect(drift('REFLEXION_OBSERVATION_ONLY')).toBe(false);
       expect(drift('MEMENTO_REMEMBER_DEDUP_MODE')).toBe(false);
       expect(drift('LLM_MODEL_RELATION_EXTRACTION')).toBe(false);
-      expect(page.row('SEARCH_REJECTION_GATE_THRESHOLD').textContent).toContain('.env');
+      expect(page.row('SEARCH_REJECTION_GATE_THRESHOLD').textContent).toContain('환경 파일 값');
+      expect(page.row('SEARCH_REJECTION_GATE_THRESHOLD').textContent).not.toContain('.env');
       expect(page.row('REFLEXION_OBSERVATION_ONLY').textContent).toContain('기본값');
     });
 

@@ -85,6 +85,7 @@ async function installSettingsRoutes(page: Page, puts: Array<Record<string, unkn
             allowed: ['off', 'on'],
             risk: 'low',
             value: 'off',
+            source: 'env',
             default_value: 'off',
             default_source: 'shared/config/environment.ts ENV_DEFAULTS isClusterJudgeEnabled',
           }),
@@ -130,18 +131,25 @@ async function measureSettingsTable(page: Page) {
         thLines.push({ text: (th.textContent || '').trim(), lines: tops.size });
       }
     }
-    const keyClip: Array<{ scroll: number; client: number; lines: number }> = [];
+    const keyClip: Array<{ scroll: number; client: number; lines: number; text: string }> = [];
+    const keyTruncated: Array<{ text: string; scroll: number; client: number }> = [];
     for (const key of Array.from(table.querySelectorAll('.settings-key')) as HTMLElement[]) {
       const range = document.createRange();
       range.selectNodeContents(key);
       const rects = range.getClientRects();
       const tops = new Set(Array.from(rects).map((r) => Math.round(r.top)));
+      const text = (key.textContent || '').trim();
       if (tops.size > 1 || key.scrollWidth > key.clientWidth + 1) {
         keyClip.push({
           scroll: key.scrollWidth,
           client: key.clientWidth,
           lines: tops.size,
+          text: text.slice(0, 40),
         });
+      }
+      // Ellipsis / overflow clip (390 must not do this — full key on its own line)
+      if (key.scrollWidth > key.clientWidth + 1) {
+        keyTruncated.push({ text: text.slice(0, 40), scroll: key.scrollWidth, client: key.clientWidth });
       }
     }
 
@@ -187,18 +195,33 @@ async function measureSettingsTable(page: Page) {
     }
 
     const badgeLines: Array<{ text: string; lines: number; w: number }> = [];
+    const emptyBadges: Array<{ w: number; h: number; cls: string }> = [];
     for (const badge of Array.from(table.querySelectorAll('.m-badge')) as HTMLElement[]) {
+      const text = (badge.textContent || '').trim();
+      const box = badge.getBoundingClientRect();
       const range = document.createRange();
       range.selectNodeContents(badge);
       const tops = new Set(Array.from(range.getClientRects()).map((r) => Math.round(r.top)));
       if (tops.size > 1) {
         badgeLines.push({
-          text: (badge.textContent || '').trim(),
+          text,
           lines: tops.size,
-          w: Math.round(badge.getBoundingClientRect().width),
+          w: Math.round(box.width),
         });
       }
+      if (!text || box.width < 8) {
+        emptyBadges.push({ w: Math.round(box.width), h: Math.round(box.height), cls: badge.className });
+      }
     }
+
+    const sourceLabels = Array.from(table.querySelectorAll('.m-badge')).map((b) =>
+      (b.textContent || '').trim(),
+    );
+    const stackedPhone =
+      window.innerWidth <= 480 &&
+      Array.from(table.querySelectorAll('tbody td')).some(
+        (td) => getComputedStyle(td).flexDirection === 'column',
+      );
 
     return {
       ok: true as const,
@@ -206,11 +229,15 @@ async function measureSettingsTable(page: Page) {
       equalCols: cols.length >= 2 && cols.every((w) => w === cols[0]),
       thLines,
       keyClip,
+      keyTruncated,
       defaultOverlap,
       pathInCell,
       missingSource,
       btnLines,
       badgeLines,
+      emptyBadges,
+      sourceLabels,
+      stackedPhone,
     };
   });
 }
@@ -257,7 +284,10 @@ test.describe('Settings dashboard tab (#1583)', () => {
       await expect(page.locator('#settings-table thead')).toContainText('마지막 변경');
       await expect(page.locator('#settings-tbody .settings-default__source').first()).toContainText('코드');
       await expect(page.locator('#settings-tbody')).toContainText('환경 기본값');
-      await expect(page.locator('#settings-tbody')).toContainText('코드 상수 기본값');
+      await expect(page.locator('#settings-tbody')).toContainText('상수 기본값');
+      await expect(page.locator('#settings-tbody')).toContainText('환경 파일 값');
+      await expect(page.locator('#settings-tbody')).not.toContainText('.ENV');
+      await expect(page.locator('#settings-tbody')).not.toContainText('.env');
 
       const report = await measureSettingsTable(page);
       expect(report.ok).toBe(true);
@@ -265,15 +295,26 @@ test.describe('Settings dashboard tab (#1583)', () => {
       expect(report.colCount).toBe(6);
       expect(report.equalCols, `equal cols (missing widths)`).toBe(false);
       expect(report.thLines, `header wrap: ${JSON.stringify(report.thLines)}`).toEqual([]);
-      expect(
-        report.keyClip.filter((k) => k.lines > 1),
-        `key glyph wrap: ${JSON.stringify(report.keyClip)}`,
-      ).toEqual([]);
-      expect(report.defaultOverlap, `default overlap: ${JSON.stringify(report.defaultOverlap)}`).toEqual([]);
       expect(report.pathInCell, `path in cell: ${JSON.stringify(report.pathInCell)}`).toEqual([]);
       expect(report.missingSource, `missing source node: ${JSON.stringify(report.missingSource)}`).toEqual([]);
       expect(report.btnLines, `btn wrap: ${JSON.stringify(report.btnLines)}`).toEqual([]);
       expect(report.badgeLines, `badge wrap: ${JSON.stringify(report.badgeLines)}`).toEqual([]);
+      expect(report.emptyBadges, `empty badge: ${JSON.stringify(report.emptyBadges)}`).toEqual([]);
+      if (width === 390) {
+        // Stacked cards: side-by-side overlap metric does not apply
+        expect(report.stackedPhone, '390 settings cells must stack full-width').toBe(true);
+        expect(report.keyTruncated, `390 key truncate: ${JSON.stringify(report.keyTruncated)}`).toEqual([]);
+        await expect(page.locator('#settings-tbody')).toContainText('SEARCH_REJECTION_GATE_THRESHOLD');
+        await expect(page.locator('#settings-tbody')).toContainText('CLUSTER_JUDGE_MODE');
+        await expect(page.locator('#settings-tbody .settings-inactive-reason').first()).toBeVisible();
+        await expect(page.locator('#settings-tbody .settings-default__source').first()).toBeVisible();
+      } else {
+        expect(report.defaultOverlap, `default overlap: ${JSON.stringify(report.defaultOverlap)}`).toEqual([]);
+        expect(
+          report.keyClip.filter((k) => k.lines > 1),
+          `key glyph wrap: ${JSON.stringify(report.keyClip)}`,
+        ).toEqual([]);
+      }
     });
   }
 

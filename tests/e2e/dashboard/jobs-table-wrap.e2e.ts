@@ -273,6 +273,7 @@ test.describe('jobs table wrap (#1724)', () => {
       await expect(page.locator('#jobs-queue-summary')).toContainText('대기열');
       await expect(page.locator('#jobs-queue-summary')).not.toContainText('runningCount');
       await expect(page.locator('#jobs-timeline-tbody')).toContainText('예약');
+      await expect(page.locator('#jobs-timeline-tbody')).toContainText('없음');
       // Compact table stamp, not full 「2026. 11. 14. 오후 …」
       await expect(page.locator('#jobs-schedule-tbody .jobs-schedule__last').first()).toContainText('오후');
       await expect(page.locator('#jobs-schedule-tbody .jobs-schedule__last').first()).not.toContainText(
