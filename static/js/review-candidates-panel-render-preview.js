@@ -80,7 +80,7 @@
       p.textContent = String(priority ?? '');
     }
     if (r) {
-      r.textContent = String(reason ?? '');
+      r.textContent = ns.formatReasonDisplay(String(reason ?? ''));
     }
     if (d) {
       d.textContent = ns.formatDue(due);

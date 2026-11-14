@@ -1072,24 +1072,61 @@ body {
   min-height: 0;
 }
 
+/* #1722: fixed layout + ellipsis IDs; never break-all (glyph wrap). */
+#rc-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
 .rc-cell-mono {
   font-family: var(--font-family-mono);
-  word-break: break-all;
 }
 
 .rc-cell-select {
-  width: 1%;
+  width: 2.25rem;
   white-space: nowrap;
 }
 
+.rc-cell-priority {
+  width: 4.5rem;
+  white-space: nowrap;
+}
+
+.rc-cell-status {
+  width: 4rem;
+  white-space: nowrap;
+}
+
+.rc-cell-due {
+  width: 6.5rem;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.rc-cell-id {
+  width: 8.5rem;
+  max-width: 8.5rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  word-break: normal;
+}
+
 .rc-cell-reason {
-  white-space: pre-wrap;
-  word-break: break-word;
-  max-width: var(--layout-track-36);
+  white-space: normal;
+  overflow-wrap: break-word;
+  word-break: normal;
+  max-width: none;
   display: -webkit-box;
-  -webkit-line-clamp: 4;
+  -webkit-line-clamp: 3;
   -webkit-box-orient: vertical;
   overflow: hidden;
+}
+
+.rc-preview-id {
+  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .review-candidates-body {

@@ -80,25 +80,34 @@
       tr.dataset.priority = String(c.priority ?? '');
       tr.dataset.reason = reasonFull;
       tr.dataset.due = dueRaw;
+      const reasonDisplay = ns.formatReasonDisplay(reasonFull);
+      const statusDisplay = ns.formatStatus(String(c.status ?? ''));
+      const dueDisplay = ns.formatDue(dueRaw);
       tr.innerHTML =
         '<td class="rc-cell-select"><input type="checkbox" data-candidate-select="' +
         ns.escapeAttr(candidateId) +
         '" aria-label="후보 선택 ' +
         ns.escapeAttr(candidateId) +
-        '"></td><td>' +
+        '"></td><td class="rc-cell-priority">' +
         ns.escapeHtml(String(c.priority ?? '')) +
-        '</td><td class="rc-cell-mono">' +
-        ns.escapeHtml(memoryId) +
-        '</td><td>' +
-        ns.escapeHtml(String(c.status ?? '')) +
-        '</td><td class="rc-cell-reason" title="' +
-        ns.escapeAttr(reasonFull) +
+        '</td><td class="rc-cell-mono rc-cell-id" title="' +
+        ns.escapeAttr(memoryId) +
         '">' +
-        ns.escapeHtml(ns.truncateReason(reasonFull)) +
-        '</td><td class="rc-cell-mono">' +
-        ns.escapeHtml(ns.formatDue(dueRaw)) +
-        '</td><td class="rc-cell-mono">' +
-        ns.escapeHtml(String(c.id ?? '')) +
+        ns.escapeHtml(ns.truncateId(memoryId)) +
+        '</td><td class="rc-cell-status">' +
+        ns.escapeHtml(statusDisplay) +
+        '</td><td class="rc-cell-reason" title="' +
+        ns.escapeAttr(reasonDisplay) +
+        '">' +
+        ns.escapeHtml(ns.truncateReason(reasonDisplay)) +
+        '</td><td class="rc-cell-mono rc-cell-due" title="' +
+        ns.escapeAttr(dueRaw) +
+        '">' +
+        ns.escapeHtml(dueDisplay) +
+        '</td><td class="rc-cell-mono rc-cell-id" title="' +
+        ns.escapeAttr(candidateId) +
+        '">' +
+        ns.escapeHtml(ns.truncateId(candidateId)) +
         '</td>';
       tbody.appendChild(tr);
     }

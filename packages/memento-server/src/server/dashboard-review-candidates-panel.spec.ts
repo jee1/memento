@@ -248,6 +248,7 @@ describe('dashboard review candidates panel (#252, #253)', () => {
         $: (id: string) => elements[id],
         setHidden: (el: any, hidden: boolean) => el.classList.toggle('hidden', hidden),
         formatDue: (value: string) => value,
+        formatReasonDisplay: (value: string) => value,
         previewUrl: (memoryId: string) => '/memory/' + memoryId,
         adminFetch: () => (url: string) => responseFor(url.slice('/memory/'.length)),
       },
@@ -609,6 +610,9 @@ describe('#897 review queue structure and refresh selection', () => {
         escapeHtml: (s: string) => s,
         escapeAttr: (s: string) => s,
         truncateReason: (s: string) => s,
+        truncateId: (s: string) => s,
+        formatStatus: (s: string) => s,
+        formatReasonDisplay: (s: string) => s,
         formatDue: (v: string) => v,
         LIST_URL: '/admin/memory/review-candidates?status=pending',
         adminFetch: () => adminFetchSpy,
@@ -1186,4 +1190,64 @@ describe('#897 review queue filters and pagination (AC8)', () => {
     expect(h.loadList).toHaveBeenCalled();
   });
 
+});
+
+describe('review candidates panel display labels (#1722)', () => {
+  function loadShared() {
+    const sandbox: Record<string, any> = {
+      __MEMENTO_REVIEW_CANDIDATES_PANEL__: {},
+    };
+    sandbox.window = sandbox;
+    sandbox.globalThis = sandbox;
+    vm.runInContext(sharedJs, vm.createContext(sandbox), {
+      filename: 'review-candidates-panel-shared.js',
+    });
+    return sandbox.__MEMENTO_REVIEW_CANDIDATES_PANEL__ as {
+      formatStatus: (s: string) => string;
+      formatReasonDisplay: (s: string) => string;
+      formatDue: (s: string) => string;
+      truncateId: (s: string) => string;
+    };
+  }
+
+  it('maps status and eligible reason to Korean display strings', () => {
+    const ns = loadShared();
+    expect(ns.formatStatus('pending')).toBe('대기');
+    expect(ns.formatStatus('reviewed')).toBe('보존됨');
+    expect(ns.formatStatus('dismissed')).toBe('무시됨');
+    expect(ns.formatStatus('expired')).toBe('만료');
+    expect(
+      ns.formatReasonDisplay(
+        'eligible: importance=1.000>=0.4, stale=20d>=14d, anchor=last_recalled_at',
+      ),
+    ).toBe('중요도 1.00, 기준 이상 · 미사용 20일 · 마지막 recall');
+    expect(
+      ns.formatReasonDisplay(
+        'eligible: importance=0.300>=0.4, stale=5d>=14d, anchor=created_at_fallback',
+      ),
+    ).toBe('중요도 0.30, 기준 미달 · 미사용 5일 · 생성일(대체)');
+  });
+
+  it('truncates IDs and formats due as one short line', () => {
+    const ns = loadShared();
+    const longId = 'mem_17627723051234567890abcdef';
+    expect(ns.truncateId(longId)).toBe('mem_1762772305…');
+    expect(ns.truncateId(longId).includes('\n')).toBe(false);
+    const tomorrow = new Date();
+    tomorrow.setHours(12, 0, 0, 0);
+    tomorrow.setDate(tomorrow.getDate() + 3);
+    expect(ns.formatDue(tomorrow.toISOString())).toBe('3일 남음');
+    const past = new Date(2020, 0, 15, 12, 0, 0);
+    expect(ns.formatDue(past.toISOString())).toBe('2020-01-15');
+  });
+
+  it('table chrome uses Korean headers and no batch job type key in copy', () => {
+    expect(dashboardHtml).toContain('>기억 ID</th>');
+    expect(dashboardHtml).toContain('>후보 ID</th>');
+    expect(dashboardHtml).toContain('<dt>기억 ID</dt>');
+    expect(dashboardHtml).not.toContain('>Memory ID</th>');
+    expect(dashboardHtml).not.toContain('>Candidate ID</th>');
+    expect(dashboardHtml).not.toContain('memory_review_candidates');
+    expect(dashboardHtml).toContain('검토 대기열 후보 선정 배치');
+  });
 });

@@ -203,6 +203,7 @@ Below the zones, the **Embedding health** card shows how many problems the selec
 
 The dashboard has seven tabs: Status, Review queue, Jobs, Memory finder, Anchor Map, Memory Graph, Settings. Candidates a person approves live in one place, the **Review queue** tab. The top is the keep-or-ignore decision for memories that have gone unused. The collapsed **Supersede approval** section loads the list of old/new memory pairs when you expand it.
 
+- The keep-or-ignore table headers (Memory ID / Candidate ID in Korean UI), status, and reason labels are localized. Reasons read as human sentences (importance vs threshold, unused days). Due dates show as `YYYY-MM-DD` or “N days left” on one line. Long IDs truncate with an ellipsis; the full value stays in the cell `title` and the preview. Cells do not wrap glyph-by-glyph at notebook widths.
 - Select a candidate to see both full bodies, the rationale, and the quoted evidence. Approval stays disabled until both bodies have loaded.
 - **Approve** moves the old memory's read path to the new memory. Supersede approval must be on in the Settings tab; when it is off the button is disabled and says why.
 - **Restore** undoes an approval. **Dismiss** takes a reason and keeps the same pair from reappearing.
