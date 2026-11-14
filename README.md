@@ -18,6 +18,8 @@ Memento는 그 인프라입니다. 단순 저장소가 아니라, 기억이 생�
 
 프로젝트 방향: [docs/DIRECTION.md](docs/DIRECTION.md)
 
+**쓰고 계신가요?** [Discussions](https://github.com/jee1/memento/discussions)에 한 줄 남겨 주세요. 어떤 클라이언트와 버전으로 쓰는지 알려 주시면 됩니다. 기능을 지우거나 바꾸기 전에 영향받는 분께 알리려는 용도입니다. Memento는 사용 정보를 밖으로 보내지 않으므로, 이 글이 쓰임을 아는 유일한 길입니다.
+
 모노레포·패키지 구조·빌드 명령은 [AGENTS.md](AGENTS.md)를 참고해 주세요.
 
 ## 빠른 시작
