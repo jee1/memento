@@ -1734,7 +1734,8 @@ circle.em-dot:focus-visible {
 
 .ops-row {
   display: grid;
-  grid-template-columns: var(--size-ops-sev-col) minmax(0, 1fr) auto auto var(--size-ops-action-col);
+  /* Label = max-content (not crushed); empty action col must not reserve 9.5rem. */
+  grid-template-columns: auto max-content minmax(0, 1fr) auto auto;
   align-items: center;
   gap: var(--spacing-sm) var(--spacing-md);
   padding: var(--spacing-sm) 0;
@@ -1752,12 +1753,19 @@ circle.em-dot:focus-visible {
 
 .ops-row__label {
   grid-column: 2;
+  max-width: var(--layout-track-12);
   color: var(--color-text-muted);
+  overflow-wrap: normal;
+  word-break: keep-all;
 }
 
 .ops-row__value {
   grid-column: 3;
-  justify-self: end;
+  min-width: 0;
+  justify-self: stretch;
+  text-align: end;
+  overflow-wrap: anywhere;
+  white-space: normal;
   font-family: var(--font-numeric);
   font-variant-numeric: tabular-nums;
   font-weight: 600;
@@ -1789,7 +1797,7 @@ circle.em-dot:focus-visible {
 
 @media (max-width: 30rem) {
   .ops-row {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: auto max-content minmax(0, 1fr);
   }
 
   .ops-row__window,

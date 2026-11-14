@@ -378,11 +378,12 @@ describe('dashboard ops status panel (#1699)', () => {
     expect(banner.attributes['data-severity']).toBe('crit');
   });
 
-  it('labels LLM feature metrics as attempts / other_failures / rate_limited', () => {
+  it('labels LLM feature metrics with Korean names and metric suffixes (#1716)', () => {
     const harness = createOpsStatusHarness();
-    expect(harness.ns.labelForKey('llm_typesafe_attempts')).toBe('typesafe / attempts');
-    expect(harness.ns.labelForKey('llm_gemini_other_failures')).toBe('gemini / other_failures');
-    expect(harness.ns.labelForKey('llm_gemini_rate_limited')).toBe('gemini / rate_limited');
+    expect(harness.ns.labelForKey('llm_cluster_judge_attempts')).toBe('클러스터 판정 / 시도');
+    expect(harness.ns.labelForKey('llm_gemini_other_failures')).toBe('gemini / 기타 실패');
+    expect(harness.ns.labelForKey('llm_gemini_rate_limited')).toBe('gemini / 호출 한도');
+    expect(harness.ns.labelForKey('llm_typesafe_attempts')).toBe('typesafe / 시도');
   });
 
   it('shows labels, MB unit and current window for the #1704 disk signals', async () => {

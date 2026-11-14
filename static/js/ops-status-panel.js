@@ -100,13 +100,29 @@
     }
   };
 
+  const LLM_FEATURE_LABELS = {
+    cluster_judge: '클러스터 판정',
+    consolidation_summarize: '증류 요약',
+    procedural_extraction: '절차 추출',
+    relation_extraction: '관계 추출',
+    relevance_gate: '관련성 게이트',
+  };
+
+  const LLM_METRIC_LABELS = {
+    attempts: '시도',
+    other_failures: '기타 실패',
+    rate_limited: '호출 한도',
+  };
+
   ns.labelForKey = function (key) {
     if (LABELS[key]) {
       return LABELS[key];
     }
     const llm = /^llm_(.+)_(attempts|other_failures|rate_limited)$/.exec(String(key));
     if (llm) {
-      return llm[1] + ' / ' + llm[2];
+      const feature = LLM_FEATURE_LABELS[llm[1]] || llm[1];
+      const metric = LLM_METRIC_LABELS[llm[2]] || llm[2];
+      return feature + ' / ' + metric;
     }
     return String(key);
   };
