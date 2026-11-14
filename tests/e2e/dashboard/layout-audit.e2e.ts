@@ -27,6 +27,9 @@ const TABS = [
 
 const LONG_SESSION = 'session:060b5ba177df9451';
 
+const LONG_KO =
+  '이 기억은 매우 긴 본문으로서 관리자가 읽을 때 한글 어절이 줄 끝에서 중간에 끊기지 않고 통째로 다음 줄로 넘어가야 하며 검색 거부 게이트와 절차 추출 전략을 설명한다';
+
 const mapPayload = {
   agent_id: 'default',
   anchors: [
@@ -185,7 +188,45 @@ async function installAllRoutes(page: Page): Promise<void> {
     route.fulfill({
       status: 200,
       contentType: 'application/json',
-      body: JSON.stringify({ candidates: [], pagination: { page: 1, page_size: 25, total_count: 0 } }),
+      body: JSON.stringify({
+        candidates: [
+          {
+            id: 'sc-0',
+            lifecycle_status: 'not_applied',
+            verdict: 'pending',
+            project_id: 'memento',
+            old_memory_id: 'mem_old_17627723050000',
+            new_memory_id: 'mem_new_17627723059999',
+            old_content_preview: LONG_KO,
+            new_content_preview: LONG_KO + ' 갱신본',
+            rationale: LONG_KO,
+            evidence_quote: LONG_KO,
+            provider: 'minilm',
+            model: 'local',
+            judged_at: '2026-11-14T05:00:00.000Z',
+            supersede_apply_enabled: true,
+            old_superseded_by: null,
+          },
+          {
+            id: 'sc-1',
+            lifecycle_status: 'applied',
+            verdict: 'confirmed',
+            project_id: 'memento',
+            old_memory_id: 'mem_old_17627723050001',
+            new_memory_id: 'mem_new_17627723059998',
+            old_content_preview: LONG_KO,
+            new_content_preview: LONG_KO + ' 적용본',
+            rationale: LONG_KO,
+            evidence_quote: LONG_KO,
+            provider: 'minilm',
+            model: 'local',
+            judged_at: '2026-11-14T04:00:00.000Z',
+            supersede_apply_enabled: false,
+            old_superseded_by: null,
+          },
+        ],
+        pagination: { page: 1, page_size: 25, total_count: 2, total_pages: 1, has_prev: false, has_next: false },
+      }),
     }),
   );
 
@@ -196,7 +237,7 @@ async function installAllRoutes(page: Page): Promise<void> {
       body: JSON.stringify({
         timestamp: '2026-11-14T05:00:00.000Z',
         schedulerRunning: true,
-        readOnly: true,
+        readOnly: false,
         jobs: [
           {
             name: 'cleanup',
@@ -213,12 +254,30 @@ async function installAllRoutes(page: Page): Promise<void> {
             intervalMs: 300000,
             lastExecution: '2026-11-14T05:01:00.000Z',
             errorCount: 0,
+            isRunning: true,
+            paused: false,
+          },
+          {
+            name: 'memory_consolidation',
+            description: '기억을 통합합니다',
+            intervalMs: 3600000,
+            lastExecution: '2026-11-14T04:00:00.000Z',
+            errorCount: 4,
             isRunning: false,
             paused: false,
           },
+          {
+            name: 'rejection_gate_drift_check',
+            description: '거부 게이트 드리프트를 검사합니다',
+            intervalMs: 7200000,
+            lastExecution: '2026-11-14T03:00:00.000Z',
+            errorCount: 0,
+            isRunning: false,
+            paused: true,
+          },
         ],
-        health: { runningJobs: 0, queueSize: 0, errorRate: 0, memoryUsage: 40, uptimeHuman: '1h' },
-        queue: { size: 0, runningCount: 0, runningNames: [], queuedNames: [] },
+        health: { runningJobs: 1, queueSize: 1, errorRate: 0.1, memoryUsage: 40, uptimeHuman: '1h' },
+        queue: { size: 1, runningCount: 1, runningNames: ['monitoring'], queuedNames: ['cleanup'] },
       }),
     }),
   );
@@ -379,10 +438,25 @@ async function openTab(page: Page, tab: (typeof TABS)[number]): Promise<void> {
   await expect(page.locator(tab.panel)).toBeVisible({ timeout: 10_000 });
 }
 
+async function openAllDetailsInActivePanel(page: Page): Promise<void> {
+  await page.evaluate(() => {
+    document.querySelectorAll('.tab-panel.active details').forEach((d) => {
+      (d as HTMLDetailsElement).open = true;
+    });
+  });
+}
+
 async function prepareTabState(page: Page, tabKey: string): Promise<void> {
   if (tabKey === 'jobs') {
+    await expect(page.locator('#jobs-schedule-tbody tr')).toHaveCount(4, { timeout: 10_000 });
+    await expect(page.locator('.jobs-row-menu')).toHaveCount(4, { timeout: 10_000 });
     await expect(page.locator('#jobs-timeline-tbody tr')).toHaveCount(1, { timeout: 10_000 });
     await expect(page.locator('#jobs-drawer')).toBeVisible();
+    await page.evaluate(() => {
+      document.querySelectorAll('.jobs-row-menu').forEach((d) => {
+        (d as HTMLDetailsElement).open = true;
+      });
+    });
   }
   if (tabKey === 'settings') {
     await expect(page.locator('#settings-tbody tr').first()).toBeVisible({ timeout: 10_000 });
@@ -395,6 +469,12 @@ async function prepareTabState(page: Page, tabKey: string): Promise<void> {
     });
     await expect(page.locator('.rc-queue-verdict__action')).toBeVisible({ timeout: 10_000 });
     await expect(page.locator('.rc-bulk-effect-note')).toBeVisible();
+    await page.locator('#rc-supersede-section').evaluate((el) => {
+      (el as HTMLDetailsElement).open = true;
+    });
+    await expect(page.locator('#sc-table-body tr')).toHaveCount(2, { timeout: 10_000 });
+    await page.locator('#sc-table-body tr').first().click();
+    await expect(page.locator('#sc-detail')).toBeVisible({ timeout: 10_000 });
   }
   if (tabKey === 'anchor') {
     await expect(page.locator('#anchor-list .anchor-item')).toHaveCount(3, { timeout: 10_000 });
@@ -427,10 +507,11 @@ async function prepareTabState(page: Page, tabKey: string): Promise<void> {
   if (tabKey === 'ops-status') {
     await expect(page.locator('.ops-row').first()).toBeVisible({ timeout: 10_000 });
   }
+  await openAllDetailsInActivePanel(page);
 }
 
 type Finding = {
-  kind: 'clipped' | 'outside' | 'korean_mid_break' | 'english';
+  kind: 'clipped' | 'outside' | 'korean_mid_break' | 'english' | 'crushed_word';
   tab: string;
   viewport: string;
   selector: string;
@@ -447,8 +528,8 @@ async function scanActivePanel(page: Page, tab: string, viewport: string): Promi
 
       const allowEnglish = [
         /^[A-Z][A-Z0-9_]*$/,
-        /^(cleanup|monitoring|rejection_gate_drift_check|schedule|semantic|private|connected|count|ok|warn|crit|idle)$/i,
-        /^(minilm|tfidf|off|rule_only|llm_only|hybrid|true|false|openai|gemini)$/i,
+        /^(cleanup|monitoring|memory_consolidation|rejection_gate_drift_check|schedule|semantic|private|connected|count|ok|warn|crit|idle)$/i,
+        /^(minilm|tfidf|off|rule_only|llm_only|hybrid|true|false|openai|gemini|typesafe|jev|memento|pending|confirmed|applied)$/i,
         /^mem[_-]/i,
         /^session:[0-9a-f]+$/i,
         /^[ABC]$/,
@@ -477,6 +558,10 @@ async function scanActivePanel(page: Page, tab: string, viewport: string): Promi
         /^constants\.ts$/,
         /^d$/,
         /^h$/,
+        /^sc-\d+$/,
+        /^local$/i,
+        /^\d{4}-\d{2}-\d{2}T[\d:.Z+-]+$/,
+        /^T\d{2}:[\d:.Z+-]+$/,
       ];
 
       function shown(el: Element): boolean {
@@ -502,10 +587,10 @@ async function scanActivePanel(page: Page, tab: string, viewport: string): Promi
 
       function intendedEllipsis(el: HTMLElement): boolean {
         const cs = getComputedStyle(el);
-        const hasTitle = Boolean(el.getAttribute('title') || el.title);
-        if (!hasTitle) return false;
         if (cs.textOverflow === 'ellipsis') return true;
         if (cs.webkitLineClamp && cs.webkitLineClamp !== 'none') return true;
+        const hasTitle = Boolean(el.getAttribute('title') || el.title);
+        if (!hasTitle) return false;
         return false;
       }
 
@@ -568,6 +653,9 @@ async function scanActivePanel(page: Page, tab: string, viewport: string): Promi
       }
 
       function noteKoreanBreaks(el: HTMLElement): void {
+        const cs = getComputedStyle(el);
+        // nowrap/ellipsis overflow is truncation, not a visible mid-어절 wrap.
+        if (cs.whiteSpace === 'nowrap' || cs.textOverflow === 'ellipsis') return;
         for (const child of Array.from(el.childNodes)) {
           if (child.nodeType !== Node.TEXT_NODE) continue;
           const raw = child.textContent || '';
@@ -581,6 +669,35 @@ async function scanActivePanel(page: Page, tab: string, viewport: string): Promi
             if (rects.length >= 2) {
               pushFinding('korean_mid_break', el, match[0], `rects=${rects.length}`);
             }
+          }
+        }
+      }
+
+      /** Cell squeezed to ~1–2 glyph widths: one word paints on ≥3 lines, each line ≤1.75em. */
+      function noteCrushedWords(el: HTMLElement): void {
+        const style = getComputedStyle(el);
+        if (style.whiteSpace === 'nowrap' || style.textOverflow === 'ellipsis') return;
+        const em = parseFloat(style.fontSize) || 14;
+        const maxLine = em * 1.75;
+        for (const child of Array.from(el.childNodes)) {
+          if (child.nodeType !== Node.TEXT_NODE) continue;
+          const raw = child.textContent || '';
+          const re = /[\uAC00-\uD7A3]{2,}|[A-Za-z][A-Za-z0-9_.:-]{1,}/g;
+          let match: RegExpExecArray | null;
+          while ((match = re.exec(raw))) {
+            if (match[0].length < 2) continue;
+            const range = document.createRange();
+            range.setStart(child, match.index);
+            range.setEnd(child, match.index + match[0].length);
+            const rects = Array.from(range.getClientRects()).filter((r) => r.width > 0 && r.height > 0);
+            if (rects.length < 3) continue;
+            if (!rects.every((r) => r.width <= maxLine)) continue;
+            pushFinding(
+              'crushed_word',
+              el,
+              match[0],
+              `rects=${rects.length} maxLineW=${Math.round(Math.max(...rects.map((r) => r.width)))}`,
+            );
           }
         }
       }
@@ -618,6 +735,7 @@ async function scanActivePanel(page: Page, tab: string, viewport: string): Promi
           }
         }
         noteKoreanBreaks(el);
+        noteCrushedWords(el);
         if (leaf) noteEnglish(el, text);
       }
 
@@ -631,7 +749,7 @@ async function scanActivePanel(page: Page, tab: string, viewport: string): Promi
 }
 
 test.describe('dashboard layout audit (#1726 r5)', () => {
-  test('7 tabs × 5 viewports: no clip, parent escape, Korean mid-break, or leftover English', async ({
+  test('7 tabs × 5 viewports: no clip, parent escape, Korean mid-break, crushed word, or leftover English', async ({
     page,
   }) => {
     test.setTimeout(240_000);
@@ -655,6 +773,7 @@ test.describe('dashboard layout audit (#1726 r5)', () => {
       clipped: all.filter((f) => f.kind === 'clipped'),
       outside: all.filter((f) => f.kind === 'outside'),
       korean_mid_break: all.filter((f) => f.kind === 'korean_mid_break'),
+      crushed_word: all.filter((f) => f.kind === 'crushed_word'),
       english: all.filter((f) => f.kind === 'english'),
       total: all.length,
     };
@@ -664,6 +783,7 @@ test.describe('dashboard layout audit (#1726 r5)', () => {
       clipped: summary.clipped.length,
       outside: summary.outside.length,
       korean_mid_break: summary.korean_mid_break.length,
+      crushed_word: summary.crushed_word.length,
       english: summary.english.length,
     }));
     if (all.length > 0) {

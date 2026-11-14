@@ -725,7 +725,8 @@ body {
   flex-direction: column;
   overflow: hidden;
   word-break: keep-all;
-  overflow-wrap: anywhere;
+  /* anywhere shrinks table min-content to 1 glyph and crushes cells (1726 r5). */
+  overflow-wrap: break-word;
 }
 
 .tab-panel.active {
@@ -1376,7 +1377,7 @@ body {
 }
 
 .jobs-col-state {
-  width: 4.5rem;
+  width: 6.5rem;
 }
 
 .jobs-col-name {
@@ -1397,7 +1398,7 @@ body {
 }
 
 .jobs-col-actions {
-  width: 3.5rem;
+  width: 7rem;
 }
 
 .jobs-schedule__name-cell {
@@ -1585,6 +1586,10 @@ body {
   flex-direction: column;
   gap: var(--spacing-xs);
   margin-top: var(--spacing-xs);
+}
+
+.jobs-row-menu__list .m-button {
+  white-space: nowrap;
 }
 
 @media (max-width: 48rem) {

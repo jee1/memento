@@ -193,9 +193,15 @@
       const tdOld = document.createElement('td');
       tdOld.className = 'sc-cell-preview';
       tdOld.textContent = row.old_content_preview;
+      if (row.old_content_preview) {
+        tdOld.title = row.old_content_preview;
+      }
       const tdNew = document.createElement('td');
       tdNew.className = 'sc-cell-preview';
       tdNew.textContent = row.new_content_preview;
+      if (row.new_content_preview) {
+        tdNew.title = row.new_content_preview;
+      }
       tr.appendChild(tdStatus);
       tr.appendChild(tdVerdict);
       tr.appendChild(tdProject);
