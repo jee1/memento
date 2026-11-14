@@ -1234,13 +1234,13 @@ describe('review candidates panel display labels (#1722)', () => {
     ).toBe('중요도 0.30, 기준 미달 · 미사용 5일 · 생성일(대체)');
   });
 
-  it('keeps shared formatDue as locale datetime; short due is queue-only', () => {
+  it('keeps shared formatDue as Korea-local datetime; short due is queue-only (#1724)', () => {
     const ns = loadShared();
     const longId = 'mem_17627723051234567890abcdef';
     expect(ns.truncateId(longId)).toBe('mem_1762772305…');
     const noonToday = new Date();
     noonToday.setHours(12, 30, 0, 0);
-    const locale = noonToday.toLocaleString();
+    const locale = noonToday.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
     expect(ns.formatDue(noonToday.toISOString())).toBe(locale);
     expect(ns.formatDue(noonToday.toISOString())).not.toBe('오늘');
     const tomorrow = new Date();
