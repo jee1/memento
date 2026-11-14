@@ -137,75 +137,85 @@ type CellReport = {
 
 async function measureReviewTable(page: Page): Promise<CellReport> {
   return page.evaluate(() => {
-    const clipped: CellReport['clipped'] = [];
-    const multiLine: CellReport['multiLine'] = [];
-    const ellipsisClip: CellReport['ellipsisClip'] = [];
-    const reasonNarrow: CellReport['reasonNarrow'] = [];
-    const englishHits: string[] = [];
+    const empty: CellReport = {
+      clipped: [],
+      multiLine: [],
+      ellipsisClip: [],
+      reasonNarrow: [],
+      englishHits: ['missing-table'],
+      equalColWidths: false,
+      colWidths: [],
+    };
     const wrap = document.getElementById('rc-table-wrap');
     const table = document.getElementById('rc-table');
     if (!wrap || !table) {
-      return {
-        clipped,
-        multiLine,
-        ellipsisClip,
-        reasonNarrow,
-        englishHits: ['missing-table'],
-        equalColWidths: false,
-        colWidths: [],
-      };
+      return empty;
     }
-    const wrapRight = wrap.getBoundingClientRect().right;
-    const card = wrap.closest('.review-candidates-layout') || wrap;
-    const cardRight = card.getBoundingClientRect().right;
-    const oneLineSels = ['.rc-cell-id', '.rc-cell-due', '.rc-cell-status', '.rc-cell-priority'];
-    const noEllipsisSels = ['.rc-cell-due', '.rc-cell-status'];
-    const firstRow = table.querySelector('tbody tr');
-    const colWidths: number[] = [];
-    if (firstRow) {
-      for (const td of Array.from(firstRow.children) as HTMLElement[]) {
-        colWidths.push(Math.round(td.getBoundingClientRect().width));
-      }
-    }
-    const equalColWidths =
-      colWidths.length >= 6 &&
-      Math.max(...colWidths) - Math.min(...colWidths) < 8 &&
-      // card layout at 390 stacks cells full-width — skip equal-col check there
-      getComputedStyle(table).display !== 'block' &&
-      !(firstRow && getComputedStyle(firstRow).display === 'block');
 
-    for (const td of Array.from(table.querySelectorAll('tbody td')) as HTMLElement[]) {
-      const box = td.getBoundingClientRect();
-      const limit = Math.max(wrapRight, cardRight);
-      if (box.right > limit + 1) {
-        clipped.push({
-          cls: td.className || 'td',
-          right: Math.round(box.right * 10) / 10,
-          wrapRight: Math.round(limit * 10) / 10,
-        });
-      }
-      const matched = oneLineSels.find((sel) => td.matches(sel));
-      if (matched) {
-        const range = document.createRange();
-        range.selectNodeContents(td);
-        const tops = new Set();
-        for (const rect of Array.from(range.getClientRects())) {
-          if (rect.width > 0 && rect.height > 0) {
-            tops.add(Math.round(rect.top));
-          }
+    function countTextLines(td: HTMLElement): number {
+      const range = document.createRange();
+      range.selectNodeContents(td);
+      const tops = new Set<number>();
+      for (const rect of Array.from(range.getClientRects())) {
+        if (rect.width > 0 && rect.height > 0) {
+          tops.add(Math.round(rect.top));
         }
-        const lines = tops.size;
-        if (lines > 1 || box.width < 1) {
-          multiLine.push({
-            cls: matched.slice(1),
-            lines,
-            width: Math.round(box.width * 10) / 10,
-            text: (td.textContent || '').slice(0, 40),
+      }
+      return tops.size;
+    }
+
+    function collectColWidths(row: Element | null): number[] {
+      if (!row) {
+        return [];
+      }
+      return Array.from(row.children).map((td) =>
+        Math.round((td as HTMLElement).getBoundingClientRect().width),
+      );
+    }
+
+    function isEqualColLayout(tableEl: HTMLElement, row: Element | null, widths: number[]): boolean {
+      if (widths.length < 6 || Math.max(...widths) - Math.min(...widths) >= 8) {
+        return false;
+      }
+      // card layout at 390 stacks cells full-width — skip equal-col check there
+      if (getComputedStyle(tableEl).display === 'block') {
+        return false;
+      }
+      return !(row && getComputedStyle(row as HTMLElement).display === 'block');
+    }
+
+    function inspectCells(
+      tableEl: HTMLElement,
+      limitRight: number,
+    ): Pick<CellReport, 'clipped' | 'multiLine' | 'ellipsisClip' | 'reasonNarrow'> {
+      const clipped: CellReport['clipped'] = [];
+      const multiLine: CellReport['multiLine'] = [];
+      const ellipsisClip: CellReport['ellipsisClip'] = [];
+      const reasonNarrow: CellReport['reasonNarrow'] = [];
+      const oneLineSels = ['.rc-cell-id', '.rc-cell-due', '.rc-cell-status', '.rc-cell-priority'];
+      const noEllipsisSels = ['.rc-cell-due', '.rc-cell-status'];
+      for (const td of Array.from(tableEl.querySelectorAll('tbody td')) as HTMLElement[]) {
+        const box = td.getBoundingClientRect();
+        if (box.right > limitRight + 1) {
+          clipped.push({
+            cls: td.className || 'td',
+            right: Math.round(box.right * 10) / 10,
+            wrapRight: Math.round(limitRight * 10) / 10,
           });
         }
-      }
-      if (noEllipsisSels.some((sel) => td.matches(sel))) {
-        if (td.scrollWidth > td.clientWidth + 1) {
+        const matched = oneLineSels.find((sel) => td.matches(sel));
+        if (matched) {
+          const lines = countTextLines(td);
+          if (lines > 1 || box.width < 1) {
+            multiLine.push({
+              cls: matched.slice(1),
+              lines,
+              width: Math.round(box.width * 10) / 10,
+              text: (td.textContent || '').slice(0, 40),
+            });
+          }
+        }
+        if (noEllipsisSels.some((sel) => td.matches(sel)) && td.scrollWidth > td.clientWidth + 1) {
           ellipsisClip.push({
             cls: td.className,
             scroll: td.scrollWidth,
@@ -213,36 +223,36 @@ async function measureReviewTable(page: Page): Promise<CellReport> {
             text: (td.textContent || '').slice(0, 40),
           });
         }
-      }
-      if (td.matches('.rc-cell-reason')) {
         // ~10 Korean glyphs at 12–14px ≈ 120px; card layout is wider.
-        if (box.width > 0 && box.width < 120) {
+        if (td.matches('.rc-cell-reason') && box.width > 0 && box.width < 120) {
           reasonNarrow.push({
             width: Math.round(box.width * 10) / 10,
             text: (td.textContent || '').slice(0, 40),
           });
         }
       }
+      return { clipped, multiLine, ellipsisClip, reasonNarrow };
     }
+
+    const wrapRight = wrap.getBoundingClientRect().right;
+    const card = wrap.closest('.review-candidates-layout') || wrap;
+    const limitRight = Math.max(wrapRight, card.getBoundingClientRect().right);
+    const firstRow = table.querySelector('tbody tr');
+    const colWidths = collectColWidths(firstRow);
+    const cellReport = inspectCells(table, limitRight);
     const textBlob = (table.innerText || '') + (wrap.innerText || '');
-    for (const token of [
+    const englishHits = [
       'pending',
       'eligible:',
       'Memory ID',
       'Candidate ID',
       'memory_review_candidates',
-    ]) {
-      if (textBlob.includes(token)) {
-        englishHits.push(token);
-      }
-    }
+    ].filter((token) => textBlob.includes(token));
+
     return {
-      clipped,
-      multiLine,
-      ellipsisClip,
-      reasonNarrow,
+      ...cellReport,
       englishHits,
-      equalColWidths,
+      equalColWidths: isEqualColLayout(table, firstRow, colWidths),
       colWidths,
     };
   });
