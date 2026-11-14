@@ -349,5 +349,13 @@ test.describe('review queue table wrap (#1722)', () => {
     const healthText = await page.locator('#rc-health-history-table').innerText();
     expect(healthText).not.toContain('2026-11-14T05:00:00.000Z');
     expect(healthText).toMatch(/2026/);
+    await expect(page.locator('#rc-health-history-table thead')).toContainText('샘플 시각');
+    await expect(page.locator('#rc-health-history-table thead')).not.toContainText('UTC');
+    await expect(page.locator('#rc-health-history-table thead')).toContainText('1시간');
+    const headText = await page.locator('#rc-health-history-table thead').innerText();
+    expect(headText).not.toMatch(/(?:^|[^가-힣])1h(?:$|[^가-힣])/);
+    await expect(page.locator('#rc-health-live')).toContainText('1시간');
+    const liveText = await page.locator('#rc-health-live').innerText();
+    expect(liveText).not.toMatch(/\(1h\)|\(24h\)/);
   });
 });

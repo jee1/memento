@@ -134,6 +134,25 @@
     return cell;
   }
 
+  /** Default value + Korean source label; English path only in title (#1724 r2). */
+  function defaultCell(setting) {
+    const cell = ns.el('td', 'settings-default');
+    const valueText = ns.formatValue(setting.default_value);
+    const sourceText = String(setting.default_source || '');
+    cell.appendChild(ns.el('div', 'settings-default__value', valueText));
+    const source = ns.el(
+      'div',
+      'settings-default__source settings-desc',
+      ns.formatDefaultSourceLabel(setting.default_source),
+    );
+    if (sourceText) {
+      source.title = sourceText;
+    }
+    cell.appendChild(source);
+    cell.title = sourceText ? valueText + ' — ' + sourceText : valueText;
+    return cell;
+  }
+
   ns.renderSettings = function () {
     const tbody = ns.$('settings-tbody');
     ns.clearNode(tbody);
@@ -142,7 +161,7 @@
       row.dataset.key = setting.key;
       row.appendChild(keyCell(setting));
       row.appendChild(valueCell(setting));
-      row.appendChild(ns.el('td', '', ns.formatValue(setting.default_value) + ' (' + setting.default_source + ')'));
+      row.appendChild(defaultCell(setting));
       row.appendChild(riskCell(setting));
       row.appendChild(lastChangeCell(setting));
       row.appendChild(editCell(setting));

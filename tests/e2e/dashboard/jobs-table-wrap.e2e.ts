@@ -128,73 +128,130 @@ async function openJobsTab(page: Page): Promise<void> {
 
 async function measureJobsTables(page: Page) {
   return page.evaluate(() => {
+    function collectClipped(schedule: Element, wrap: Element) {
+      const clipped: Array<{ text: string; right: number; wrapRight: number }> = [];
+      const wrapRight = wrap.getBoundingClientRect().right;
+      for (const td of Array.from(schedule.querySelectorAll('tbody td'))) {
+        const box = td.getBoundingClientRect();
+        if (box.width < 1) continue;
+        if (box.right > wrapRight + 2) {
+          clipped.push({
+            text: (td.textContent || '').slice(0, 40),
+            right: Math.round(box.right),
+            wrapRight: Math.round(wrapRight),
+          });
+        }
+      }
+      return clipped;
+    }
+
+    function collectLastClip(schedule: Element) {
+      const lastClip: Array<{ scroll: number; client: number; text: string }> = [];
+      for (const td of Array.from(schedule.querySelectorAll('td.jobs-schedule__last')) as HTMLElement[]) {
+        if (td.scrollWidth > td.clientWidth + 1) {
+          lastClip.push({
+            scroll: td.scrollWidth,
+            client: td.clientWidth,
+            text: (td.textContent || '').slice(0, 40),
+          });
+        }
+      }
+      return lastClip;
+    }
+
+    function collectStackedOut(timeline: Element) {
+      const stackedOut: Array<{ label: string; cellW: number; parentW: number }> = [];
+      if (window.innerWidth > 480) return stackedOut;
+      for (const td of Array.from(timeline.querySelectorAll('tbody td')) as HTMLElement[]) {
+        const parent = td.parentElement as HTMLElement | null;
+        if (!parent) continue;
+        if (td.scrollWidth > parent.clientWidth + 2 || td.getBoundingClientRect().width > parent.clientWidth + 2) {
+          stackedOut.push({
+            label: td.getAttribute('data-label') || (td.textContent || '').slice(0, 20),
+            cellW: Math.round(Math.max(td.scrollWidth, td.getBoundingClientRect().width)),
+            parentW: Math.round(parent.clientWidth),
+          });
+        }
+      }
+      return stackedOut;
+    }
+
+    function collectOutcome(timeline: Element, drawerRight: number) {
+      let outcomeVisible = false;
+      const outcomeGlyphWrap: Array<{ lines: number }> = [];
+      for (const td of Array.from(timeline.querySelectorAll('tbody td')) as HTMLElement[]) {
+        const text = (td.textContent || '').trim();
+        if (text !== '성공' && text !== '실패') continue;
+        const box = td.getBoundingClientRect();
+        if (box.width > 0 && box.right <= drawerRight + 2) outcomeVisible = true;
+        const range = document.createRange();
+        range.selectNodeContents(td);
+        const tops = new Set(Array.from(range.getClientRects()).map((r) => Math.round(r.top)));
+        const flex = getComputedStyle(td).display === 'flex';
+        if ((!flex && tops.size > 1) || (flex && td.scrollWidth > td.clientWidth + 1)) {
+          outcomeGlyphWrap.push({ lines: tops.size });
+        }
+      }
+      return { outcomeVisible, outcomeGlyphWrap };
+    }
+
     const schedule = document.querySelector('#jobs-schedule-table') as HTMLTableElement | null;
     const timeline = document.querySelector('#jobs-timeline-table') as HTMLTableElement | null;
     const wrap = document.querySelector('#jobs-schedule-table-wrap');
+    const drawer = document.querySelector('.jobs-drawer') as HTMLElement | null;
+    const timelineWrap = document.querySelector('#jobs-timeline') as HTMLElement | null;
     if (!schedule || !timeline || !wrap) {
       return { ok: false, reason: 'missing-table' as const };
-    }
-
-    const clipped: Array<{ text: string; right: number; wrapRight: number }> = [];
-    const wrapRight = wrap.getBoundingClientRect().right;
-    for (const td of Array.from(schedule.querySelectorAll('tbody td'))) {
-      const box = td.getBoundingClientRect();
-      if (box.width < 1) continue;
-      if (box.right > wrapRight + 2) {
-        clipped.push({
-          text: (td.textContent || '').slice(0, 40),
-          right: Math.round(box.right),
-          wrapRight: Math.round(wrapRight),
-        });
-      }
-    }
-
-    const lastClip: Array<{ scroll: number; client: number; text: string }> = [];
-    for (const td of Array.from(schedule.querySelectorAll('td.jobs-schedule__last')) as HTMLElement[]) {
-      if (td.scrollWidth > td.clientWidth + 1) {
-        lastClip.push({
-          scroll: td.scrollWidth,
-          client: td.clientWidth,
-          text: (td.textContent || '').slice(0, 40),
-        });
-      }
     }
 
     const colWidths = Array.from(timeline.querySelectorAll('col')).map((col) => {
       const style = getComputedStyle(col);
       return { cls: col.className, width: style.width };
     });
-    const equalCols =
-      colWidths.length >= 2 && colWidths.every((c) => c.width === colWidths[0].width);
-    const missingCol = colWidths.length < 7;
-    const autoOnly = colWidths.every((c) => !c.width || c.width === 'auto' || c.width === '0px');
-
+    const drawerBox = drawer ? drawer.getBoundingClientRect() : null;
+    const timelineOverflow =
+      drawer && timeline
+        ? {
+            tableWidth: Math.round(timeline.scrollWidth),
+            drawerWidth: Math.round(drawer.clientWidth),
+            wrapScroll: timelineWrap ? Math.round(timelineWrap.scrollWidth) : 0,
+            wrapClient: timelineWrap ? Math.round(timelineWrap.clientWidth) : 0,
+            widerThanDrawer: timeline.scrollWidth > drawer.clientWidth + 2,
+          }
+        : null;
+    const outcome = collectOutcome(timeline, drawerBox ? drawerBox.right : Infinity);
     const text =
       (schedule.innerText || '') +
       ' ' +
       (timeline.innerText || '') +
       ' ' +
       (document.querySelector('#jobs-queue-summary')?.textContent || '');
-    const englishHits = [
-      'runningCount',
-      'size=',
-      '86400000',
-      '300000',
-      'schedule',
-      'PerformanceMonitor',
-      'HealthChecker',
-      'soft delete',
-    ].filter((token) => text.includes(token));
 
     return {
       ok: true as const,
-      clipped,
-      lastClip,
-      englishHits,
+      clipped: collectClipped(schedule, wrap),
+      lastClip: collectLastClip(schedule),
+      englishHits: [
+        'runningCount',
+        'size=',
+        '86400000',
+        '300000',
+        'schedule',
+        'PerformanceMonitor',
+        'HealthChecker',
+        'soft delete',
+      ].filter((token) => text.includes(token)),
       colWidths,
-      equalCols,
-      missingCol,
-      autoOnly,
+      equalCols: colWidths.length >= 2 && colWidths.every((c) => c.width === colWidths[0].width),
+      missingCol: colWidths.length < 7,
+      autoOnly: colWidths.every((c) => !c.width || c.width === 'auto' || c.width === '0px'),
+      timelineOverflow,
+      stackedOut: collectStackedOut(timeline),
+      outcomeVisible: outcome.outcomeVisible,
+      outcomeGlyphWrap: outcome.outcomeGlyphWrap,
+      stackedInDrawer:
+        getComputedStyle(timeline).display === 'block' ||
+        getComputedStyle(timeline.querySelector('tbody tr') || timeline).display === 'block',
       text: text.slice(0, 200),
     };
   });
@@ -227,13 +284,19 @@ test.describe('jobs table wrap (#1724)', () => {
       if (!report.ok) return;
       expect(report.englishHits, `english: ${JSON.stringify(report.englishHits)}`).toEqual([]);
       expect(report.clipped, `clipped: ${JSON.stringify(report.clipped)}`).toEqual([]);
+      expect(
+        report.timelineOverflow?.widerThanDrawer,
+        `drawer timeline overflow: ${JSON.stringify(report.timelineOverflow)}`,
+      ).toBe(false);
+      expect(report.stackedOut, `stacked cell out: ${JSON.stringify(report.stackedOut)}`).toEqual([]);
+      expect(report.outcomeGlyphWrap, `outcome glyph: ${JSON.stringify(report.outcomeGlyphWrap)}`).toEqual(
+        [],
+      );
+      expect(report.stackedInDrawer, 'drawer timeline must card-stack').toBe(true);
+      expect(report.outcomeVisible, '성공 칸이 서랍 안에 보여야 함').toBe(true);
       if (width === 1280) {
         expect(report.lastClip, `last-run clip: ${JSON.stringify(report.lastClip)}`).toEqual([]);
         expect(report.missingCol, `timeline colgroup missing: ${JSON.stringify(report.colWidths)}`).toBe(
-          false,
-        );
-        expect(report.equalCols, `timeline equal cols: ${JSON.stringify(report.colWidths)}`).toBe(false);
-        expect(report.autoOnly, `timeline auto-only cols: ${JSON.stringify(report.colWidths)}`).toBe(
           false,
         );
       }
@@ -262,58 +325,86 @@ test.describe('jobs table wrap (#1724)', () => {
     await expect(page.locator('#jobs-schedule-tbody')).toContainText('86400000');
   });
 
-  test('stripping timeline colgroup makes columns equal (counter-check)', async ({ page }) => {
+  test('narrowing schedule last-run column clips long stamp (counter-check)', async ({ page }) => {
     await page.setViewportSize({ width: 1280, height: 900 });
     await installJobsRoutes(page);
     await page.goto('/dashboard');
     await openJobsTab(page);
 
     const before = await measureJobsTables(page);
-    expect(before.ok && !before.equalCols && !before.missingCol).toBe(true);
+    expect(before.ok && before.lastClip.length === 0).toBe(true);
 
     await page.evaluate(() => {
-      const table = document.querySelector('#jobs-timeline-table');
-      const group = table?.querySelector('colgroup');
-      group?.remove();
       const style = document.createElement('style');
       style.textContent = `
-        .jobs-timeline-table { table-layout: fixed; width: 100%; min-width: 0 !important; }
         .jobs-col-last { width: 4rem !important; }
         .jobs-schedule__last { overflow: hidden !important; text-overflow: ellipsis !important; max-width: 4rem !important; }
-        .jobs-timeline-table th, .jobs-timeline-table td { white-space: normal !important; word-break: break-all !important; }
       `;
       document.head.appendChild(style);
       const lastCol = document.querySelector('#jobs-schedule-table col.jobs-col-last') as HTMLElement | null;
       if (lastCol) {
         lastCol.style.width = '4rem';
       }
-      // Force full ISO stamp back into last cell so 4rem must clip
       for (const td of Array.from(document.querySelectorAll('td.jobs-schedule__last')) as HTMLElement[]) {
         td.textContent = '2026. 11. 14. 오후 3:51:15';
       }
     });
 
     const after = await page.evaluate(() => {
-      const timeline = document.querySelector('#jobs-timeline-table') as HTMLTableElement | null;
-      const schedule = document.querySelector('#jobs-schedule-table') as HTMLTableElement | null;
-      const cols = timeline ? Array.from(timeline.querySelectorAll('col')) : [];
       const lastClip: Array<{ scroll: number; client: number }> = [];
-      if (schedule) {
-        for (const td of Array.from(schedule.querySelectorAll('td.jobs-schedule__last')) as HTMLElement[]) {
-          if (td.scrollWidth > td.clientWidth + 1) {
-            lastClip.push({ scroll: td.scrollWidth, client: td.clientWidth });
-          }
+      for (const td of Array.from(document.querySelectorAll('td.jobs-schedule__last')) as HTMLElement[]) {
+        if (td.scrollWidth > td.clientWidth + 1) {
+          lastClip.push({ scroll: td.scrollWidth, client: td.clientWidth });
         }
       }
-      return {
-        missingCol: cols.length === 0,
-        lastClip,
-      };
+      return { lastClip };
     });
 
-    expect(after.missingCol, 'colgroup strip should leave zero cols').toBe(true);
     expect(after.lastClip.length, `narrow last should clip: ${JSON.stringify(after.lastClip)}`).toBeGreaterThan(
       0,
     );
+  });
+
+  test('restoring wide table layout overflows drawer (counter-check)', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await installJobsRoutes(page);
+    await page.goto('/dashboard');
+    await openJobsTab(page);
+
+    const before = await measureJobsTables(page);
+    expect(before.ok && before.timelineOverflow && !before.timelineOverflow.widerThanDrawer).toBe(true);
+    expect(before.stackedInDrawer).toBe(true);
+
+    await page.evaluate(() => {
+      const style = document.createElement('style');
+      style.textContent = `
+        .jobs-timeline-table,
+        .jobs-timeline-table tbody,
+        .jobs-timeline-table tr,
+        .jobs-timeline-table td,
+        .jobs-timeline-table thead {
+          display: table !important;
+          position: static !important;
+          width: auto !important;
+          max-width: none !important;
+          clip: auto !important;
+          height: auto !important;
+        }
+        .jobs-timeline-table { display: table !important; min-width: 32rem !important; table-layout: fixed !important; }
+        .jobs-timeline-table thead { display: table-header-group !important; }
+        .jobs-timeline-table tbody { display: table-row-group !important; }
+        .jobs-timeline-table tr { display: table-row !important; }
+        .jobs-timeline-table td { display: table-cell !important; }
+      `;
+      document.head.appendChild(style);
+    });
+
+    const after = await measureJobsTables(page);
+    expect(after.ok).toBe(true);
+    if (!after.ok) return;
+    expect(
+      after.timelineOverflow?.widerThanDrawer || !after.stackedInDrawer,
+      `wide-table revert should break drawer fit: ${JSON.stringify(after.timelineOverflow)} stacked=${after.stackedInDrawer}`,
+    ).toBe(true);
   });
 });

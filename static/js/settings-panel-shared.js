@@ -31,6 +31,11 @@
     sameValue: '현재 값과 같습니다.',
     actionLabel: { set: '변경', revert: '되돌림' },
     allKeys: '전체',
+    // default_source 경로 대신 칸에 보이는 한국어. 전체 경로는 title.
+    defaultSourceCode: '코드 기본값',
+    defaultSourceConstants: '코드 상수 기본값',
+    defaultSourceEnvironment: '환경 기본값',
+    defaultSourceUnknown: '기본값 출처 없음',
     reasonRequired: '사유를 입력하세요.',
     loadFailed: '설정을 불러오지 못했습니다.',
     dialogTitleSet: function (key) {
@@ -124,6 +129,21 @@
       return ns.S.unset;
     }
     return value === '' ? ns.S.emptyValue : String(value);
+  };
+
+  /** Korean label for default_source; full path stays in title, not the cell. */
+  ns.formatDefaultSourceLabel = function (source) {
+    if (source === null || source === undefined || source === '') {
+      return ns.S.defaultSourceUnknown;
+    }
+    const text = String(source);
+    if (text.indexOf('constants') !== -1) {
+      return ns.S.defaultSourceConstants;
+    }
+    if (text.indexOf('environment') !== -1) {
+      return ns.S.defaultSourceEnvironment;
+    }
+    return ns.S.defaultSourceCode;
   };
 
   /** Resolves to { ok, status, data } and never rejects on an HTTP error. */

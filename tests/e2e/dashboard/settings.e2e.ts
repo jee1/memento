@@ -68,13 +68,25 @@ async function installSettingsRoutes(page: Page, puts: Array<Record<string, unkn
             allowed: null,
             risk: 'high',
             value: '0.35',
-            default_value: '0.35',
+            default_value: '0.5',
+            default_source: 'shared/config/constants.ts DEFAULT_MEMORY_INJECTION_THRESHOLD',
+            inactive_reason: '상위 스위치가 꺼져 이 값을 읽지 않습니다.',
             last_change: {
               action: 'set',
               actor: 'session:abc',
               reason: '임계 조정',
               created_at: '2026-11-14T05:00:00.000Z',
             },
+          }),
+          setting({
+            key: 'CLUSTER_JUDGE_MODE',
+            description: '군집 판정 모드.',
+            kind: 'string',
+            allowed: ['off', 'on'],
+            risk: 'low',
+            value: 'off',
+            default_value: 'off',
+            default_source: 'shared/config/environment.ts ENV_DEFAULTS isClusterJudgeEnabled',
           }),
         ],
         read_only: [
@@ -98,7 +110,7 @@ async function openSettingsTab(page: Page): Promise<void> {
     await expect(tab).toBeVisible();
   }
   await tab.click();
-  await expect(page.locator('#settings-tbody tr')).toHaveCount(2, { timeout: 10_000 });
+  await expect(page.locator('#settings-tbody tr')).toHaveCount(3, { timeout: 10_000 });
 }
 
 async function measureSettingsTable(page: Page) {
@@ -132,12 +144,73 @@ async function measureSettingsTable(page: Page) {
         });
       }
     }
+
+    const defaultOverlap: Array<{ key: string; defaultRight: number; nextLeft: number }> = [];
+    const pathInCell: string[] = [];
+    const missingSource: string[] = [];
+    for (const row of Array.from(table.querySelectorAll('tbody tr')) as HTMLTableRowElement[]) {
+      const key = row.dataset.key || '';
+      const cells = row.querySelectorAll('td');
+      const def = cells[2] as HTMLElement | undefined;
+      const next = cells[3] as HTMLElement | undefined;
+      if (!def || !next) continue;
+      const dr = def.getBoundingClientRect();
+      const nr = next.getBoundingClientRect();
+      if (dr.right > nr.left + 1) {
+        defaultOverlap.push({
+          key,
+          defaultRight: Math.round(dr.right),
+          nextLeft: Math.round(nr.left),
+        });
+      }
+      const visible = (def.innerText || '').replace(/\s+/g, ' ');
+      if (visible.includes('shared/config')) {
+        pathInCell.push(key + ':' + visible.slice(0, 80));
+      }
+      if (!def.querySelector('.settings-default__source')) {
+        missingSource.push(key);
+      }
+    }
+
+    const btnLines: Array<{ text: string; lines: number; w: number }> = [];
+    for (const btn of Array.from(table.querySelectorAll('.settings-btn')) as HTMLElement[]) {
+      const range = document.createRange();
+      range.selectNodeContents(btn);
+      const tops = new Set(Array.from(range.getClientRects()).map((r) => Math.round(r.top)));
+      if (tops.size > 1) {
+        btnLines.push({
+          text: (btn.textContent || '').trim(),
+          lines: tops.size,
+          w: Math.round(btn.getBoundingClientRect().width),
+        });
+      }
+    }
+
+    const badgeLines: Array<{ text: string; lines: number; w: number }> = [];
+    for (const badge of Array.from(table.querySelectorAll('.m-badge')) as HTMLElement[]) {
+      const range = document.createRange();
+      range.selectNodeContents(badge);
+      const tops = new Set(Array.from(range.getClientRects()).map((r) => Math.round(r.top)));
+      if (tops.size > 1) {
+        badgeLines.push({
+          text: (badge.textContent || '').trim(),
+          lines: tops.size,
+          w: Math.round(badge.getBoundingClientRect().width),
+        });
+      }
+    }
+
     return {
       ok: true as const,
       colCount: cols.length,
       equalCols: cols.length >= 2 && cols.every((w) => w === cols[0]),
       thLines,
       keyClip,
+      defaultOverlap,
+      pathInCell,
+      missingSource,
+      btnLines,
+      badgeLines,
     };
   });
 }
@@ -173,8 +246,8 @@ test.describe('Settings dashboard tab (#1583)', () => {
     await page.screenshot({ path: test.info().outputPath('settings-tab.png'), fullPage: true });
   });
 
-  for (const width of [390, 1280] as const) {
-    test(`settings headers and keys stay one line at ${width}px (#1724)`, async ({ page }) => {
+  for (const width of [390, 768, 1280] as const) {
+    test(`settings cells stay readable at ${width}px (#1724 r2)`, async ({ page }) => {
       const puts: Array<Record<string, unknown>> = [];
       await page.setViewportSize({ width, height: 900 });
       await installSettingsRoutes(page, puts);
@@ -182,17 +255,25 @@ test.describe('Settings dashboard tab (#1583)', () => {
       await openSettingsTab(page);
 
       await expect(page.locator('#settings-table thead')).toContainText('마지막 변경');
+      await expect(page.locator('#settings-tbody .settings-default__source').first()).toContainText('코드');
+      await expect(page.locator('#settings-tbody')).toContainText('환경 기본값');
+      await expect(page.locator('#settings-tbody')).toContainText('코드 상수 기본값');
+
       const report = await measureSettingsTable(page);
       expect(report.ok).toBe(true);
       if (!report.ok) return;
       expect(report.colCount).toBe(6);
       expect(report.equalCols, `equal cols (missing widths)`).toBe(false);
       expect(report.thLines, `header wrap: ${JSON.stringify(report.thLines)}`).toEqual([]);
-      // keys may ellipsis (scroll>client) but must not glyph-wrap to multiple lines
       expect(
         report.keyClip.filter((k) => k.lines > 1),
         `key glyph wrap: ${JSON.stringify(report.keyClip)}`,
       ).toEqual([]);
+      expect(report.defaultOverlap, `default overlap: ${JSON.stringify(report.defaultOverlap)}`).toEqual([]);
+      expect(report.pathInCell, `path in cell: ${JSON.stringify(report.pathInCell)}`).toEqual([]);
+      expect(report.missingSource, `missing source node: ${JSON.stringify(report.missingSource)}`).toEqual([]);
+      expect(report.btnLines, `btn wrap: ${JSON.stringify(report.btnLines)}`).toEqual([]);
+      expect(report.badgeLines, `badge wrap: ${JSON.stringify(report.badgeLines)}`).toEqual([]);
     });
   }
 
@@ -220,9 +301,74 @@ test.describe('Settings dashboard tab (#1583)', () => {
     expect(after.ok).toBe(true);
     if (!after.ok) return;
     expect(after.colCount).toBe(0);
-    // With anywhere wrap restored, long keys or headers may multi-line
     const broken =
       after.thLines.length > 0 || after.keyClip.some((k) => k.lines > 1) || after.equalCols;
     expect(broken, `revert should break layout: ${JSON.stringify(after)}`).toBe(true);
+  });
+
+  test('reverting defaultCell to path concat overflows and exposes shared/config (counter-check)', async ({
+    page,
+  }) => {
+    const puts: Array<Record<string, unknown>> = [];
+    await page.setViewportSize({ width: 1280, height: 900 });
+    await installSettingsRoutes(page, puts);
+    await page.goto('/dashboard');
+    await openSettingsTab(page);
+
+    const before = await measureSettingsTable(page);
+    expect(before.ok && before.defaultOverlap.length === 0 && before.pathInCell.length === 0).toBe(true);
+
+    await page.evaluate(() => {
+      const ns = (window as unknown as {
+        __MEMENTO_SETTINGS_PANEL__: {
+          state: { settings: Array<Record<string, unknown>> };
+          formatValue: (v: unknown) => string;
+          el: (tag: string, cls?: string, text?: string) => HTMLElement;
+          clearNode: (n: HTMLElement | null) => void;
+          $: (id: string) => HTMLElement | null;
+          renderSettings: () => void;
+        };
+      }).__MEMENTO_SETTINGS_PANEL__;
+      ns.renderSettings = function () {
+        const tbody = ns.$('settings-tbody');
+        ns.clearNode(tbody);
+        ns.state.settings.forEach(function (setting) {
+          const row = document.createElement('tr');
+          row.dataset.key = String(setting.key || '');
+          for (let i = 0; i < 6; i++) {
+            const td = document.createElement('td');
+            if (i === 2) {
+              td.textContent =
+                ns.formatValue(setting.default_value) + ' (' + String(setting.default_source || '') + ')';
+            } else if (i === 0) {
+              const key = document.createElement('code');
+              key.className = 'm-code-inline settings-key';
+              key.textContent = String(setting.key || '');
+              td.appendChild(key);
+            } else {
+              td.textContent = i === 5 ? '변경' : 'x';
+            }
+            row.appendChild(td);
+          }
+          tbody?.appendChild(row);
+        });
+      };
+      const style = document.createElement('style');
+      style.textContent = `
+        .settings-col-default { width: 6.5rem !important; }
+        .settings-default, .settings-default__value, .settings-default__source { all: unset; }
+      `;
+      document.head.appendChild(style);
+      ns.renderSettings();
+    });
+
+    const after = await measureSettingsTable(page);
+    expect(after.ok).toBe(true);
+    if (!after.ok) return;
+    const broken =
+      after.pathInCell.length > 0 ||
+      after.defaultOverlap.length > 0 ||
+      after.missingSource.length > 0;
+    expect(broken, `concat revert should fail gate: ${JSON.stringify(after)}`).toBe(true);
   });
 });

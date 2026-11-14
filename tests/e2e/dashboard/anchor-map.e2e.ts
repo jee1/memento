@@ -356,4 +356,87 @@ test.describe('Anchor Map dashboard', () => {
     await expect(page.locator('#anchor-map .map-loading-message')).toHaveCount(0);
     expect(dialogs).toEqual([]);   // alert 없음
   });
+
+  test('memory inspector close stays reachable at 390x844 (#1724 r2)', async ({ page }) => {
+    await page.setViewportSize({ width: 390, height: 844 });
+    await page.route('**/static/vendor/d3.v7.min.js', (route) =>
+      route.fulfill({ status: 200, contentType: 'text/javascript', body: d3Stub }),
+    );
+    await page.route('**/api/anchors/agents', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          agents: [{ agent_id: 'default', anchor_count: 1 }],
+          agent_ids: ['default'],
+          timestamp: '2026-06-21T00:00:00.000Z',
+        }),
+      }),
+    );
+    await page.route('**/api/anchors/map?**', (route) =>
+      route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          agent_id: 'default',
+          anchors: [
+            {
+              agent_id: 'default',
+              slot: 'A',
+              memory_id: 'anchor-a',
+              created_at: '2026-06-21T00:00:00.000Z',
+              updated_at: '2026-06-21T00:00:00.000Z',
+            },
+          ],
+          nodes: [
+            {
+              id: 'anchor-a',
+              type: 'anchor',
+              slot: 'A',
+              content: 'Slot A anchor',
+              importance: 0.9,
+              created_at: '2026-06-21T00:00:00.000Z',
+            },
+          ],
+          links: [],
+          timestamp: '2026-06-21T00:00:00.000Z',
+        }),
+      }),
+    );
+
+    await page.goto('/dashboard');
+    const tab = page.locator('#dashboard-tab-anchor');
+    if (!(await tab.isVisible())) {
+      await page.locator('#dashboard-nav-toggle').click();
+    }
+    await tab.click();
+    await expect(page.locator('#anchor-list .anchor-item')).toHaveCount(1);
+    await page.locator('#anchor-list .slot-a').click();
+    await expect(page.locator('#memory-details')).toContainText('앵커 (슬롯 A)');
+
+    const reach = await page.evaluate(async () => {
+      const panel = document.getElementById('tab-anchor-map');
+      const close = document.getElementById('memory-inspector-clear');
+      if (!panel || !close) {
+        return { ok: false as const, reason: 'missing' };
+      }
+      panel.scrollTop = panel.scrollHeight;
+      await new Promise((r) => requestAnimationFrame(() => r(null)));
+      const box = close.getBoundingClientRect();
+      return {
+        ok: true as const,
+        scrollTop: panel.scrollTop,
+        scrollHeight: panel.scrollHeight,
+        clientHeight: panel.clientHeight,
+        closeTop: Math.round(box.top),
+        closeBottom: Math.round(box.bottom),
+        vh: window.innerHeight,
+        inView: box.top >= 0 && box.bottom <= window.innerHeight + 1,
+      };
+    });
+    expect(reach.ok, `reach: ${JSON.stringify(reach)}`).toBe(true);
+    if (!reach.ok) return;
+    expect(reach.scrollHeight, `must scroll: ${JSON.stringify(reach)}`).toBeGreaterThan(reach.clientHeight);
+    expect(reach.inView, `close button in view: ${JSON.stringify(reach)}`).toBe(true);
+  });
 });
