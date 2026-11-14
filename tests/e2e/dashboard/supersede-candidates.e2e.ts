@@ -82,6 +82,17 @@ test.describe('Supersede candidates dashboard (#1618)', () => {
     expect(await page.evaluate(() => (window as Window & { __sc_xss?: number }).__sc_xss)).toBeUndefined();
   });
 
+  test('1280px: status and verdict cells stay on one line', async ({ page }) => {
+    await page.setViewportSize({ width: 1280, height: 800 });
+    await installRoutes(page, true);
+    await page.goto('/static/dashboard.html');
+    await openSupersedeSection(page);
+    const cells = page.locator('#sc-table-body tr').first().locator('td');
+    await expect(cells.nth(1)).toHaveText('확정 대체');
+    const heights = await cells.evaluateAll((els) => els.slice(0, 2).map((el) => Math.round(el.getBoundingClientRect().height)));
+    expect(heights.every((h) => h < 40), `status/verdict cell heights ${heights.join(',')}`).toBe(true);
+  });
+
   test('explains a missing body and blocks approval', async ({ page }) => {
     await installRoutes(page, true, true);
     await page.goto('/static/dashboard.html');

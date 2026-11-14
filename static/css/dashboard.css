@@ -1911,6 +1911,10 @@ body {
   }
 }
 
+#rc-supersede-section .m-table :is(th, td):nth-child(-n + 2) {
+  white-space: nowrap;
+}
+
 .sc-cell-preview {
   max-width: var(--layout-track-14);
   overflow: hidden;
