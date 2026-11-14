@@ -143,7 +143,20 @@
         metricCard('활성 기억', health.memoryCount),
         metricCard('검색 가능 임베딩', health.validEmbeddingCount),
         metricCard('커버리지', coverage),
-        metricCard('진단 시각', health.diagnosedAt || '—', null, null, true)
+        metricCard(
+          '진단 시각',
+          health.diagnosedAt
+            ? (function () {
+                const d = new Date(String(health.diagnosedAt));
+                return Number.isNaN(d.getTime())
+                  ? String(health.diagnosedAt)
+                  : d.toLocaleString('ko-KR', { timeZone: 'Asia/Seoul' });
+              })()
+            : '—',
+          null,
+          null,
+          true,
+        )
       );
     }
     const problems = $('em-health-problems');

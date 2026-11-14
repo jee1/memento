@@ -74,10 +74,14 @@
         return;
       }
       const li = document.createElement('li');
-      const code = document.createElement('code');
-      code.className = 'm-code-inline';
-      code.textContent = job.name || '';
-      li.appendChild(code);
+      const label = document.createElement('strong');
+      label.textContent = ns.formatJobTypeLabel(job.name || '');
+      li.appendChild(label);
+      const key = document.createElement('code');
+      key.className = 'm-code-inline jobs-guide__key';
+      key.textContent = ' ' + (job.name || '');
+      key.title = job.name || '';
+      li.appendChild(key);
       const rest = document.createElement('span');
       rest.textContent = ' — ' + String(job.description);
       li.appendChild(rest);
@@ -138,22 +142,35 @@
       stateTd.appendChild(badge);
       row.appendChild(stateTd);
       const nameTd = document.createElement('td');
+      nameTd.className = 'jobs-schedule__name-cell';
       const nameEl = document.createElement('div');
       nameEl.className = 'jobs-schedule__name';
-      nameEl.textContent = name;
+      nameEl.textContent = ns.formatJobTypeLabel(name);
+      nameEl.title = name;
       nameTd.appendChild(nameEl);
+      const keyEl = document.createElement('div');
+      keyEl.className = 'jobs-schedule__key';
+      keyEl.textContent = name;
+      keyEl.title = name;
+      nameTd.appendChild(keyEl);
       if (job.description) {
         const descEl = document.createElement('div');
         descEl.className = 'jobs-schedule__desc';
         descEl.textContent = String(job.description);
+        descEl.title = String(job.description);
         nameTd.appendChild(descEl);
       }
       row.appendChild(nameTd);
-      appendCell(
+      const intervalTd = appendCell(
         row,
-        job.intervalMs == null ? '—' : ns.formatNumber(job.intervalMs),
+        job.intervalMs == null ? '—' : ns.formatIntervalHuman(job.intervalMs),
       );
-      appendCell(row, ns.formatIso(job.lastExecution));
+      intervalTd.className = 'jobs-schedule__interval';
+      if (job.intervalMs != null) {
+        intervalTd.title = String(job.intervalMs) + ' ms';
+      }
+      const lastTd = appendCell(row, ns.formatIso(job.lastExecution));
+      lastTd.className = 'jobs-schedule__last';
       appendCell(row, ns.formatNumber(job.errorCount));
       const actionsTd = document.createElement('td');
       if (!ns.state.readOnly) {
@@ -219,11 +236,16 @@
       row.dataset.jobName = run.jobName || '';
       row.classList.add('is-clickable');
       row.classList.toggle('is-selected', run.id === ns.state.selectedRunId);
-      appendCell(row, run.jobName || '');
-      appendCell(row, run.trigger || '');
+      const jobTd = appendCell(row, ns.formatJobTypeLabel(run.jobName || ''));
+      jobTd.title = run.jobName || '';
+      jobTd.className = 'jobs-timeline__job';
+      appendCell(row, ns.formatTrigger(run.trigger));
       appendCell(row, ns.formatIso(run.startedAt));
       appendCell(row, ns.formatIso(run.endedAt));
-      appendCell(row, ns.formatNumber(run.durationMs));
+      const durTd = appendCell(row, ns.formatDurationHuman(run.durationMs));
+      if (run.durationMs != null) {
+        durTd.title = String(run.durationMs) + ' ms';
+      }
       appendCell(row, ns.formatRunOutcome(run));
       const actions = document.createElement('td');
       if (!ns.state.readOnly && run.success === false && run.jobName) {
@@ -283,19 +305,7 @@
     if (!el) {
       return;
     }
-    const q = queue || {};
-    const running = Array.isArray(q.runningNames) ? q.runningNames.join(', ') : '';
-    const queued = Array.isArray(q.queuedNames) ? q.queuedNames.join(', ') : '';
-    el.textContent =
-      'size=' +
-      ns.formatNumber(q.size) +
-      ' · runningCount=' +
-      ns.formatNumber(q.runningCount) +
-      ' · running=[' +
-      (running || '—') +
-      '] · queued=[' +
-      (queued || '—') +
-      ']';
+    el.textContent = ns.formatQueueSummary(queue);
   };
 
   ns.renderRunHistory = function (entries) {
@@ -316,7 +326,8 @@
     }
     list.forEach(function (entry) {
       const row = document.createElement('tr');
-      appendCell(row, entry.jobType || '');
+      const typeTd = appendCell(row, ns.formatJobTypeLabel(entry.jobType || ''));
+      typeTd.title = entry.jobType || '';
       appendCell(row, entry.success ? '성공' : '실패');
       appendCell(row, ns.formatIso(entry.requestedAt || entry.startedAt || entry.timestamp));
       appendCell(row, entry.failureMessage || entry.errorsPreview || entry.error || entry.message || '—');

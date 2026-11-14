@@ -1341,6 +1341,12 @@ body {
   grid-template-columns: minmax(0, 3fr) minmax(0, 2fr);
   gap: var(--spacing-md);
   align-items: start;
+  min-width: 0;
+}
+
+.jobs-section.jobs-schedule {
+  min-width: 0;
+  overflow: hidden;
 }
 
 .jobs-schedule th,
@@ -1348,12 +1354,55 @@ body {
   white-space: nowrap;
 }
 
-.jobs-schedule td:nth-child(2) {
-  overflow-wrap: anywhere;
+/* #1724: fixed columns so Korean labels keep-all and keys do not glyph-wrap. */
+.jobs-schedule-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.jobs-col-state {
+  width: 4.5rem;
+}
+
+.jobs-col-name {
+  width: auto;
+}
+
+.jobs-col-interval {
+  width: 5.5rem;
+}
+
+.jobs-col-last {
+  width: 8.5rem;
+}
+
+.jobs-col-errors {
+  width: 3rem;
+}
+
+.jobs-col-actions {
+  width: 3.5rem;
+}
+
+.jobs-schedule__name-cell {
+  overflow: hidden;
 }
 
 .jobs-schedule__name {
   font-weight: var(--font-weight-medium, 600);
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.jobs-schedule__key {
+  margin-top: 0.125rem;
+  font-family: var(--font-family-mono);
+  font-size: var(--font-size-xs, 0.75rem);
+  color: var(--color-text-muted, #6b7280);
+  font-weight: normal;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .jobs-schedule__desc {
@@ -1361,6 +1410,34 @@ body {
   font-size: var(--font-size-xs, 0.8125rem);
   color: var(--color-text-muted, #6b7280);
   font-weight: normal;
+  word-break: keep-all;
+  overflow-wrap: break-word;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.jobs-schedule__interval,
+.jobs-schedule__last {
+  word-break: keep-all;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.jobs-timeline-table {
+  table-layout: fixed;
+  width: 100%;
+}
+
+.jobs-timeline__job {
+  word-break: keep-all;
+  overflow-wrap: break-word;
+}
+
+.jobs-guide__key {
+  font-size: var(--font-size-xs, 0.75rem);
 }
 
 .jobs-drawer__description {
@@ -1386,6 +1463,8 @@ body {
   border: 1px solid var(--color-border-light);
   border-radius: var(--radius-md);
   background: var(--color-bg-card);
+  min-width: 0;
+  overflow: hidden;
 }
 
 .jobs-drawer__header {

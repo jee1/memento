@@ -1046,11 +1046,15 @@ describe('static design contracts', () => {
       expect(at, cls).toBeGreaterThan(0);
       expect(html.lastIndexOf('<details class="m-about">', at), cls).toBeLessThan(html.lastIndexOf('</details>', at));
     }
-    // jobs: one data-source list; the per-section source lines are gone; the retry rule stays by the timeline
-    const list = html.slice(html.indexOf('<ul class="m-about__list">'), html.indexOf('</ul>', html.indexOf('<ul class="m-about__list">')));
-    for (const src of ['/admin/batch/runs</code>', '/admin/batch/runs/:runId/logs', '/admin/batch/run-history', 'job_run_log']) {
-      expect(list, src).toContain(src);
-    }
+    // jobs: operator-facing about list (#1724); no raw admin API paths or table names
+    const jobsAboutStart = html.indexOf('id="tab-jobs"');
+    const jobsAbout = html.slice(jobsAboutStart, html.indexOf('id="tab-settings"', jobsAboutStart));
+    const listStart = jobsAbout.indexOf('<ul class="m-about__list">');
+    const list = jobsAbout.slice(listStart, jobsAbout.indexOf('</ul>', listStart));
+    expect(list).toMatch(/실행 이력/);
+    expect(list).toMatch(/로그/);
+    expect(list).not.toMatch(/\/admin\/batch\//);
+    expect(list).not.toContain('job_run_log');
     expect(html.match(/<p class="jobs-disclaimer">/g)).toHaveLength(2);
     expect(readStaticFile('static/css/components.css')).toMatch(/\.m-about__summary:focus-visible/);
   });

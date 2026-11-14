@@ -60,7 +60,7 @@
     const created = node.created_at ? escapeHtml(new Date(node.created_at).toLocaleString()) : 'N/A';
     return [
       '<div class="memory-detail-item"><label>Type:</label><div class="value">Anchor (Slot ' + slot + ')</div></div>',
-      '<div class="memory-detail-item"><label>Memory ID:</label><div class="value">' + id + '</div></div>',
+      '<div class="memory-detail-item"><label>기억 ID</label><div class="value">' + id + '</div></div>',
       '<div class="memory-detail-item"><label>Content:</label><div class="value">' + content + '</div></div>',
       '<div class="memory-detail-item"><label>Hop Distance:</label><div class="value">0 (Anchor)</div></div>',
       '<div class="memory-detail-item"><label>Similarity:</label><div class="value">1.0 (100.0%)</div></div>',
@@ -91,7 +91,7 @@
     const created = node.created_at ? escapeHtml(new Date(node.created_at).toLocaleString()) : 'N/A';
     return [
       '<div class="memory-detail-item"><label>Type:</label><div class="value">Memory</div></div>',
-      '<div class="memory-detail-item"><label>Memory ID:</label><div class="value">' + id + '</div></div>',
+      '<div class="memory-detail-item"><label>기억 ID</label><div class="value">' + id + '</div></div>',
       '<div class="memory-detail-item"><label>Content:</label><div class="value">' + content + '</div></div>',
       '<div class="memory-detail-item"><label>소속:</label><div class="value">' + membership + '</div></div>',
       '<div class="memory-detail-item"><label>Hop Distance:</label><div class="value">' + hopDistance + '</div></div>',

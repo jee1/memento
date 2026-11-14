@@ -220,7 +220,11 @@ GEMINI_API_KEY=your_key_here
 
 ## HTTP 대시보드 — 배치 작업 탭
 
-`npm run dev:http`로 HTTP 관리 서버를 켠 뒤 `/dashboard`에 로그인하면 **배치 작업** 탭에서 스케줄 표, 큐, durable 실행 이력을 볼 수 있습니다. **새로고침**을 누르면 `GET /admin/batch/stats`가 각 작업의 간격·상태와 함께 **`description`**(한글 역할 요약)을 내려주며, 스케줄 표 작업명 아래, 행 선택 시 오른쪽 드로어, 탭 상단 **이건 뭔가요** 목록이 같은 문자열을 씁니다. 설명 원본은 `@memento/core`의 `batch-scheduler-job-descriptions.ts` 한 곳입니다.
+`npm run dev:http`로 HTTP 관리 서버를 켠 뒤 `/dashboard`에 로그인하면 **배치 작업** 탭에서 스케줄 표, 대기열, 실행 이력을 볼 수 있습니다. 작업 이름은 한국어를 앞에 두고 영어 키는 작게 병기합니다(로그 검색용). 간격은 「매일」「5분마다」처럼 읽고, 갱신·실행 시각은 한국 시각입니다. **새로고침**을 누르면 서버가 각 작업의 간격·상태와 함께 역할 설명(`description`)을 내려주며, 스케줄 표·오른쪽 서랍·**이건 뭔가요** 목록이 같은 문장을 씁니다. 설명 원본은 `@memento/core`의 `batch-scheduler-job-descriptions.ts` 한 곳입니다.
+
+## HTTP 대시보드 — 기억 찾기
+
+**기억 찾기** 탭에서 기억 ID로 한 건을 열거나 검색어로 찾을 수 있습니다. 머리글은 「기억 ID」「유형」「에이전트」처럼 한국어이고, ID 값 자체는 영어 식별자 그대로입니다.
 
 ## HTTP 대시보드 — 설정 탭
 
