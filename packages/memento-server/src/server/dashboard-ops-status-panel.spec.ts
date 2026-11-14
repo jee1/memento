@@ -26,14 +26,18 @@ type RowChild = {
   children?: RowChild[];
 };
 
-/** Find sev/label or a part nested under .ops-row__meta. */
+function hasClass(actual: string | undefined, className: string): boolean {
+  return Boolean(actual && actual.split(/\s+/).includes(className));
+}
+
+/** Find sev/label/link or a part nested under .ops-row__meta. */
 function rowPart(row: { children?: RowChild[] }, className: string): RowChild | undefined {
   for (const child of row.children ?? []) {
-    if (child.className === className) {
+    if (hasClass(child.className, className)) {
       return child;
     }
-    if (child.className === 'ops-row__meta') {
-      const hit = (child.children ?? []).find((c) => c.className === className);
+    if (hasClass(child.className, 'ops-row__meta')) {
+      const hit = (child.children ?? []).find((c) => hasClass(c.className, className));
       if (hit) {
         return hit;
       }
@@ -569,12 +573,21 @@ describe('dashboard ops status panel (#1699)', () => {
     harness.elements['rc-supersede-section'] = section;
     await harness.ns.refresh();
 
-    type Row = { attributes: Record<string, string>; children: Array<{ attributes: Record<string, string>; addEventListener: { mock: { calls: Array<[string, () => void]> } } }> };
+    type Row = {
+      attributes: Record<string, string>;
+      children: RowChild[];
+    };
+    type LinkEl = RowChild & {
+      attributes: Record<string, string>;
+      addEventListener: { mock: { calls: Array<[string, () => void]> } };
+    };
     const cards = harness.zonesHost.children as Array<{ children: Array<{ children?: Row[] }> }>;
     const rows = cards[0].children[1].children!;
-    const link = rows.find((r) => r.attributes['data-key'] === 'supersede_pending_count')!.children.find((c) => c.attributes['data-ops-goto']);
-    expect(link!.attributes['data-ops-goto']).toBe('review');
-    expect(rows.find((r) => r.attributes['data-key'] === 'db_size_mb')!.children.some((c) => c.attributes['data-ops-goto'])).toBe(false);
+    const supersedeRow = rows.find((r) => r.attributes['data-key'] === 'supersede_pending_count')!;
+    const link = rowPart(supersedeRow, 'ops-row__link') as LinkEl | undefined;
+    expect(link?.attributes['data-ops-goto']).toBe('review');
+    const diskRow = rows.find((r) => r.attributes['data-key'] === 'db_size_mb')!;
+    expect(rowPart(diskRow, 'ops-row__link')).toBeUndefined();
 
     link!.addEventListener.mock.calls[0]![1]();
     expect(activateTab).toHaveBeenCalledWith('review');

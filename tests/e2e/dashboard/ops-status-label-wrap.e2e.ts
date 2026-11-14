@@ -130,7 +130,9 @@ async function measureOpsRows(page: Page): Promise<ClipReport> {
   return page.evaluate(() => {
     const clipped: Array<{ key: string; cls: string; right: number; cardRight: number }> = [];
     const multiLine: Array<{ key: string; cls: string; lines: number; width: number }> = [];
-    const parts = ['.ops-row__label', '.ops-row__value', '.ops-row__window', '.ops-row__link'];
+    const clipParts = ['.ops-row__label', '.ops-row__value', '.ops-row__window', '.ops-row__link'];
+    // Buttons: clip only. Border + line-height:normal estimate false-positives multiLine on CI fonts.
+    const lineParts = ['.ops-row__label', '.ops-row__value', '.ops-row__window'];
     for (const row of Array.from(document.querySelectorAll('.ops-row'))) {
       const card = row.closest('.ops-status-card');
       if (!card) {
@@ -138,7 +140,7 @@ async function measureOpsRows(page: Page): Promise<ClipReport> {
       }
       const cardRight = card.getBoundingClientRect().right;
       const key = row.getAttribute('data-key') || '';
-      for (const sel of parts) {
+      for (const sel of clipParts) {
         const el = row.querySelector(sel);
         if (!el) {
           continue;
@@ -152,6 +154,13 @@ async function measureOpsRows(page: Page): Promise<ClipReport> {
             cardRight: Math.round(cardRight * 10) / 10,
           });
         }
+      }
+      for (const sel of lineParts) {
+        const el = row.querySelector(sel);
+        if (!el) {
+          continue;
+        }
+        const box = el.getBoundingClientRect();
         const cs = getComputedStyle(el);
         const fontSize = parseFloat(cs.fontSize) || 14;
         const lineHeightRaw = cs.lineHeight;
