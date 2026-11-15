@@ -172,7 +172,7 @@ describe.skipIf(!vecAvailable)('#998 벡터 레인 필터 적용', () => {
     const fallback = new MemoryEmbeddingService();
     const embeddings = fallback.getUnifiedEmbeddingService();
     const availableSpy = vi.spyOn(embeddings, 'isAvailable').mockReturnValue(true);
-    const embeddingSpy = vi.spyOn(embeddings, 'generateEmbedding').mockResolvedValue({
+    const embeddingSpy = vi.spyOn(embeddings, 'embedQuery').mockResolvedValue({
       embedding: queryVector, provider: 'minilm', dimensions: DIMENSIONS, model: LOCAL_EMBEDDING_MODEL.storedName,
     });
     try {
@@ -201,7 +201,7 @@ describe.skipIf(!vecAvailable)('#998 벡터 레인 필터 적용', () => {
     const fallback = new MemoryEmbeddingService();
     const embeddings = fallback.getUnifiedEmbeddingService();
     const availableSpy = vi.spyOn(embeddings, 'isAvailable').mockReturnValue(true);
-    const embeddingSpy = vi.spyOn(embeddings, 'generateEmbedding').mockResolvedValue({
+    const embeddingSpy = vi.spyOn(embeddings, 'embedQuery').mockResolvedValue({
       embedding: queryVector, provider: 'minilm', dimensions: DIMENSIONS, model: LOCAL_EMBEDDING_MODEL.storedName,
     });
     vi.stubEnv('SUPERSEDE_APPLY_ENABLED', 'false');

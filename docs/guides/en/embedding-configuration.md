@@ -112,6 +112,8 @@ npm run reindex-embeddings -- --provider minilm --dry-run   # check modelDriftCo
 npm run reindex-embeddings -- --provider minilm --batch-size 100
 ```
 
+Search queries become query vectors and stored text becomes passage vectors. When a model expects a different prefix per role, the prefixes live in `LOCAL_EMBEDDING_MODEL.prefixes`, and the window size is 510 minus the prefix token count (#1729). Both prefixes are empty for the current model.
+
 The default model is `Xenova/paraphrase-multilingual-MiniLM-L12-v2` (384 dimensions, 50 languages). The previous default, `all-MiniLM-L6-v2`, is English-only and ranked unrelated documents above relevant ones for Korean queries.
 
 ### Cleaning up provider drift (#907)

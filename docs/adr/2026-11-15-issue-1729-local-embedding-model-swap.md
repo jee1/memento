@@ -161,7 +161,7 @@ export const LOCAL_EMBEDDING_MODEL: LocalEmbeddingModel = { /* 모델 하나 */ 
 | CI 캐시 키 `hf-minilm-`, 단계 「MiniLM Korean embedding quality」, `minilm-korean-quality.spec.ts` | 캐시 단계는 지우고, 단계와 spec 은 모델 중립 이름으로. spec 기대값은 전환 PR 에서 새 모델로 | 같음 |
 | `window-embedding-write.ts:24-32` `WINDOW_CANDIDATE_MIN_CHARS = 800` 와 주석 | 새 모델로 2창 최소 길이를 다시 재고 주석의 모델 이름을 고친다 | 주석의 ponytail 이 모델이 바뀌면 다시 재라고 적었다 |
 
-새 용어는 GLOSSARY 와 대조했다. 처음 쓴 「calibration(보정)」은 Gate baseline 항목의 `_Avoid_` 라 「질의 점수 사상」으로 바꿨다. PR 3 에서 GLOSSARY 에 넣은 항목은 다음과 같다(코드와 로그가 이 이름을 쓰기 시작하는 PR 이다).
+새 용어는 GLOSSARY 와 대조했다. 처음 쓴 「calibration(보정)」은 Gate baseline 항목의 `_Avoid_` 라 「질의 점수 사상」으로 바꿨다. GLOSSARY 에 넣을 항목은 다음과 같다. 각 항목은 코드와 로그가 그 이름을 쓰기 시작하는 PR 에서 넣는다(앞의 셋은 PR 3, 질의 벡터는 PR 4, 질의 점수 사상은 PR 5, 모델 이주는 PR 6).
 
 - **Local embedding model (로컬 임베딩 모델)**: 임베딩 제공자 값 `minilm` 뒤에서 도는 모델 하나. 저장 이름은 `memory_embedding.model` 이다. `minilm` 은 역사적 이름이다. _Avoid_: MiniLM(모델을 가리킬 때)
 - **Embedding provider value (임베딩 제공자 값)**: `memory_embedding.embedding_provider` 와 `EMBEDDING_PROVIDER` 의 값(tfidf, minilm, openai, gemini). LLM 제공자(typesafe 등)와 다르다.

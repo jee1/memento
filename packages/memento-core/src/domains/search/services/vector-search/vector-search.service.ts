@@ -73,7 +73,7 @@ export class VectorSearchService {
     for (const provider of providers) {
       let providerVector = baseQuery.query.queryVector;
       if (baseQuery.text) {
-        const embedding = await embeddingService.generateEmbedding(baseQuery.text, provider);
+        const embedding = await embeddingService.embedQuery(baseQuery.text, provider);
         if (!embedding || !embedding.embedding) {
           continue;
         }

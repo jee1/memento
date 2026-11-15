@@ -25,6 +25,8 @@
 
 ### Changed
 
+- **질의 벡터와 기억 벡터를 나눈다** (#1729 PR 4): 검색(하이브리드 벡터 레인과 backfill, fallback 유사도 검색, provider 병렬 검색, `search_local` 질의 필터)은 `UnifiedEmbeddingService.embedQuery` 로 질의 벡터를 만들고, 저장과 기억끼리 비교는 `generateEmbedding` 으로 기억 벡터를 만듭니다. 로컬 임베딩 모델은 역할 접두(`LOCAL_EMBEDDING_MODEL.prefixes`)를 창마다 붙이고 창 크기를 510 에서 접두 토큰 수(특수 토큰 빼고)를 뺀 값으로 잡으며, 결과 캐시와 창 캐시 키에 저장 이름과 역할을 넣습니다. 지금 모델은 두 접두가 비어 있어 벡터와 창 크기(510)가 같습니다. 같은 글을 검색어와 저장 글로 모두 쓰면 캐시가 따로라 모델을 한 번 더 부릅니다.
+
 - **로컬 임베딩 모델 정의를 한 곳으로** (#1729 PR 3): 모델 이름과 위치가 `LOCAL_EMBEDDING_MODEL`(`shared/config/embedding-models.ts`) 하나에만 있습니다. 모델과 저장 벡터는 그대로라 검색 결과가 같습니다.
   - `MINILM_MODEL_ID`, `MINILM_MODEL_NAME` 을 `LOCAL_EMBEDDING_MODEL.storedName`, `.source`, `.dimensions` 로 바꿨습니다. Dockerfile warmup 과 `scripts/docker-smoke.mjs` 도 모델 id 를 직접 적지 않고 빌드된 정의를 읽습니다.
   - `MiniLMEmbeddingService`(`minilm-embedding-service.ts`)를 `LocalEmbeddingService`(`local-embedding-service.ts`)로, 로그의 「MiniLM」을 「로컬 임베딩 모델」로 바꿨습니다. 내부 패키지 `@memento/core` 의 subpath export 도 새 파일 이름입니다.

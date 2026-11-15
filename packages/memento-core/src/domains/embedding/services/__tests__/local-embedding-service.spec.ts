@@ -142,6 +142,46 @@ describe('LocalEmbeddingService', () => {
       expect(windowResult.tokenCount).toBe(tokenCount);
     });
 
+    it('510토큰을 넘는 글은 510토큰 창으로 잘라 창마다 모델을 한 번 부르고, 16창 뒤는 버린다 (#1013, #1729)', async () => {
+      const modelFn = installMockModel({ tokenCount: WINDOW_TOKENS * 2 + 80, withTokenizer: true });
+
+      const result = await service.generateWindowEmbeddings('Long   Document ');
+
+      expect(modelFn.mock.calls.map(([input]) => input)).toEqual([
+        'window-510-1',
+        'window-510-511',
+        'window-80-1021',
+      ]);
+      expect(result.tokenCount).toBe(WINDOW_TOKENS * 2 + 80);
+
+      service.clearCache();
+      const capped = installMockModel({ tokenCount: WINDOW_TOKENS * 20, withTokenizer: true });
+      const cappedResult = await service.generateWindowEmbeddings('very long document');
+      expect(capped).toHaveBeenCalledTimes(16);
+      expect(cappedResult.tokenCount).toBe(WINDOW_TOKENS * 16);
+    });
+
+    it('질의 벡터와 기억 벡터는 캐시를 따로 쓴다 (#1729)', async () => {
+      const modelFn = installMockModel({ tokenCount: 100, withTokenizer: true, stableVector: true });
+
+      await service.generateEmbedding('same text');
+      await service.generateEmbedding('same text');
+      expect(modelFn).toHaveBeenCalledTimes(1);
+
+      await service.embedQuery('same text');
+      expect(modelFn).toHaveBeenCalledTimes(2);
+      await service.embedQuery('same text');
+      expect(modelFn).toHaveBeenCalledTimes(2);
+    });
+
+    it('510토큰 이하 글은 전처리한 본문 그대로 한 번 넣는다', async () => {
+      const modelFn = installMockModel({ tokenCount: WINDOW_TOKENS, withTokenizer: true });
+
+      await service.generateEmbedding('  Hello\n\nWorld  ');
+
+      expect(modelFn.mock.calls.map(([input]) => input)).toEqual(['hello world']);
+    });
+
     it('Given: 토크나이저를 사용할 수 없을 때, When: generateWindowEmbeddings 호출, Then: vectors 길이 1이어야 함', async () => {
       installMockModel({ tokenCount: WINDOW_TOKENS * 3, withTokenizer: false });
 

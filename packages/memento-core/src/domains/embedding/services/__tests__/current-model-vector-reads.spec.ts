@@ -107,7 +107,7 @@ describe('stored vector reads use the current-model native row', () => {
     const service = new MemoryEmbeddingService();
     const unified = service.getUnifiedEmbeddingService();
     vi.spyOn(unified, 'isAvailable').mockReturnValue(true);
-    vi.spyOn(unified, 'generateEmbedding').mockResolvedValue({
+    vi.spyOn(unified, 'embedQuery').mockResolvedValue({
       embedding: unit(0),
       model: LOCAL_EMBEDDING_MODEL.storedName,
       provider: 'minilm',

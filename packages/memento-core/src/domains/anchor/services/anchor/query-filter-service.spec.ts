@@ -57,7 +57,7 @@ describe('QueryFilterService', () => {
       // Mock 임베딩 서비스
       const { UnifiedEmbeddingService } = await import('../../../embedding/services/unified-embedding-service.js');
       const mockQueryEmbedding = Array(384).fill(0.15);
-      vi.spyOn(UnifiedEmbeddingService.prototype, 'generateEmbedding').mockResolvedValue({
+      vi.spyOn(UnifiedEmbeddingService.prototype, 'embedQuery').mockResolvedValue({
         embedding: mockQueryEmbedding,
         provider: 'tfidf',
         dimensions: 384,
@@ -111,7 +111,7 @@ describe('QueryFilterService', () => {
 
       // Mock 임베딩 서비스 (실패)
       const { UnifiedEmbeddingService } = await import('../../../embedding/services/unified-embedding-service.js');
-      vi.spyOn(UnifiedEmbeddingService.prototype, 'generateEmbedding').mockResolvedValue({
+      vi.spyOn(UnifiedEmbeddingService.prototype, 'embedQuery').mockResolvedValue({
         embedding: undefined as any,
         provider: 'tfidf',
         dimensions: 384,
@@ -153,7 +153,7 @@ describe('QueryFilterService', () => {
       // Mock 임베딩 서비스
       const { UnifiedEmbeddingService } = await import('../../../embedding/services/unified-embedding-service.js');
       const mockQueryEmbedding = Array(384).fill(0.15);
-      vi.spyOn(UnifiedEmbeddingService.prototype, 'generateEmbedding').mockResolvedValue({
+      vi.spyOn(UnifiedEmbeddingService.prototype, 'embedQuery').mockResolvedValue({
         embedding: mockQueryEmbedding,
         provider: 'tfidf',
         dimensions: 384,
@@ -197,7 +197,7 @@ describe('QueryFilterService', () => {
       ];
 
       const { UnifiedEmbeddingService } = await import('../../../embedding/services/unified-embedding-service.js');
-      vi.spyOn(UnifiedEmbeddingService.prototype, 'generateEmbedding').mockResolvedValue({
+      vi.spyOn(UnifiedEmbeddingService.prototype, 'embedQuery').mockResolvedValue({
         embedding: Array(384).fill(0.15),
         provider: 'tfidf',
         dimensions: 384,
@@ -245,7 +245,7 @@ describe('QueryFilterService', () => {
       // Mock 임베딩 서비스
       const { UnifiedEmbeddingService } = await import('../../../embedding/services/unified-embedding-service.js');
       const mockQueryEmbedding = Array(384).fill(0.15);
-      vi.spyOn(UnifiedEmbeddingService.prototype, 'generateEmbedding').mockResolvedValue({
+      vi.spyOn(UnifiedEmbeddingService.prototype, 'embedQuery').mockResolvedValue({
         embedding: mockQueryEmbedding,
         provider: 'tfidf',
         dimensions: 384,

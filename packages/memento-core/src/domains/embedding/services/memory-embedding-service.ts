@@ -462,7 +462,7 @@ export class MemoryEmbeddingService {
     let queryEmbeddingProviders: EmbeddingProvider[] | undefined;
 
     try {
-      const queryEmbedding = await this.embeddingService.generateEmbedding(query);
+      const queryEmbedding = await this.embeddingService.embedQuery(query);
       if (!queryEmbedding) {
         return { results: [] };
       }

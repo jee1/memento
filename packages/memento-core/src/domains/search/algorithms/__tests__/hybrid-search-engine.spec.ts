@@ -167,7 +167,7 @@ describe('HybridSearchEngine', () => {
 
     it('VEC 성공이어도 고차원 provider 요청이 TF-IDF 쿼리 임베딩으로 바뀌면 tfidf_query_embedding_fallback이 true이다', async () => {
       const mockQueryEmbedding = {
-        generateEmbedding: vi.fn(async (_q: string, preferred: EmbeddingProvider) => {
+        embedQuery: vi.fn(async (_q: string, preferred: EmbeddingProvider) => {
           if (preferred === 'minilm') {
             return { embedding: [0.1, 0.2, 0.3], provider: 'tfidf' };
           }
@@ -291,7 +291,7 @@ describe('HybridSearchEngine', () => {
         dim: 384,
         dimensions: 384
       });
-      const generateEmbedding = vi.fn().mockRejectedValue(new Error('provider down'));
+      const embedQuery = vi.fn().mockRejectedValue(new Error('provider down'));
       const engine = new HybridSearchEngine(sqliteRepositoryProvider,
         mockTextEngine,
         mockEmbeddingService,
@@ -299,7 +299,7 @@ describe('HybridSearchEngine', () => {
         mockResultCombiner,
         mockWeightCalculator,
         mockLogger,
-        { generateEmbedding, getEmbedding: generateEmbedding } as unknown as UnifiedEmbeddingService
+        { embedQuery, getEmbedding: embedQuery } as unknown as UnifiedEmbeddingService
       );
       (mockTextEngine.search as Mock).mockResolvedValue({ items: [], total_count: 0, query_time: 0 });
       (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: true });
@@ -309,7 +309,7 @@ describe('HybridSearchEngine', () => {
 
       try {
         await expect(engine.search(db, { query: 'test query', limit: 10 })).resolves.toBeDefined();
-        expect(generateEmbedding).toHaveBeenCalled();
+        expect(embedQuery).toHaveBeenCalled();
         expect(mockVectorEngine.search).not.toHaveBeenCalled();
         expect((mockResultCombiner.combine as Mock).mock.calls[0]?.[1]).toEqual([]);
       } finally {
@@ -955,7 +955,7 @@ describe('HybridSearchEngine', () => {
     let mockResultCombiner: ISearchResultCombiner;
     let mockWeightCalculator: IAdaptiveWeightCalculator;
     let mockLogger: ISearchLogger;
-    let mockQueryEmbeddingService: { generateEmbedding: ReturnType<typeof vi.fn>; getEmbedding: ReturnType<typeof vi.fn> };
+    let mockQueryEmbeddingService: { embedQuery: ReturnType<typeof vi.fn>; getEmbedding: ReturnType<typeof vi.fn> };
 
     beforeEach(() => {
       // 실제 메모리 데이터베이스 생성
@@ -964,7 +964,7 @@ describe('HybridSearchEngine', () => {
 
       // Mock queryEmbeddingService 생성
       mockQueryEmbeddingService = {
-        generateEmbedding: vi.fn().mockResolvedValue({
+        embedQuery: vi.fn().mockResolvedValue({
           embedding: new Array(384).fill(0.1),
           provider: 'minilm'
         }),
@@ -1179,7 +1179,7 @@ describe('HybridSearchEngine', () => {
     let mockResultCombiner: ISearchResultCombiner;
     let mockWeightCalculator: IAdaptiveWeightCalculator;
     let mockLogger: ISearchLogger;
-    let mockQueryEmbeddingService: { generateEmbedding: ReturnType<typeof vi.fn>; getEmbedding: ReturnType<typeof vi.fn> };
+    let mockQueryEmbeddingService: { embedQuery: ReturnType<typeof vi.fn>; getEmbedding: ReturnType<typeof vi.fn> };
 
     beforeEach(() => {
       // 실제 메모리 데이터베이스 생성
@@ -1188,7 +1188,7 @@ describe('HybridSearchEngine', () => {
 
       // Mock queryEmbeddingService 생성
       mockQueryEmbeddingService = {
-        generateEmbedding: vi.fn().mockImplementation(async (query: string, provider?: string) => {
+        embedQuery: vi.fn().mockImplementation(async (query: string, provider?: string) => {
           // Provider별로 다른 차원의 임베딩 반환
           const dimensions = provider === 'openai' ? 1536 : provider === 'gemini' ? 768 : 384;
           return {
@@ -1415,7 +1415,7 @@ describe('HybridSearchEngine', () => {
 
       (mockTextEngine.search as Mock).mockResolvedValue({ items: [], total_count: 0, query_time: 0 });
       (mockVectorEngine.getIndexStatus as Mock).mockReturnValue({ available: true });
-      (mockQueryEmbeddingService.generateEmbedding as Mock).mockResolvedValue({
+      (mockQueryEmbeddingService.embedQuery as Mock).mockResolvedValue({
         embedding: new Array(384).fill(0.1),
         provider: 'tfidf'
       });
@@ -1598,7 +1598,7 @@ describe('HybridSearchEngine', () => {
     let mockResultCombiner: ISearchResultCombiner;
     let mockWeightCalculator: IAdaptiveWeightCalculator;
     let mockLogger: ISearchLogger;
-    let mockQueryEmbeddingService: { generateEmbedding: ReturnType<typeof vi.fn>; getEmbedding: ReturnType<typeof vi.fn> };
+    let mockQueryEmbeddingService: { embedQuery: ReturnType<typeof vi.fn>; getEmbedding: ReturnType<typeof vi.fn> };
 
     beforeEach(() => {
       // 실제 메모리 데이터베이스 생성
@@ -1607,7 +1607,7 @@ describe('HybridSearchEngine', () => {
 
       // Mock queryEmbeddingService 생성
       mockQueryEmbeddingService = {
-        generateEmbedding: vi.fn().mockImplementation(async (query: string, provider?: string) => {
+        embedQuery: vi.fn().mockImplementation(async (query: string, provider?: string) => {
           const dimensions = provider === 'openai' ? 1536 : provider === 'gemini' ? 768 : 384;
           return {
             embedding: new Array(dimensions).fill(0.1),

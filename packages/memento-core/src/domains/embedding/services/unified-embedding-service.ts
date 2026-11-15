@@ -17,6 +17,8 @@ import type {
 } from '../../../shared/types/embedding.types.js';
 import { EmbeddingProviderFactory } from '../providers/embedding-provider-factory.js';
 import { VECTOR_SEARCH } from '../../../shared/config/constants.js';
+import type { EmbeddingRole } from '../../../shared/config/embedding-models.js';
+import { LocalEmbeddingService } from './local-embedding-service.js';
 
 /**
  * 통합 임베딩 서비스
@@ -35,10 +37,26 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
   }
 
   /**
-   * 텍스트를 임베딩 벡터로 변환
+   * 저장할 글을 기억 벡터로 변환
    * TDD: 제공자 선택, 폴백 처리, 에러 핸들링
    */
   async generateEmbedding(text: string, preferredProvider?: EmbeddingProvider): Promise<EmbeddingResult | null> {
+    return this.embed(text, 'passage', preferredProvider);
+  }
+
+  /**
+   * 검색어를 질의 벡터로 변환한다 (#1729). 로컬 임베딩 모델만 역할 접두를 달리 붙이고,
+   * 다른 제공자는 generateEmbedding 과 같다. 기억끼리 비교에는 쓰지 않는다.
+   */
+  async embedQuery(text: string, preferredProvider?: EmbeddingProvider): Promise<EmbeddingResult | null> {
+    return this.embed(text, 'query', preferredProvider);
+  }
+
+  private async embed(
+    text: string,
+    role: EmbeddingRole,
+    preferredProvider?: EmbeddingProvider
+  ): Promise<EmbeddingResult | null> {
     this.validateInput(text);
 
     try {
@@ -49,7 +67,7 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
 
       this.currentProvider = selection.service;
       this.currentProviderName = selection.provider;
-      const result = await selection.service.generateEmbedding(text);
+      const result = await embedForRole(selection.service, text, role);
       
       if (result) {
         // provider 정보 추가
@@ -59,7 +77,7 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
       }
 
       // 폴백 시도
-      return await this.tryFallbackProviders(text);
+      return await this.tryFallbackProviders(text, role);
 
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
@@ -68,7 +86,7 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
       
       // 폴백 시도
       try {
-        return await this.tryFallbackProviders(text);
+        return await this.tryFallbackProviders(text, role);
       } catch (fallbackError) {
         // eslint-disable-next-line preserve-caught-error -- the message is masked; a raw cause would expose unmasked PII
         throw new Error(`모든 임베딩 제공자 실패: ${maskedError.message}`);
@@ -191,13 +209,13 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
    * - MiniLM(384) → TF-IDF(512) fallback 시 차원 정보가 달라짐
    * - getModelInfo()가 정확한 차원을 반환하도록 currentProvider 업데이트 필수
    */
-  private async tryFallbackProviders(text: string): Promise<EmbeddingResult | null> {
+  private async tryFallbackProviders(text: string, role: EmbeddingRole): Promise<EmbeddingResult | null> {
     const { service, decision } = await this.factory.selectProviderWithHealthCheck();
     if (!service) {
       throw new Error('모든 폴백 제공자 실패');
     }
     // 로그는 디버그 모드에서만 출력 (MCP 프로토콜 준수)
-    const result = await service.generateEmbedding(text);
+    const result = await embedForRole(service, text, role);
     if (result) {
       // fallback 발생 시 currentProvider와 currentProviderName 업데이트
       // 왜 필요한가? getModelInfo()가 정확한 차원을 반환하도록 보장
@@ -223,4 +241,14 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
     }
     this.factory.handleProviderFailure(provider);
   }
+}
+
+function embedForRole(
+  service: EmbeddingServiceInterface,
+  text: string,
+  role: EmbeddingRole
+): Promise<EmbeddingResult | null> {
+  return role === 'query' && service instanceof LocalEmbeddingService
+    ? service.embedQuery(text)
+    : service.generateEmbedding(text);
 }

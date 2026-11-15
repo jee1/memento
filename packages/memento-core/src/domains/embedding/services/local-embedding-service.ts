@@ -9,7 +9,7 @@
  */
 
 import { pipeline, env } from '@huggingface/transformers';
-import { LOCAL_EMBEDDING_MODEL } from '../../../shared/config/embedding-models.js';
+import { LOCAL_EMBEDDING_MODEL, type EmbeddingRole } from '../../../shared/config/embedding-models.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { isCliQuiet } from '../../../shared/utils/logger.js';
 import type { 
@@ -64,7 +64,7 @@ export class LocalEmbeddingService implements EmbeddingServiceInterface {
   // 상수 정의
   private static readonly MODEL_NAME = LOCAL_EMBEDDING_MODEL.storedName;
   private static readonly DIMENSIONS = LOCAL_EMBEDDING_MODEL.dimensions;
-  // 모델 창은 512 토큰이고 [CLS]/[SEP] 2개를 제외한 510 이 본문 한 윈도의 크기다 (#1013).
+  // 모델 창은 512 토큰이고 [CLS]/[SEP] 2개를 제외한 510 이 접두와 본문 한 윈도의 크기다 (#1013, #1729).
   private static readonly WINDOW_TOKENS = 510;
   private static readonly MODEL_MAX_TOKENS = 512;
   // remember 의 content 에는 길이 상한이 없다. 예전에는 1024자 컷이 사실상의 상한이어서
@@ -80,19 +80,26 @@ export class LocalEmbeddingService implements EmbeddingServiceInterface {
   private loadingPromise: Promise<FeatureExtractionModel> | null = null;
   private readonly cache = new Map<string, EmbeddingResult>();
   private readonly windowCache = new Map<string, { vectors: number[][]; tokenCount: number; model: string }>();
+  private readonly prefixTokenCounts = new Map<string, number>();
 
   constructor() {
     // 초기화 로그는 MCP 프로토콜 준수를 위해 출력하지 않음
   }
 
-  /**
-   * 텍스트를 임베딩 벡터로 변환
-   * TDD: 빈 텍스트 검증, 모델 로딩, 캐싱 적용
-   */
+  /** 저장할 글을 기억 벡터로 만든다. */
   async generateEmbedding(text: string): Promise<EmbeddingResult | null> {
+    return this.embed(text, 'passage');
+  }
+
+  /** 검색어를 질의 벡터로 만든다. 저장하지 않고, 기억끼리 비교에도 쓰지 않는다 (#1729). */
+  async embedQuery(text: string): Promise<EmbeddingResult | null> {
+    return this.embed(text, 'query');
+  }
+
+  private async embed(text: string, role: EmbeddingRole): Promise<EmbeddingResult | null> {
     this.validateInput(text);
-    
-    const cacheKey = generateEmbeddingCacheKey('minilm', text);
+
+    const cacheKey = cacheKeyFor(role, text);
     const cached = this.cache.get(cacheKey);
     if (cached) {
       this.cache.delete(cacheKey);
@@ -101,7 +108,7 @@ export class LocalEmbeddingService implements EmbeddingServiceInterface {
     }
 
     try {
-      const { vectors, tokenCount } = await this.getOrComputeWindowEmbeddings(text, cacheKey);
+      const { vectors, tokenCount } = await this.getOrComputeWindowEmbeddings(text, role, cacheKey);
       const embedding = meanPoolNormalize(vectors);
       const embeddingResult: EmbeddingResult = {
         embedding,
@@ -259,11 +266,13 @@ export class LocalEmbeddingService implements EmbeddingServiceInterface {
    */
   private async embedWindows(
     model: FeatureExtractionModel,
-    processedText: string
+    processedText: string,
+    role: EmbeddingRole
   ): Promise<{ vectors: number[][]; tokenCount: number }> {
-    const windows = await this.splitIntoWindows(model, processedText);
+    const prefix = LOCAL_EMBEDDING_MODEL.prefixes[role];
+    const windows = await this.splitIntoWindows(model, processedText, prefix);
     if (windows === null) {
-      const result = await model(processedText, { pooling: 'mean', normalize: true });
+      const result = await model(prefix + processedText, { pooling: 'mean', normalize: true });
       return {
         vectors: [Array.from(getEmbeddingIterable(result))],
         tokenCount: estimateEmbeddingTokens(processedText)
@@ -272,7 +281,7 @@ export class LocalEmbeddingService implements EmbeddingServiceInterface {
 
     const vectors: number[][] = [];
     for (const window of windows.texts) {
-      const result = await model(window, { pooling: 'mean', normalize: true });
+      const result = await model(prefix + window, { pooling: 'mean', normalize: true });
       vectors.push(Array.from(getEmbeddingIterable(result)));
     }
     return { vectors, tokenCount: windows.tokenCount };
@@ -292,6 +301,7 @@ export class LocalEmbeddingService implements EmbeddingServiceInterface {
 
   private async getOrComputeWindowEmbeddings(
     text: string,
+    role: EmbeddingRole,
     cacheKey: string
   ): Promise<{ vectors: number[][]; tokenCount: number; model: string }> {
     const cachedWindow = this.windowCache.get(cacheKey);
@@ -303,7 +313,7 @@ export class LocalEmbeddingService implements EmbeddingServiceInterface {
 
     const model = await this.getModel();
     const processedText = this.preprocessText(text);
-    const { vectors, tokenCount } = await this.embedWindows(model, processedText);
+    const { vectors, tokenCount } = await this.embedWindows(model, processedText, role);
     const windowResult = { vectors, tokenCount, model: this.modelName };
     this.setBoundedCacheEntry(
       this.windowCache,
@@ -315,23 +325,23 @@ export class LocalEmbeddingService implements EmbeddingServiceInterface {
   }
 
   /**
-   * 윈도별 임베딩 벡터를 반환한다 (issue 1107).
+   * 윈도별 기억 벡터를 반환한다 (issue 1107).
    *
    * generateEmbedding 과 달리 윈도마다의 벡터를 그대로 노출한다. MaxSim 등 윈도 단위 유사도 계산용 public seam.
    * EmbeddingServiceInterface 에는 포함하지 않는 로컬 임베딩 전용 API다.
    */
   async generateWindowEmbeddings(text: string): Promise<{ vectors: number[][]; tokenCount: number; model: string }> {
     this.validateInput(text);
-    const cacheKey = generateEmbeddingCacheKey('minilm', text);
-    return this.getOrComputeWindowEmbeddings(text, cacheKey);
+    return this.getOrComputeWindowEmbeddings(text, 'passage', cacheKeyFor('passage', text));
   }
 
   /**
-   * 토크나이저로 본문을 510토큰 윈도로 나눈다. 토크나이저가 없으면 null 을 돌려준다.
+   * 토크나이저로 본문을 (510 - 접두 토큰 수)토큰 윈도로 나눈다. 토크나이저가 없으면 null 을 돌려준다.
    */
   private async splitIntoWindows(
     model: FeatureExtractionModel,
-    text: string
+    text: string,
+    prefix: string
   ): Promise<{ texts: string[]; tokenCount: number } | null> {
     const tokenizer = model.tokenizer;
     if (typeof tokenizer !== 'function' || typeof tokenizer.decode !== 'function') {
@@ -339,16 +349,13 @@ export class LocalEmbeddingService implements EmbeddingServiceInterface {
     }
 
     try {
-      const encoded = await tokenizer(text, { add_special_tokens: false, truncation: false });
-      const raw = encoded.input_ids;
-      const iterable = (raw as { data?: Iterable<unknown> }).data ?? (raw as Iterable<unknown>);
-      const ids = Array.from(iterable, (value) => Number(value));
+      const ids = await tokenIds(tokenizer, text);
       if (ids.length === 0) return null;
 
-      const size = LocalEmbeddingService.WINDOW_TOKENS;
+      const size = LocalEmbeddingService.WINDOW_TOKENS - (await this.countPrefixTokens(tokenizer, prefix));
       if (ids.length <= size) return { texts: [text], tokenCount: ids.length };
 
-      // 상한을 넘는 뒷부분은 버린다. tokenCount 는 실제로 모델에 들어간 토큰 수를 보고한다.
+      // 상한을 넘는 뒷부분은 버린다. tokenCount 는 실제로 모델에 들어간 본문 토큰 수를 보고한다.
       const limit = Math.min(ids.length, size * LocalEmbeddingService.MAX_WINDOWS);
       const texts: string[] = [];
       for (let start = 0; start < limit; start += size) {
@@ -359,6 +366,18 @@ export class LocalEmbeddingService implements EmbeddingServiceInterface {
       // 토크나이저 호출이 실패해도 임베딩 자체는 만들어야 한다. 예전 경로로 되돌린다.
       return null;
     }
+  }
+
+  /**
+   * 접두 토큰 수. 특수 토큰을 빼고 센다. 기본 옵션으로 세면 빈 접두도 [CLS]/[SEP] 2개가 잡힌다 (#1729).
+   */
+  private async countPrefixTokens(tokenizer: FeatureExtractionTokenizer, prefix: string): Promise<number> {
+    if (prefix === '') return 0;
+    const cached = this.prefixTokenCounts.get(prefix);
+    if (cached !== undefined) return cached;
+    const count = (await tokenIds(tokenizer, prefix)).length;
+    this.prefixTokenCounts.set(prefix, count);
+    return count;
   }
 
   /**
@@ -375,6 +394,18 @@ export class LocalEmbeddingService implements EmbeddingServiceInterface {
   getCacheSize(): number {
     return this.cache.size;
   }
+}
+
+/** 결과 캐시와 창 캐시의 키. 같은 글이라도 모델과 역할이 다르면 벡터가 다르다 (#1729). */
+function cacheKeyFor(role: EmbeddingRole, text: string): string {
+  return generateEmbeddingCacheKey(`${LOCAL_EMBEDDING_MODEL.storedName}:${role}`, text);
+}
+
+async function tokenIds(tokenizer: FeatureExtractionTokenizer, text: string): Promise<number[]> {
+  const encoded = await tokenizer(text, { add_special_tokens: false, truncation: false });
+  const raw = encoded.input_ids;
+  const iterable = (raw as { data?: Iterable<unknown> }).data ?? (raw as Iterable<unknown>);
+  return Array.from(iterable, (value) => Number(value));
 }
 
 function getEmbeddingIterable(result: Awaited<ReturnType<FeatureExtractionModel>>): Iterable<number> {
