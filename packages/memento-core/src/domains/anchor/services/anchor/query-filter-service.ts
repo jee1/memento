@@ -62,7 +62,7 @@ export class QueryFilterService implements IQueryFilterService {
 
     try {
       // 쿼리 임베딩 생성
-      const queryEmbeddingResult = await this.queryEmbeddingService.generateEmbedding(query);
+      const queryEmbeddingResult = await this.queryEmbeddingService.embedQuery(query);
       if (!queryEmbeddingResult || !queryEmbeddingResult.embedding) {
         logger.warn('Query embedding generation failed, skipping filter');
         return results;

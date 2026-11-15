@@ -37,7 +37,7 @@ describe('searchBySimilarity 근접도 방향 (#806)', () => {
     service = new MemoryEmbeddingService();
     (service as unknown as { embeddingService: unknown }).embeddingService = {
       isAvailable: () => true,
-      generateEmbedding: async () => ({ embedding: [0.1, 0.2, 0.3], provider: 'tfidf' }),
+      embedQuery: async () => ({ embedding: [0.1, 0.2, 0.3], provider: 'tfidf' }),
     };
   });
 

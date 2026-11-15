@@ -117,6 +117,8 @@ npm run reindex-embeddings -- --provider minilm --dry-run   # modelDriftCount �
 npm run reindex-embeddings -- --provider minilm --batch-size 100
 ```
 
+검색어는 질의 벡터로, 저장하는 글은 기억 벡터로 만듭니다. 모델이 역할마다 다른 접두를 요구하면 `LOCAL_EMBEDDING_MODEL.prefixes` 에 두고, 창 크기는 510 에서 접두 토큰 수를 뺀 값입니다(#1729). 지금 모델은 두 접두가 비어 있습니다.
+
 기본 모델은 `Xenova/paraphrase-multilingual-MiniLM-L12-v2`(384차원, 50개 언어)입니다. 이전 기본값이던 `all-MiniLM-L6-v2`는 영어 전용이라 한국어 쿼리가 관련 없는 문서를 상위에 올렸습니다.
 
 ### provider drift 정리 (#907)

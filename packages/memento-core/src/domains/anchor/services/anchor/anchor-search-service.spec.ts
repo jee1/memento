@@ -281,7 +281,7 @@ describe('AnchorSearchService', () => {
       // 쿼리 임베딩 서비스 모킹
       const { UnifiedEmbeddingService } = await import('../../../embedding/services/unified-embedding-service.js');
       const mockQueryEmbedding = Array(384).fill(0.15);
-      vi.spyOn(UnifiedEmbeddingService.prototype, 'generateEmbedding').mockResolvedValue({
+      vi.spyOn(UnifiedEmbeddingService.prototype, 'embedQuery').mockResolvedValue({
         embedding: mockQueryEmbedding,
         provider: 'tfidf',
         dimensions: 384,

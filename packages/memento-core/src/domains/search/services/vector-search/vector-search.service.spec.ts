@@ -187,7 +187,7 @@ describe('VectorSearchService', () => {
   describe('providerHybridSearch', () => {
     it('should aggregate results across providers', async () => {
       const embeddingService: any = {
-        generateEmbedding: vi.fn(async (_text: string, provider: string) => {
+        embedQuery: vi.fn(async (_text: string, provider: string) => {
           const length = provider === 'openai' ? 1536 : 384;
           return {
             embedding: new Array(length).fill(0.2),
@@ -246,7 +246,7 @@ describe('VectorSearchService', () => {
 
     it('should skip providers when embedding cannot be generated', async () => {
       const embeddingService: any = {
-        generateEmbedding: vi.fn(async (_text: string, provider: string) => {
+        embedQuery: vi.fn(async (_text: string, provider: string) => {
           if (provider === 'openai') {
             return null;
           }
@@ -289,7 +289,7 @@ describe('VectorSearchService', () => {
 
   it('should build unified search response', async () => {
     const embeddingService: any = {
-      generateEmbedding: vi.fn(async () => ({
+      embedQuery: vi.fn(async () => ({
         embedding: new Array(384).fill(0.1),
         model: 'minilm',
         provider: 'minilm'

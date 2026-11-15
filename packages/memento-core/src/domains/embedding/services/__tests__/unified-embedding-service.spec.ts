@@ -5,6 +5,8 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { UnifiedEmbeddingService } from '../unified-embedding-service.js';
+import { LocalEmbeddingService } from '../local-embedding-service.js';
+import type { EmbeddingServiceInterface } from '../../../../shared/types/embedding.types.js';
 import { VECTOR_SEARCH } from '../../../../shared/config/constants.js';
 
 describe('UnifiedEmbeddingService', () => {
@@ -72,6 +74,45 @@ describe('UnifiedEmbeddingService', () => {
           expect(modelInfo.dimensions).toBe(expectedDimensions);
         }
       }
+    });
+  });
+
+  describe('embedQuery (#1729)', () => {
+    const vector = { embedding: [0.1], model: 'm', usage: { prompt_tokens: 1, total_tokens: 1 } };
+
+    function useProvider(target: UnifiedEmbeddingService, provider: string, providerService: EmbeddingServiceInterface) {
+      (target as unknown as { factory: unknown }).factory = {
+        selectProviderWithHealthCheck: async () => ({ service: providerService, decision: { selectedProvider: provider } }),
+        getAvailableProviders: () => [],
+        handleProviderFailure: () => undefined,
+      };
+    }
+
+    it('로컬 임베딩 모델이면 질의는 embedQuery, 저장은 generateEmbedding 으로 간다', async () => {
+      const local = new LocalEmbeddingService();
+      const embedQuery = vi.spyOn(local, 'embedQuery').mockResolvedValue({ ...vector });
+      const generateEmbedding = vi.spyOn(local, 'generateEmbedding').mockResolvedValue({ ...vector });
+      useProvider(service, 'minilm', local);
+
+      expect((await service.embedQuery('q'))?.provider).toBe('minilm');
+      expect(embedQuery).toHaveBeenCalledWith('q');
+      expect(generateEmbedding).not.toHaveBeenCalled();
+
+      await service.generateEmbedding('memory');
+      expect(generateEmbedding).toHaveBeenCalledWith('memory');
+      expect(embedQuery).toHaveBeenCalledTimes(1);
+    });
+
+    it('다른 제공자는 질의도 generateEmbedding 과 같다', async () => {
+      const remote = {
+        generateEmbedding: vi.fn().mockResolvedValue({ ...vector }),
+        isAvailable: () => true,
+        getModelInfo: () => ({ model: 'remote', dimensions: 1, maxTokens: 1 }),
+      } as unknown as EmbeddingServiceInterface;
+      useProvider(service, 'openai', remote);
+
+      expect((await service.embedQuery('q'))?.provider).toBe('openai');
+      expect(remote.generateEmbedding).toHaveBeenCalledWith('q');
     });
   });
 });

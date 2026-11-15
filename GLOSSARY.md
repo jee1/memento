@@ -76,6 +76,10 @@ _Avoid_: MiniLM(모델을 가리킬 때)
 `memory_embedding.embedding_provider` 와 `EMBEDDING_PROVIDER` 의 값(tfidf, minilm, openai, gemini). LLM 제공자(typesafe 등)와 다르다.
 _Avoid_: embedding model(값을 가리킬 때)
 
+**Query vector, passage vector (질의 벡터, 기억 벡터)**:
+같은 모델이 역할 접두를 달리 붙여 만든 벡터. 검색어는 질의 벡터(`embedQuery`), 저장하는 글은 기억 벡터(`generateEmbedding`)다. 저장하는 것은 기억 벡터뿐이고 기억끼리 비교도 기억 벡터를 쓴다.
+_Avoid_: search embedding, document embedding
+
 **Native vector, window vector (native 벡터, 창 벡터)**:
 `projection_type` 이 `native` 인 기억 대표 벡터와 `window:N` 인 510토큰 조각 벡터. 저장 벡터를 직접 읽는 기능은 native 만 쓴다.
 _Avoid_: chunk embedding

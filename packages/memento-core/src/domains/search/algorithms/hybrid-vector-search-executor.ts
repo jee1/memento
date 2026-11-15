@@ -440,7 +440,7 @@ export class HybridVectorSearchExecutor {
   ): Promise<{ embedding: number[]; actualProvider: EmbeddingProvider }> {
     try {
       const embeddingStart = process.hrtime.bigint();
-      const embeddingResult = await this.queryEmbeddingService.generateEmbedding(query, preferredProvider);
+      const embeddingResult = await this.queryEmbeddingService.embedQuery(query, preferredProvider);
 
       if (!embeddingResult) {
         throw new SearchError(

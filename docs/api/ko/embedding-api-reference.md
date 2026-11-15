@@ -16,7 +16,7 @@ new UnifiedEmbeddingService()
 
 #### generateEmbedding(text, preferredProvider?)
 
-텍스트를 임베딩 벡터로 변환합니다.
+저장할 글을 기억 벡터로 변환합니다. 기억끼리 비교(중복 판정, 군집, 이웃)도 이 벡터를 씁니다.
 
 **매개변수:**
 - `text: string` - 변환할 텍스트
@@ -32,6 +32,14 @@ Promise<EmbeddingResult | null>
 const result = await service.generateEmbedding('안녕하세요');
 console.log(result.embedding); // [0.1, 0.2, ...]
 console.log(result.model); // 'minilm'
+```
+
+#### embedQuery(text, preferredProvider?)
+
+검색어를 질의 벡터로 변환합니다(#1729). 매개변수와 반환값은 `generateEmbedding` 과 같습니다. 로컬 임베딩 모델(`minilm`)은 역할마다 다른 접두(`LOCAL_EMBEDDING_MODEL.prefixes`)를 창 앞에 붙이고, 결과 캐시도 역할마다 따로 둡니다. 다른 제공자는 `generateEmbedding` 과 같습니다. 지금 모델은 두 접두가 빈 문자열이라 같은 벡터가 나옵니다.
+
+```typescript
+const query = await service.embedQuery('지난주 배포 문제');
 ```
 
 #### isAvailable()
