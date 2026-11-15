@@ -30,7 +30,7 @@ C4Context
     System_Ext(mcpHost, "MCP Host Application", "Cursor, Claude Code/Desktop, MCP 레지스트리 클라이언트")
     System_Ext(httpClient, "HTTP / REST Client", "멀티 에이전트 HTTP MCP, @jee1/memento-client, @jee1/memento-assistant")
     System_Ext(sqlite, "SQLite Database", "memory.db — 기억·FTS5·sqlite-vec·관계·텔레메트리 영속")
-    System_Ext(llm, "LLM / Embedding Providers", "OpenAI, Gemini, Ollama(선택), MiniLM/TF-IDF(로컬)")
+    System_Ext(llm, "LLM / Embedding Providers", "OpenAI, Gemini, Ollama(선택), 로컬 임베딩 모델(minilm)/TF-IDF")
 
     Rel(operator, memento, "Admin UI 조회, 배치 실행, introspection/heal", "HTTPS (:9001)")
     Rel(operator, mcpHost, "MCP 서버 연결 설정 (mcp.json / plugin)")
@@ -61,7 +61,7 @@ AI 에이전트 자체는 C4 Person이 아니라 **MCP Host Application을 통�
 | **MCP Host Application** | Cursor, Claude Code 플러그인, Claude Desktop 등. stdio 또는 HTTP MCP로 `recall`/`remember` 호출 |
 | **HTTP / REST Client** | 멀티 에이전트 운영 시 단일 HTTP MCP 서버에 집중 접속하는 SDK·클라이언트 |
 | **SQLite Database** | `DB_PATH`(기본 `~/.memento/memory.db`). WAL 모드, FTS5·sqlite-vec 포함 |
-| **LLM / Embedding Providers** | 설정에 따라 선택: TF-IDF/MiniLM(로컬), OpenAI/Gemini(클라우드), Ollama(로컬 LLM). Triple 추출·증류·(선택) 임베딩 |
+| **LLM / Embedding Providers** | 설정에 따라 선택: TF-IDF/로컬 임베딩 모델(minilm), OpenAI/Gemini(클라우드), Ollama(로컬 LLM). Triple 추출·증류·(선택) 임베딩 |
 
 ---
 

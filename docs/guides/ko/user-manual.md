@@ -180,7 +180,7 @@ memento recall --query "TypeScript" --type semantic --tags "programming" --limit
 
 ### 임베딩 설정
 
-기본적으로 Memento는 MiniLM 임베딩을 사용합니다. 더 높은 품질의 임베딩이 필요하다면 OpenAI나 Gemini 제공자로 전환할 수 있습니다. `EMBEDDING_PROVIDER` 환경 변수로 제공자를 선택하며, 지원 값은 `tfidf`, `lightweight`, `minilm`, `openai`, `gemini`입니다.
+기본적으로 Memento는 로컬 임베딩 모델(multilingual-e5-small-ko-v2, 제공자 값 `minilm`)을 사용합니다. 더 높은 품질의 임베딩이 필요하다면 OpenAI나 Gemini 제공자로 전환할 수 있습니다. `EMBEDDING_PROVIDER` 환경 변수로 제공자를 선택하며, 지원 값은 `tfidf`, `lightweight`, `minilm`, `openai`, `gemini`입니다.
 
 ```bash
 # .env 파일에 추가
@@ -321,7 +321,7 @@ docker compose -f docker/docker-compose.dev.yml ps
 
 **검색 정확도를 높이려면 어떻게 해야 하나요?**
 
-구체적인 키워드를 포함한 쿼리를 사용하고, 저장 시 관련 태그를 충분히 붙여두세요. `feedback` 도구로 검색 결과의 유용성을 신호로 전달하면 검색 품질 개선에 도움이 됩니다. 의미 검색 품질을 높이려면 MiniLM 이상의 임베딩 제공자를 사용하는 것이 좋습니다.
+구체적인 키워드를 포함한 쿼리를 사용하고, 저장 시 관련 태그를 충분히 붙여두세요. `feedback` 도구로 검색 결과의 유용성을 신호로 전달하면 검색 품질 개선에 도움이 됩니다. 의미 검색 품질을 높이려면 `minilm` 이상의 임베딩 제공자를 사용하는 것이 좋습니다.
 
 **데이터베이스는 어디에 저장되나요?**
 

@@ -34,7 +34,7 @@ function atCosine(cosine: number, axis: number): number[] {
 const SEED = atCosine(1, 1);
 
 describe('기억끼리 기준값 fixture (#1729)', () => {
-  it('Sleep consolidation 군집: 0.66 은 묶고 0.64 는 뺀다(consolidationCluster 0.65)', () => {
+  it('Sleep consolidation 군집: 0.678 은 묶고 0.658 은 뺀다(consolidationCluster 0.668)', () => {
     const item = (id: string, embedding: number[]) => ({
       row: { id, content: id, importance: 0.5, ownerId: null, createdAt: '2026-01-01', pinned: false, isConsolidated: false },
       embedding,
@@ -42,14 +42,14 @@ describe('기억끼리 기준값 fixture (#1729)', () => {
 
     const clusters = new ClusteringService().clusterGroup([
       item('a-seed', SEED),
-      item('b-above', atCosine(0.66, 2)),
-      item('c-below', atCosine(0.64, 3)),
+      item('b-above', atCosine(0.678, 2)),
+      item('c-below', atCosine(0.658, 3)),
     ]);
 
     expect(clusters.map((cluster) => cluster.episodicIds.slice().sort())).toEqual([['a-seed', 'b-above']]);
   });
 
-  it('요약 합침 대상: 0.86 은 고르고 0.84 는 버린다(consolidationMerge 0.85)', async () => {
+  it('요약 합침 대상: 0.804 는 고르고 0.784 는 버린다(consolidationMerge 0.794)', async () => {
     const findMergeTarget = (semantics: Array<{ id: string; embedding: number[] }>) => {
       const service = new SleepConsolidationService({} as Database.Database, {
         relationGraph: {} as never,
@@ -67,8 +67,8 @@ describe('기억끼리 기준값 fixture (#1729)', () => {
       }).findMergeTarget('cluster-1', null, 'summary');
     };
 
-    expect((await findMergeTarget([{ id: 'above', embedding: atCosine(0.86, 2) }]))?.id).toBe('above');
-    expect(await findMergeTarget([{ id: 'below', embedding: atCosine(0.84, 2) }])).toBeNull();
+    expect((await findMergeTarget([{ id: 'above', embedding: atCosine(0.804, 2) }]))?.id).toBe('above');
+    expect(await findMergeTarget([{ id: 'below', embedding: atCosine(0.784, 2) }])).toBeNull();
   });
 
   describe('이웃 기억', () => {
@@ -82,13 +82,13 @@ describe('기억끼리 기준값 fixture (#1729)', () => {
       dir = undefined;
     });
 
-    it('이웃 기본 임계값: 0.81 은 이웃이고 0.79 는 아니다(neighbor 0.8)', async () => {
+    it('이웃 기본 임계값: 0.755 는 이웃이고 0.735 는 아니다(neighbor 0.745)', async () => {
       dir = mkdtempSync(join(tmpdir(), 'memory-similarity-neighbor-'));
       db = await initializeDatabase(join(dir, 'memory.db'));
       const rows: Array<[string, number[]]> = [
         ['root', SEED],
-        ['above', atCosine(0.81, 2)],
-        ['below', atCosine(0.79, 3)],
+        ['above', atCosine(0.755, 2)],
+        ['below', atCosine(0.735, 3)],
       ];
       for (const [id, vector] of rows) {
         db.prepare(

@@ -10,6 +10,7 @@ import { createHash, randomUUID } from 'crypto';
 import { fileURLToPath } from 'url';
 import * as configLoaderUtils from './config-loader-utils.js';
 import { SearchRanking } from '../../domains/search/algorithms/search-ranking.js';
+import { LOCAL_EMBEDDING_MODEL } from './embedding-models.js';
 import {
   loadRankingWeights,
   getRankingWeights,
@@ -23,7 +24,13 @@ describe('#806 벡터 점수 척도와 랭킹 버전', () => {
   it('랭킹 버전 payload가 점수 척도 규정을 포함한다', () => {
     const payload = getRankingVersionPayload();
     expect(payload).toHaveProperty('vector_score_scale');
-    expect(payload.vector_score_scale).toBe('absolute-cosine-v2');
+    expect(payload.vector_score_scale).toBe('mapped-cosine-v3');
+  });
+
+  it('로컬 임베딩 모델과 질의 점수 사상 계수가 랭킹 버전에 든다 (#1729)', () => {
+    const payload = getRankingVersionPayload();
+    expect(payload.local_embedding_model).toBe(LOCAL_EMBEDDING_MODEL.storedName);
+    expect(payload.query_score_mapping).toEqual(LOCAL_EMBEDDING_MODEL.queryScoreMapping);
   });
 });
 

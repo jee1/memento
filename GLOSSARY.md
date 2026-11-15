@@ -88,8 +88,12 @@ _Avoid_: calibration, score normalization
 native 또는 창 행의 모델이 지금 모델과 다른 기억을 다시 만드는 일. 새 작업이 아니라 `embedding_reconciliation` 이 하고, 기동 뒤에는 HTTP 서버를 띄운 프로세스가 그 실행을 후보 0 까지 잇달아 돌린다.
 _Avoid_: reindex(사람이 돌리는 재색인과 헷갈린다)
 
+**Model package (모델 패키지)**:
+로컬 임베딩 모델 파일을 싣는 npm 패키지(`LOCAL_EMBEDDING_MODEL.source.packageName`). 앱이 정확한 버전으로 의존하고, 패키지 안 폴더 이름이 저장 이름이다. 실행 중에는 원격 내려받기를 끈다.
+_Avoid_: model cache, HF cache
+
 **Native vector, window vector (native 벡터, 창 벡터)**:
-`projection_type` 이 `native` 인 기억 대표 벡터와 `window:N` 인 510토큰 조각 벡터. 저장 벡터를 직접 읽는 기능은 native 만 쓴다.
+`projection_type` 이 `native` 인 기억 대표 벡터와 `window:N` 인 창 크기(512 에서 특수 토큰 둘과 역할 접두를 뺀 토큰) 조각 벡터. 저장 벡터를 직접 읽는 기능은 native 만 쓴다.
 _Avoid_: chunk embedding
 
 **Anchor**:

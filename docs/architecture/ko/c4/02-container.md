@@ -23,7 +23,7 @@ C4Container
 
     System_Ext(mcpHost, "MCP Host", "Cursor, Claude Code/Desktop")
     System_Ext(httpClient, "HTTP Client", "@jee1/memento-client, memento-assistant")
-    System_Ext(llm, "LLM / Embedding API", "OpenAI, Gemini, Ollama, MiniLM")
+    System_Ext(llm, "LLM / Embedding API", "OpenAI, Gemini, Ollama, 로컬 임베딩 모델(minilm)")
 
     System_Boundary(memento, "Memento Memory Server") {
         Container(stdioMcp, "Stdio MCP Server", "Node.js, MCP SDK", "단일 에이전트용. stdio JSON-RPC. npm run dev / memento-mcp-server")
@@ -115,7 +115,7 @@ rateLimit → programmaticAuth → resolveCaller → ownerScope → httpAudit �
 |------|------|
 | **MCP Host Application** | Cursor, Claude Code |
 | **HTTP Client** | `@jee1/memento-client`, `@jee1/memento-assistant` |
-| **LLM / Embedding API** | OpenAI, Gemini, Ollama, MiniLM/TF-IDF |
+| **LLM / Embedding API** | OpenAI, Gemini, Ollama, 로컬 임베딩 모델(minilm)/TF-IDF |
 
 ---
 

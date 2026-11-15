@@ -55,13 +55,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y sqlite3 libsqlite3-dev build-essential
       - run: npm ci
-      - name: Cache Hugging Face models
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/huggingface
-          key: ${{ runner.os }}-hf-minilm-${{ hashFiles('packages/memento-core/src/shared/config/embedding-models.ts') }}
-          restore-keys: |
-            ${{ runner.os }}-hf-minilm-
       # benchmark-search-database imports @memento/core from dist (#905).
       - name: Build @memento/core
         run: npm run build -w @memento/core
@@ -83,13 +76,6 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y sqlite3 libsqlite3-dev build-essential
       - run: npm ci
-      - name: Cache Hugging Face models
-        uses: actions/cache@v5
-        with:
-          path: ~/.cache/huggingface
-          key: ${{ runner.os }}-hf-minilm-${{ hashFiles('packages/memento-core/src/shared/config/embedding-models.ts') }}
-          restore-keys: |
-            ${{ runner.os }}-hf-minilm-
       - name: Build @memento/core
         run: npm run build -w @memento/core
       - name: Perf smoke

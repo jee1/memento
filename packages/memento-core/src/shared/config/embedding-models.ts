@@ -6,11 +6,11 @@
  * 1. 임베딩 생성 시 `memory_embedding.model`에 기록되는 값
  * 2. 벡터 검색이 "같은 모델로 만든 벡터끼리만 비교"하도록 거르는 기준
  *
- * 모델을 바꾸면 `storedName` 이 달라져 옛 모델로 만든 행은 검색에서 빠진다.
- * 재색인이 끝나기 전에도 검색이 깨지지 않는다.
+ * 모델을 바꾸면 `storedName` 이 달라져 옛 모델로 만든 행은 검색에서 빠지고, 기동 뒤 모델 이주가
+ * 다시 만든다(BatchScheduler.startModelMigration). 이주가 끝나기 전에도 검색이 깨지지 않는다.
  *
- * 다국어 모델을 쓰는 이유: `all-MiniLM-L6-v2`는 영어 전용이라 한국어 쿼리가
- * 관련성과 무관한 문서를 상위에 올렸다. 측정은 #889 참조.
+ * 지금 모델은 한국어 검색용으로 다듬은 dragonkue/multilingual-e5-small-ko-v2 다(#1729). 앞 모델
+ * paraphrase-multilingual-MiniLM-L12-v2 는 운영 질문 262개의 의미 후보 상위 20 에 정답을 23% 만 올렸다(이 모델 85%).
  */
 /** 질의 벡터(검색어)와 기억 벡터(저장하는 글). 저장하는 것은 기억 벡터뿐이다. */
 export type EmbeddingRole = 'query' | 'passage';
@@ -18,8 +18,11 @@ export type EmbeddingRole = 'query' | 'passage';
 export interface LocalEmbeddingModel {
   /** memory_embedding.model 에 저장되는 이름. 벡터 공간의 정체성이다. 위치(source)에서 떼어 내지 않는다. */
   readonly storedName: string;
-  /** 파일 위치. 지금은 transformers.js 가 내려받는 원격 저장소다. */
-  readonly source: { readonly repo: string; readonly dtype: 'q8' };
+  /**
+   * 파일 위치. 앱이 정확한 버전으로 의존하는 모델 전용 npm 패키지다. 패키지 안 폴더 이름이 storedName 이고
+   * transformers.js 의 모델 id 다. 원격 내려받기는 끈다.
+   */
+  readonly source: { readonly packageName: string; readonly dtype: 'q8' };
   readonly dimensions: 384;
   /** 역할마다 창 앞에 붙이는 글. 창 크기는 510 에서 이 접두의 토큰 수를 뺀 값이다. */
   readonly prefixes: Readonly<Record<EmbeddingRole, string>>;
@@ -43,18 +46,18 @@ export interface LocalEmbeddingModel {
 }
 
 export const LOCAL_EMBEDDING_MODEL: LocalEmbeddingModel = {
-  storedName: 'paraphrase-multilingual-MiniLM-L12-v2',
-  source: { repo: 'Xenova/paraphrase-multilingual-MiniLM-L12-v2', dtype: 'q8' },
+  storedName: 'multilingual-e5-small-ko-v2',
+  source: { packageName: '@jee1/memento-embedding-e5-small-ko-v2', dtype: 'q8' },
   dimensions: 384,
-  prefixes: { query: '', passage: '' },
-  queryScoreMapping: { a: 1, b: 0 },
+  prefixes: { query: 'query: ', passage: 'passage: ' },
+  queryScoreMapping: { a: 1.9943, b: -0.6838 },
   memorySimilarity: {
-    consolidationCluster: 0.65,
-    consolidationMerge: 0.85,
-    rememberDedup: 0.85,
-    supersedeCandidate: 0.65,
-    neighbor: 0.8,
-    anchorSlots: { A: 0.8, B: 0.6, C: 0.4 },
+    consolidationCluster: 0.668,
+    consolidationMerge: 0.794,
+    rememberDedup: 0.794,
+    supersedeCandidate: 0.668,
+    neighbor: 0.745,
+    anchorSlots: { A: 0.745, B: 0.649, C: 0.566 },
   },
 };
 

@@ -70,7 +70,7 @@ Multiple embedding providers are supported. `EmbeddingProviderFactory` selects t
 | Provider | Notes |
 |----------|-------|
 | **TF-IDF** | Local, no external API. Default. |
-| **MiniLM** | Lightweight local model. |
+| **minilm** | Provider value for the local embedding model (multilingual-e5-small-ko-v2, 384 dims). |
 | **OpenAI** (`text-embedding-3-small`) | Requires API key, 1536 dimensions. |
 | **Gemini** | Google Gemini embeddings. |
 

@@ -13,6 +13,7 @@ import { DatabaseValidationError, MemoryNotFoundError } from './anchor-interface
 import { setupTestDatabase, createTestMemory, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../../../../domains/monitoring/services/error-logging-service.js';
+import { LOCAL_EMBEDDING_MODEL } from '../../../../shared/config/embedding-models.js';
 
 describe('AnchorManager', () => {
   let manager: AnchorManager;
@@ -341,12 +342,13 @@ describe('AnchorManager', () => {
       const configC = manager.getSlotConfig('C');
 
       // Then: 올바른 설정 반환
+      const { anchorSlots } = LOCAL_EMBEDDING_MODEL.memorySimilarity;
       expect(configA.hop_limit).toBe(1);
-      expect(configA.vector_threshold).toBe(0.8);
+      expect(configA.vector_threshold).toBe(anchorSlots.A);
       expect(configB.hop_limit).toBe(2);
-      expect(configB.vector_threshold).toBe(0.6);
+      expect(configB.vector_threshold).toBe(anchorSlots.B);
       expect(configC.hop_limit).toBe(3);
-      expect(configC.vector_threshold).toBe(0.4);
+      expect(configC.vector_threshold).toBe(anchorSlots.C);
     });
   });
 

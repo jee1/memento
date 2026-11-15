@@ -2,6 +2,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { encodeFloat32Embedding } from '../../../../shared/utils/embedding-serialization.js';
 import { EmbeddingReindexService } from '../embedding-reindex-service.js';
+import { LOCAL_EMBEDDING_MODEL } from '../../../../shared/config/embedding-models.js';
 
 describe('EmbeddingReindexService', () => {
   let db: Database.Database;
@@ -61,7 +62,7 @@ describe('EmbeddingReindexService', () => {
         (memory_id, embedding_provider, projection_type, embedding, dim, dimensions, model)
       VALUES (?, ?, 'native', ?, ?, ?, ?)
     `);
-    const model = 'paraphrase-multilingual-MiniLM-L12-v2';
+    const model = LOCAL_EMBEDDING_MODEL.storedName;
 
     insertMemory.run('valid', 'valid', 'semantic', 'a', 'p1', 0);
     insertMemory.run('missing', 'missing', 'episodic', 'b', 'p2', 0);
@@ -110,7 +111,7 @@ describe('EmbeddingReindexService', () => {
 
   it('#1729: native 는 지금 모델이어도 창 행이 옛 모델이면 model_drift 로 센다', () => {
     db.exec('DELETE FROM memory_embedding; DELETE FROM memory_item;');
-    const model = 'paraphrase-multilingual-MiniLM-L12-v2';
+    const model = LOCAL_EMBEDDING_MODEL.storedName;
     db.prepare('INSERT INTO memory_item (id, content, type, owner_id, project_id, is_deleted) VALUES (?, ?, ?, ?, ?, 0)')
       .run('stale-window', 'stale window', 'semantic', 'a', 'p1');
     db.prepare('INSERT INTO memory_item (id, content, type, owner_id, project_id, is_deleted) VALUES (?, ?, ?, ?, ?, 0)')

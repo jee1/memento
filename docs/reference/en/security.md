@@ -28,7 +28,7 @@ The HTTP admin server uses **several trust surfaces at once**: cookie sessions f
 
 - **Vitest development advisories resolved**: `vitest`, `@vitest/mocker`, and `@vitest/coverage-v8` were updated to `4.1.12` to fix [manual mock code injection](https://github.com/advisories/GHSA-qxg6-89mg-rqv8) and [Windows path traversal](https://github.com/advisories/GHSA-xp26-3454-mjgp). Both advisories concern the public mocker/interceptor plugins' WebSocket handlers; ordinary Node test runs do not register these handlers. The dev gate blocks High/Critical findings; Moderate fixes within minor/patch ranges are handled through dependency maintenance.
 - **CI**: the `Full npm audit (dev included)` step (`--include-dev`) blocks High/Critical findings fixable within wanted ranges, and the `npm audit summary` step writes the full list to the job summary, so dev findings cannot pile up unseen again.
-- **Exploitability**: these transitives load on the MiniLM / local embedding path. Exposure is limited when ZIP/image inputs are untrusted. New fixable High/Moderate still fail CI.
+- **Exploitability**: these transitives load on the local embedding (`minilm`) path. Exposure is limited when ZIP/image inputs are untrusted. New fixable High/Moderate still fail CI.
 
 ## HTTP API authentication and authorization
 

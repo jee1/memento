@@ -20,8 +20,9 @@ on:
       - 'apps/*/package.json'
       - 'scripts/start-container.sh'
       - 'scripts/docker-smoke.mjs'
-      # warmup 과 smoke 가 로컬 임베딩 모델 정의를 읽는다 (#1729).
+      # smoke 가 로컬 임베딩 모델 정의를 읽고 모델 패키지 파일을 이 해시와 대조한다 (#1729).
       - 'packages/memento-core/src/shared/config/embedding-models.ts'
+      - 'models/memento-embedding-e5-small-ko-v2/sha256.json'
       - '.github/workflows/docker-build.yml'
   workflow_dispatch:
 
@@ -35,14 +36,10 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      # 로컬 임베딩 모델 warmup 을 끄지 않는다. warmup 이 sharp/onnxruntime 경로를 실제로 타는
-      # 유일한 지점이라 끄면 검증 가치가 사라진다.
       - name: Build image
         run: docker build -t memento-ci:smoke .
 
-      # 빌드 로그의 warmup 문자열은 grep 하지 않는다 — BuildKit 이 RUN 명령문 텍스트를
-      # 그대로 출력해 같은 문자열이 접두어 없이 중복 출현하므로 위양성이 난다.
-      # 대신 런타임 오프라인 임베딩으로 확인한다.
+      # 모델은 npm 의존 패키지로 이미지에 들어간다. smoke 가 파일 해시와 원격을 끈 임베딩으로 확인한다 (#1729).
       - name: Native dependency smoke
         run: docker run --rm --entrypoint node memento-ci:smoke /app/scripts/docker-smoke.mjs
 

@@ -82,9 +82,10 @@ export const HYBRID_SEARCH = {
   /**
    * 벡터 점수 척도 규정 (#806).
    * 점수 산출 방식이 바뀌면 이 값을 올려 랭킹 버전 식별자가 달라지게 한다.
-   * 'minmax-v1' = 제공자별 결과셋 재조정(교정 전), 'absolute-cosine-v2' = 절대 cosine(교정 후).
+   * 'minmax-v1' = 제공자별 결과셋 재조정(교정 전), 'absolute-cosine-v2' = 절대 cosine(교정 후),
+   * 'mapped-cosine-v3' = 로컬 임베딩 모델 질의 점수에 질의 점수 사상(LOCAL_EMBEDDING_MODEL.queryScoreMapping)을 건 cosine (#1729).
    */
-  VECTOR_SCORE_SCALE: 'absolute-cosine-v2',
+  VECTOR_SCORE_SCALE: 'mapped-cosine-v3',
 
   /**
    * Provider별 검색 타임아웃 (밀리초)

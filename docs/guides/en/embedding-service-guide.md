@@ -12,7 +12,7 @@ Memento supports four embedding providers.
 
 **tfidf / lightweight**: TF-IDF statistical embeddings. Extremely fast (around 0.82ms average), low memory footprint (~4.48MB), and completely free. Generates 512-dimensional vectors. Suitable for high-volume text processing or resource-constrained environments. Relies on term frequency rather than semantic understanding, so search accuracy is lower than neural alternatives.
 
-**minilm**: A lightweight neural network model running locally. Processes text in about 56ms on average, genuinely understands meaning, and is completely free. Generates 384-dimensional vectors. This is the default provider and offers the best balance of performance and cost for most AI agent workflows.
+**minilm**: A lightweight neural network model running locally (`dragonkue/multilingual-e5-small-ko-v2`, bundled as an npm dependency). Processes text in about 56ms on average, genuinely understands meaning, and is completely free. Generates 384-dimensional vectors. This is the default provider and offers the best balance of performance and cost for most AI agent workflows.
 
 **openai**: Uses OpenAI's cloud API (e.g., `text-embedding-3-small`). Provides the highest semantic understanding quality and generates 1536-dimensional vectors. Requires `OPENAI_API_KEY` and incurs API costs. Best suited for environments where search accuracy is critical.
 
@@ -66,7 +66,7 @@ When changing providers, either start with a fresh database or regenerate the em
 
 ## Troubleshooting
 
-**MiniLM is slow on first use.** The model loads into memory on the first call. Subsequent calls use the cached model and are fast.
+**The local model is slow on first use.** Nothing is downloaded; the first call loads the model from the installed package into memory. Subsequent calls reuse the loaded model and are fast.
 
 **OpenAI or Gemini API errors.** Verify your API key is set correctly and that you have sufficient quota. HTTP 429 indicates quota exceeded; 401 indicates an invalid key. Automatic fallback will activate when errors occur.
 

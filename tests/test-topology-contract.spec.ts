@@ -135,7 +135,8 @@ describe('test topology contracts', () => {
 
     expect(nightly).toContain('RUN_EMBEDDING_QUALITY: \'1\'');
     expect(nightly).toContain(koreanQualitySpec);
-    expect(nightly).toContain('~/.cache/huggingface');
+    // 모델은 npm 의존 패키지로 받는다. HF 캐시 단계는 없다 (#1729).
+    expect(nightly).not.toContain('~/.cache/huggingface');
     expect(ci).not.toContain(koreanQualitySpec);
     expect(ci).not.toContain('RUN_EMBEDDING_QUALITY');
   });

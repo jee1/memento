@@ -180,7 +180,7 @@ Search results include a `score` (relevance) and `recall_reason` (why the memory
 
 ### Configuring Embeddings
 
-Memento defaults to MiniLM embeddings, which work without an API key. For higher-quality semantic search, switch to OpenAI or Gemini embeddings via the `EMBEDDING_PROVIDER` environment variable. Supported values are `tfidf`, `lightweight`, `minilm`, `openai`, and `gemini`.
+Memento defaults to a local multilingual-e5-small-ko-v2 embedding model (provider `minilm`), which works without an API key. For higher-quality semantic search, switch to OpenAI or Gemini embeddings via the `EMBEDDING_PROVIDER` environment variable. Supported values are `tfidf`, `lightweight`, `minilm`, `openai`, and `gemini`.
 
 ```bash
 # In your .env file
@@ -314,7 +314,7 @@ Pin it with the `pin` MCP tool or `client.pin(memoryId)`. Pinned memories are ex
 
 **How do I improve search accuracy?**
 
-Use specific, contextual queries and attach meaningful tags when storing memories. Submit `feedback` signals after retrieval to help refine results. For the best semantic search quality, use MiniLM or an API-backed embedding provider rather than TF-IDF.
+Use specific, contextual queries and attach meaningful tags when storing memories. Submit `feedback` signals after retrieval to help refine results. For the best semantic search quality, use the local model (`minilm`) or an API-backed embedding provider rather than TF-IDF.
 
 **Where is the database stored?**
 

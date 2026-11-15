@@ -25,8 +25,8 @@ export const MAX_WINDOW_ROWS = 16;
  *
  * 윈도 수의 진짜 판정은 generateWindowEmbeddings 가 한다. 이 값은 짧은 문서에서
  * 두 번째 임베딩 호출 자체를 건너뛰기 위한 하한선일 뿐이다.
- * benchmark-v3 실측에서 2윈도 이상 문서의 최소 길이는 1,191자였다(모델
- * Xenova/paraphrase-multilingual-MiniLM-L12-v2 기준). 800 은 그보다 충분히 낮다.
+ * 기억 창 507 토큰(multilingual-e5-small-ko-v2, #1729)에서 2윈도 이상 문서의 최소 길이는
+ * benchmark-v3 1,111자, 운영 사본 895자였다. 800 미만 2윈도 문서는 둘 다 0건이다.
  * ponytail: 보수적 하한선. 모델이나 WINDOW_TOKENS 가 바뀌면 다시 재야 한다.
  */
 export const WINDOW_CANDIDATE_MIN_CHARS = 800;
