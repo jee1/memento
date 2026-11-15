@@ -1,4 +1,5 @@
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { getBatchScheduler } from '@memento/core';
 import Database from 'better-sqlite3';
 import express from 'express';
 import http from 'http';
@@ -95,6 +96,23 @@ describe('maintenance.routes', () => {
     }
     expect(status.body.status).toBe('completed');
     expect(status.body.result).toMatchObject({ provider: 'tfidf' });
+  });
+
+  it('#1729: 모델 이주 반복이나 정합 잡이 도는 동안 전체 재색인을 409 로 거절한다', async () => {
+    const scheduler = getBatchScheduler();
+    const migration = vi.spyOn(scheduler, 'isModelMigrationRunning').mockReturnValue(true);
+    try {
+      expect((await request(port, 'POST', '/reindex', { provider: 'minilm' })).status).toBe(409);
+    } finally {
+      migration.mockRestore();
+    }
+    const reconciliation = vi.spyOn(scheduler, 'isJobRunning').mockImplementation((name) => name === 'embedding_reconciliation');
+    try {
+      expect((await request(port, 'POST', '/reindex', { provider: 'minilm' })).status).toBe(409);
+    } finally {
+      reconciliation.mockRestore();
+    }
+    expect((await request(port, 'POST', '/reindex', { provider: 'minilm' })).status).toBe(202);
   });
 
   it('rejects an unknown provider before queuing a job', async () => {

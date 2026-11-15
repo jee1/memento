@@ -11,6 +11,7 @@ import {
   createMementoCore,
   expandHomeDirPath,
   formatHttpBindHostForUrl,
+  getBatchScheduler,
   getMementoHttpSecurityStartupViolationMessage,
   getVectorSearchEngine,
   isHttpBindHostRemotelyReachable,
@@ -634,6 +635,8 @@ export async function startServer(deps?: HttpServerDependencies): Promise<Server
       });
     }
     if (ownsCore) registerCleanupHandlers(cleanup, writeRuntimeDiagnosticsEvent);
+    // 모델 이주 반복(#1729)은 HTTP 서버를 띄운 프로세스만 돈다. stdio 는 sidecar 잠금을 얻었을 때만 여기 온다.
+    getBatchScheduler().startModelMigration();
     return server;
   } catch (error) {
     if (!isSidecarPortConflict(error)) {

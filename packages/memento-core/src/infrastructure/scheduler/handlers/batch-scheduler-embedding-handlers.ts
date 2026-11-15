@@ -7,7 +7,7 @@ import type { BatchSchedulerRunContext } from './batch-scheduler-run-context.js'
 
 const embeddingService = new MemoryEmbeddingService();
 
-function resolveTargetProvider(): EmbeddingProvider {
+export function resolveTargetProvider(): EmbeddingProvider {
   const provider = mementoConfig.embeddingProvider.toLowerCase();
   return (provider === 'lightweight' ? 'tfidf' : provider) as EmbeddingProvider;
 }

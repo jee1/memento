@@ -1,4 +1,6 @@
 import { SleepConsolidationBatchJob } from '../jobs/sleep-consolidation-batch-job.js';
+import { countModelDrift, MODEL_DRIFT_CONSOLIDATION_LIMIT } from '../jobs/embedding-reconciliation-batch-job.js';
+import { resolveTargetProvider } from './batch-scheduler-embedding-handlers.js';
 import { TelemetryCleanupBatchJob } from '../jobs/telemetry-cleanup-batch-job.js';
 import { ForgettingEventCleanupBatchJob } from '../jobs/forgetting-event-cleanup-batch-job.js';
 import { ForgettingEventRepository } from '../../../domains/forgetting/repositories/forgetting-event-repository.js';
@@ -60,6 +62,23 @@ export async function runSleepConsolidationBatch(ctx: BatchSchedulerRunContext):
   try {
     if (!ctx.sleepConsolidationService) {
       throw new Error('SleepConsolidationService not configured');
+    }
+    if (ctx.db) {
+      const { drifted, active } = countModelDrift(ctx.db, resolveTargetProvider());
+      if (active > 0 && drifted / active > MODEL_DRIFT_CONSOLIDATION_LIMIT) {
+        const now = new Date();
+        return {
+          jobType: 'sleep_consolidation_batch',
+          startTime: now,
+          endTime: now,
+          duration: 0,
+          success: true,
+          processed: 0,
+          errors: [],
+          warnings: [`모델 드리프트 ${drifted}건(${((drifted / active) * 100).toFixed(1)}%) 때문에 건너뜀`],
+          details: { skipped: 'model_drift', drifted, active },
+        };
+      }
     }
     if (!ctx.sleepConsolidationBatchJob.current) {
       ctx.sleepConsolidationBatchJob.current = new SleepConsolidationBatchJob({
