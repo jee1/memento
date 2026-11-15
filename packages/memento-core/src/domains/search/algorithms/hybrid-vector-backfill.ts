@@ -10,7 +10,7 @@ import type Database from 'better-sqlite3';
 import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
 import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 import { clamp01 } from '../../../shared/utils/clamp.js';
-import { embeddingColumnToNumbers } from '../../../shared/utils/embedding-serialization.js';
+import { loadCurrentNativeVectors, type CurrentNativeVector } from '../../../shared/utils/current-native-embedding.js';
 import { cosineSimilarity } from '../../../shared/utils/vector-math.js';
 import type { VectorSearchResult } from '../../embedding/index.js';
 import { applyVectorLengthDecay } from './vector-length-decay.js';
@@ -69,30 +69,24 @@ export function backfillTextOnlyVectorResults(
   if (pending.size === 0) return [];
 
   const ids = [...pending.keys()];
-  const placeholders = ids.map(() => '?').join(', ');
   const best = new Map<string, number>();
 
   for (const { provider, embedding } of queryEmbeddings) {
     if (embedding.length === 0) continue;
-    let rows: Array<{ memory_id: string; embedding: unknown }>;
+    let stored: Map<string, CurrentNativeVector>;
     try {
-      rows = db
-        .prepare(
-          'SELECT memory_id, embedding FROM memory_embedding ' +
-            `WHERE embedding_provider = ? AND projection_type = 'native' AND memory_id IN (${placeholders})`
-        )
-        .all(provider, ...ids) as Array<{ memory_id: string; embedding: unknown }>;
+      // 질의 벡터와 같은 모델로 만든 native 행만 비교한다 (#1732). 차원이 같아도 모델이 다르면 공간이 다르다.
+      stored = loadCurrentNativeVectors(db, ids, provider);
     } catch {
       // 스키마가 없는 환경(레거시/모킹)에서는 백필을 건너뛴다. 기존 동작 그대로 0 이 남는다.
       return [];
     }
-    for (const row of rows) {
-      const stored = embeddingColumnToNumbers(row.embedding);
-      if (!stored || stored.length !== embedding.length) continue;
-      const similarity = clamp01(cosineSimilarity(embedding, stored));
-      const previous = best.get(row.memory_id);
+    for (const [memoryId, vector] of stored) {
+      if (vector.embedding.length !== embedding.length) continue;
+      const similarity = clamp01(cosineSimilarity(embedding, vector.embedding));
+      const previous = best.get(memoryId);
       if (previous === undefined || similarity > previous) {
-        best.set(row.memory_id, similarity);
+        best.set(memoryId, similarity);
       }
     }
   }

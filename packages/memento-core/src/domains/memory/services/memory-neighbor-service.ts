@@ -8,7 +8,7 @@ import type { MemoryEmbeddingService } from '../../embedding/index.js';
 import Database from 'better-sqlite3';
 import { supersedeByActiveTargetSql } from '../../../shared/utils/memory-filter-sql.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { embeddingColumnToNumbers } from '../../../shared/utils/embedding-serialization.js';
+import { loadCurrentNativeVector, type CurrentNativeVector } from '../../../shared/utils/current-native-embedding.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { selectCurrentIdsInScope, callerMemoryScopeSql, type CallerMemoryScope } from '../../../shared/utils/owned-ids.js';
@@ -44,12 +44,6 @@ interface NeighborSearchOptions {
   similarity_threshold?: number;
   /** Required so no caller reads neighbors without stating its scope; `{}` is unscoped. */
   scope: CallerMemoryScope;
-}
-
-/** memory_embedding 단일 행 (get 조회) */
-interface MemoryEmbeddingRow {
-  embedding?: Buffer | null;
-  embedding_provider?: string;
 }
 
 type ConfigurableVectorSearchEngine = VectorSearchEngine & {
@@ -162,24 +156,10 @@ export class MemoryNeighborService {
         throw new MemoryNotFoundError(memoryId);
       }
       
-      // 1.5 - 임베딩 조회 로직
-      // memory_embedding 테이블에서 해당 기억의 임베딩 조회
-      // 가장 최근에 생성된 임베딩을 우선 사용 (여러 제공자가 있을 수 있음)
-      let embeddingRecord: MemoryEmbeddingRow | undefined;
+      // 1.5 - 기억 전체를 대표하는 지금 모델의 native 벡터 (#1731, #1732)
+      let current: CurrentNativeVector | null;
       try {
-        embeddingRecord = DatabaseUtils.get(
-          this.db,
-          `SELECT 
-            embedding,
-            embedding_provider,
-            dimensions,
-            dim
-          FROM memory_embedding
-          WHERE memory_id = ?
-          ORDER BY created_at DESC
-          LIMIT 1`,
-          [memoryId]
-        ) as MemoryEmbeddingRow | undefined;
+        current = loadCurrentNativeVector(this.db, memoryId);
       } catch (error) {
         logger.error('임베딩 조회 실패', {
           memoryId,
@@ -187,10 +167,9 @@ export class MemoryNeighborService {
         });
         throw new Error(`Failed to query embedding: ${error instanceof Error ? error.message : 'Unknown error'}`, { cause: error });
       }
-      
-      // 1.6 - 임베딩이 없는 경우 처리
-      if (!embeddingRecord || !embeddingRecord.embedding) {
-        // 임베딩이 없으면 빈 결과 반환 (경고 없이)
+
+      // 1.6 - 쓸 수 있는 임베딩이 없으면(없음, 옛 모델 행뿐) 빈 결과 (경고 없이)
+      if (!current) {
         const queryTime = Date.now() - startTime;
         return {
           memory_id: memoryId,
@@ -199,20 +178,9 @@ export class MemoryNeighborService {
           query_time: queryTime
         };
       }
-      
-      // Float32 BLOB → number[] (FR-021)
-      const queryVector = embeddingColumnToNumbers(embeddingRecord.embedding);
-      if (!queryVector) {
-        const queryTime = Date.now() - startTime;
-        return {
-          memory_id: memoryId,
-          neighbors: [],
-          total_count: 0,
-          query_time: queryTime
-        };
-      }
-      
-      const embeddingProvider = embeddingRecord.embedding_provider || 'tfidf';
+
+      const queryVector = current.embedding;
+      const embeddingProvider = current.provider;
       
       // 1.7 - VectorSearchEngine.search 메서드를 활용하여 유사 기억 검색
       // VectorSearchEngine에 데이터베이스가 설정되어 있는지 확인
@@ -338,33 +306,13 @@ export class MemoryNeighborService {
 
     try {
       if (!selectCurrentIdsInScope(this.db, {}, [newMemoryId]).has(newMemoryId)) return [];
-      // 새 기억의 임베딩 조회
-      const embeddingRecord = DatabaseUtils.get(
-        this.db,
-        `SELECT 
-          embedding,
-          embedding_provider,
-          dimensions,
-          dim
-        FROM memory_embedding
-        WHERE memory_id = ?
-        ORDER BY created_at DESC
-        LIMIT 1`,
-        [newMemoryId]
-      ) as MemoryEmbeddingRow | undefined;
-
-      // 임베딩이 없으면 빈 배열 반환 (경고 없이)
-      if (!embeddingRecord || !embeddingRecord.embedding) {
+      // 새 기억의 지금 모델 native 벡터. 없으면 빈 배열 (경고 없이)
+      const current = loadCurrentNativeVector(this.db, newMemoryId);
+      if (!current) {
         return [];
       }
-
-      // Float32 BLOB → number[] (FR-021)
-      const queryVector = embeddingColumnToNumbers(embeddingRecord.embedding);
-      if (!queryVector) {
-        return [];
-      }
-
-      const embeddingProvider = embeddingRecord.embedding_provider || 'tfidf';
+      const queryVector = current.embedding;
+      const embeddingProvider = current.provider;
 
       // VectorSearchEngine 초기화
       const configurableVectorSearch = this.vectorSearchEngine as ConfigurableVectorSearchEngine;

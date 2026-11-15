@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import { describe, expect, it } from 'vitest';
 import { encodeFloat32Embedding } from '../../../../shared/utils/embedding-serialization.js';
+import { getEmbeddingModelFilter } from '../../../../shared/config/embedding-models.js';
 import { backfillTextOnlyVectorResults } from '../hybrid-vector-backfill.js';
 
 function createDb(): Database.Database {
@@ -9,16 +10,17 @@ function createDb(): Database.Database {
     'CREATE TABLE memory_embedding (' +
       'id INTEGER PRIMARY KEY AUTOINCREMENT, memory_id TEXT NOT NULL, ' +
       "embedding_provider TEXT NOT NULL, projection_type TEXT NOT NULL DEFAULT 'native', " +
-      'embedding BLOB, dim INTEGER NOT NULL DEFAULT 4, dimensions INTEGER DEFAULT 4)'
+      'embedding BLOB, dim INTEGER NOT NULL DEFAULT 4, dimensions INTEGER DEFAULT 4, model TEXT, ' +
+      'created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP)'
   );
   return db;
 }
 
 function insertEmbedding(db: Database.Database, memoryId: string, provider: string, vector: number[]): void {
   db.prepare(
-    "INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) " +
-      "VALUES (?, ?, 'native', ?, ?, ?)"
-  ).run(memoryId, provider, encodeFloat32Embedding(vector), vector.length, vector.length);
+    "INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions, model) " +
+      "VALUES (?, ?, 'native', ?, ?, ?, ?)"
+  ).run(memoryId, provider, encodeFloat32Embedding(vector), vector.length, vector.length, getEmbeddingModelFilter(provider));
 }
 
 // 길이 감쇠(#921)는 content 길이에만 의존하므로 모든 픽스처의 content 길이를 같게 둔다.

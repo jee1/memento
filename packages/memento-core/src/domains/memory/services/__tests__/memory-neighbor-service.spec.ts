@@ -30,6 +30,8 @@ describe('MemoryNeighborService', () => {
     // This suite deliberately permits malformed legacy embedding rows.
     db = new Database(':memory:');
     await initializeLegacyFullSchemaBootstrap(db);
+    // 운영 DB 는 마이그레이션으로 projection_type 을 갖는다. 기억끼리 비교는 native 행만 읽는다(#1731).
+    db.exec("ALTER TABLE memory_embedding ADD COLUMN projection_type TEXT NOT NULL DEFAULT 'native'");
     
     vectorSearchEngine = getVectorSearchEngine();
     vectorSearchEngine.initialize(db);
