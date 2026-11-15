@@ -8,7 +8,7 @@ import { supersedeByActiveTargetSql } from '../../../../shared/utils/memory-filt
 
 import type Database from 'better-sqlite3';
 import { logger } from '../../../../shared/utils/logger.js';
-import { embeddingColumnToNumbers } from '../../../../shared/utils/embedding-serialization.js';
+import { loadCurrentNativeVector } from '../../../../shared/utils/current-native-embedding.js';
 import type { MemoryEmbeddingService } from '../../../embedding/index.js';
 import type { AnchorSlot,IAnchorCacheService } from './anchor-interfaces.js';
 
@@ -88,40 +88,8 @@ export class AnchorCacheService implements IAnchorCacheService {
         return null;
       }
 
-      const embeddingRecord = this.db.prepare(`
-        SELECT 
-          embedding,
-          embedding_provider,
-          dimensions,
-          dim
-        FROM memory_embedding
-        WHERE memory_id = ?
-        ORDER BY created_at DESC
-        LIMIT 1
-      `).get(memoryId) as {
-        embedding: Buffer | null;
-        embedding_provider?: string;
-        dimensions?: number;
-        dim?: number;
-      } | undefined;
-
-      if (!embeddingRecord || !embeddingRecord.embedding) {
-        // Edge Case: 임베딩 없음 (메모리는 존재하지만 임베딩이 없음)
-        return null;
-      }
-
-      const embeddingVector = embeddingColumnToNumbers(embeddingRecord.embedding);
-      if (!embeddingVector) {
-        logger.warn('Invalid embedding (empty or not a Float32 BLOB)', { memoryId });
-        return null;
-      }
-
-      const provider = embeddingRecord.embedding_provider || 'tfidf';
-
-      return {
-        embedding: embeddingVector,
-        provider: provider
-      };
+      // 기억 전체를 대표하는 지금 모델의 native 벡터. 없거나 옛 모델 행뿐이면 null (#1731, #1732)
+      return loadCurrentNativeVector(this.db, memoryId);
     } catch (error) {
       // Edge Case: 데이터베이스 오류
       logger.error('Embedding retrieval failed', { memoryId, error: error instanceof Error ? error.message : String(error) });

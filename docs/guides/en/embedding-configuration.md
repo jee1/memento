@@ -103,6 +103,7 @@ Two embeddings of the same dimension are still incomparable when they come from 
 - Every stored embedding records its model name in `memory_embedding.model`.
 - Vector search only compares rows produced by the model this build uses (`MINILM_MODEL_ID` in `packages/memento-core/src/shared/config/embedding-models.ts`).
 - A half-finished reindex therefore never mixes models in one cosine comparison. The not-yet-reindexed memories simply drop out of vector search until they are rebuilt; FTS still finds them.
+- Features that read stored vectors directly (memory neighbors, anchors, sleep consolidation, the search backfill and fallback) follow the same rule. They read only the native row that represents the whole memory, never a window row. Until a memory is reindexed these features treat it as having no embedding (#1731, #1732).
 
 Always reindex after changing the model. Watch `modelDriftCount` in the `--dry-run` output; it reaches 0 when the reindex is complete.
 

@@ -7,6 +7,7 @@ import Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../shared/utils/database.js';
 import { DAY_MS } from '../../shared/utils/date.js';
 import { encodeFloat32Embedding } from '../../shared/utils/embedding-serialization.js';
+import { getEmbeddingModelFilter } from '../../shared/config/embedding-models.js';
 import type { MemoryType } from '../../index.js';
 
 interface TestMemoryItem {
@@ -39,6 +40,8 @@ interface TestMemoryEmbedding {
   embedding: number[];
   embedding_provider?: string;
   dim?: number;
+  /** 기본값은 provider 가 거르는 지금 모델 이름이다. 운영 저장 경로도 늘 모델 이름을 기록한다. */
+  model?: string | null;
 }
 
 /**
@@ -198,8 +201,8 @@ export function insertMemoryEmbedding(
 
   const sql = `
     INSERT INTO memory_embedding (
-      memory_id, embedding_provider, projection_type, embedding, dim, dimensions
-    ) VALUES (?, ?, 'native', ?, ?, ?)
+      memory_id, embedding_provider, projection_type, embedding, dim, dimensions, model
+    ) VALUES (?, ?, 'native', ?, ?, ?, ?)
   `;
 
   DatabaseUtils.run(db, sql, [
@@ -207,7 +210,8 @@ export function insertMemoryEmbedding(
     provider,
     embeddingBlob,
     dim,
-    dim
+    dim,
+    embedding.model === undefined ? getEmbeddingModelFilter(provider) : embedding.model
   ]);
 }
 

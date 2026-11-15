@@ -13,6 +13,7 @@ import type {
 import type { MemoryType } from '../../../shared/types/memory.types.js';
 import type { MemorySearchFilters } from '../../../shared/types/search.types.js';
 import { resolveVectorPrefetchLimit } from '../../../shared/config/vector-search.config.js';
+import { getEmbeddingModelFilter } from '../../../shared/config/embedding-models.js';
 import { buildMemoryFilterSql, planKnnCandidates } from '../../../shared/utils/memory-filter-sql.js';
 import { hashMemoryContent } from '../../../shared/utils/memory-content-hash.js';
 import { replaceMemoryEmbedding } from '../../../shared/utils/memory-embedding-write.js';
@@ -240,11 +241,15 @@ export class MemoryEmbeddingService {
       itemAlias: 'scoped_m',
       currentState,
     });
+    // 질의 벡터와 같은 모델로 만든 행만 비교한다(#889 의 벡터 검색과 같은 규칙, #1732).
+    const modelFilter = getEmbeddingModelFilter(provider);
+    const modelParams = modelFilter === null ? [] : [modelFilter];
     const scopedCandidateSql = hasScopedCandidates
       ? ' AND rowid IN (' +
         'SELECT scoped_me.id FROM memory_embedding scoped_me ' +
         'JOIN memory_item scoped_m ON scoped_m.id = scoped_me.memory_id ' +
         'WHERE scoped_me.embedding_provider = ? ' +
+        (modelFilter === null ? '' : 'AND scoped_me.model = ? ') +
         'AND (COALESCE(scoped_m.is_deleted, 0) = 0) ' +
         (scopedClauses.length > 0 ? scopedClauses.map(clause => `AND ${clause}`).join(' ') : '') +
         ') '
@@ -278,6 +283,7 @@ export class MemoryEmbeddingService {
       'JOIN memory_embedding me ON me.id = v.rowid ' +
       'JOIN memory_item m ON m.id = me.memory_id ' +
       'WHERE me.embedding_provider = ? ' +
+      (modelFilter === null ? '' : 'AND me.model = ? ') +
       'AND (COALESCE(m.is_deleted, 0) = 0) ' +
       outerFilterSql +
       ' ' +
@@ -290,8 +296,9 @@ export class MemoryEmbeddingService {
       params: [
         JSON.stringify(queryVector),
         depth,
-        ...(hasScopedCandidates ? [provider, ...scopedParams] : []),
+        ...(hasScopedCandidates ? [provider, ...modelParams, ...scopedParams] : []),
         provider,
+        ...modelParams,
         ...outerParams,
         limit,
       ],

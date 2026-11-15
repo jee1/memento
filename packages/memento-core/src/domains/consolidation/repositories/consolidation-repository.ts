@@ -4,6 +4,7 @@
 
 import type Database from 'better-sqlite3';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
+import { loadCurrentNativeVectors } from '../../../shared/utils/current-native-embedding.js';
 import { embeddingColumnToNumbers } from '../../../shared/utils/embedding-serialization.js';
 import { supersedeByActiveTargetSql } from '../../../shared/utils/memory-filter-sql.js';
 
@@ -182,39 +183,13 @@ export class ConsolidationRepository {
   }
 
   /**
-   * memory_id → parsed whole-document (projection_type='native') vector; optionally restricted to one provider (#1226).
+   * memory_id → whole-document (native) vector made by the current model; optionally restricted to one provider (#1226).
+   * Memories that only have old-model rows are absent, so clustering never compares vectors from two models (#1732).
    */
-  loadEmbeddingsMap(memoryIds: string[], filter: StoredEmbeddingFilter = {}): Map<string, number[]> {
+  loadEmbeddingsMap(memoryIds: string[], filter: Pick<StoredEmbeddingFilter, 'provider'> = {}): Map<string, number[]> {
     const out = new Map<string, number[]>();
-    if (memoryIds.length === 0) {
-      return out;
-    }
-    const placeholders = memoryIds.map(() => '?').join(',');
-    const whereParts = [`memory_id IN (${placeholders})`, "projection_type = 'native'"];
-    const params: Array<string> = [...memoryIds];
-    if (filter.provider) {
-      whereParts.push('embedding_provider = ?');
-      params.push(filter.provider);
-    }
-    const rows = DatabaseUtils.all(
-      this.db,
-      `
-      SELECT memory_id, embedding
-      FROM memory_embedding
-      WHERE ${whereParts.join(' AND ')}
-      ORDER BY memory_id, created_at DESC
-    `,
-      params
-    ) as Array<{ memory_id: string; embedding: Buffer | null }>;
-
-    for (const row of rows) {
-      if (out.has(row.memory_id)) {
-        continue;
-      }
-      const vec = embeddingColumnToNumbers(row.embedding);
-      if (vec) {
-        out.set(row.memory_id, vec);
-      }
+    for (const [id, vector] of loadCurrentNativeVectors(this.db, memoryIds, filter.provider)) {
+      out.set(id, vector.embedding);
     }
     return out;
   }
