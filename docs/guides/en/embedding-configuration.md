@@ -105,7 +105,7 @@ Two embeddings of the same dimension are still incomparable when they come from 
 - A half-finished reindex therefore never mixes models in one cosine comparison. The not-yet-reindexed memories simply drop out of vector search until they are rebuilt; FTS still finds them.
 - Features that read stored vectors directly (memory neighbors, anchors, sleep consolidation, the search backfill) also use only current-model rows, and only the native row that represents the whole memory, never a window row. Until a memory is reindexed these features treat it as having no embedding. The fallback vector search compares native and window rows like the main vector search, restricted to current-model rows (#1731, #1732).
 
-Always reindex after changing the model. Watch `modelDriftCount` in the `--dry-run` output; it reaches 0 when the reindex is complete.
+Always reindex after changing the model. Reindexing uses only the provider you name (`--provider`); if that provider fails, the memory counts as failed instead of falling back to another provider (#1729). Watch `modelDriftCount` in the `--dry-run` output; it counts a memory when its native row or any window row comes from an old model, and it reaches 0 when the reindex is complete.
 
 ```bash
 npm run reindex-embeddings -- --provider minilm --dry-run   # check modelDriftCount

@@ -108,6 +108,30 @@ describe('EmbeddingReindexService', () => {
     });
   });
 
+  it('#1729: native 는 지금 모델이어도 창 행이 옛 모델이면 model_drift 로 센다', () => {
+    db.exec('DELETE FROM memory_embedding; DELETE FROM memory_item;');
+    const model = 'paraphrase-multilingual-MiniLM-L12-v2';
+    db.prepare('INSERT INTO memory_item (id, content, type, owner_id, project_id, is_deleted) VALUES (?, ?, ?, ?, ?, 0)')
+      .run('stale-window', 'stale window', 'semantic', 'a', 'p1');
+    db.prepare('INSERT INTO memory_item (id, content, type, owner_id, project_id, is_deleted) VALUES (?, ?, ?, ?, ?, 0)')
+      .run('current', 'current', 'semantic', 'a', 'p1');
+    const insert = db.prepare(`
+      INSERT INTO memory_embedding
+        (memory_id, embedding_provider, projection_type, embedding, dim, dimensions, model)
+      VALUES (?, 'minilm', ?, ?, 384, 384, ?)
+    `);
+    const vector = encodeFloat32Embedding(Array(384).fill(0.1));
+    insert.run('stale-window', 'native', vector, model);
+    insert.run('stale-window', 'window:0', vector, 'old-model');
+    insert.run('current', 'native', vector, model);
+    insert.run('current', 'window:0', vector, model);
+
+    const service = new EmbeddingReindexService(db);
+    expect(service.diagnose({ provider: 'minilm' })).toMatchObject({ modelDriftCount: 1, validEmbeddingCount: 1 });
+    expect(service.listProblems({ provider: 'minilm', problem: 'model_drift', limit: 10, offset: 0 }).memories)
+      .toMatchObject([{ id: 'stale-window' }]);
+  });
+
   it('#896: scans a representative 12k population once for summary and drilldown', () => {
     const rows = Array.from({ length: 12_000 }, (_, index) => ({
       id: `missing-${index}`,

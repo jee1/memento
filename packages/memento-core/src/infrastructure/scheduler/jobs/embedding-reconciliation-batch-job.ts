@@ -1,5 +1,6 @@
 import type Database from 'better-sqlite3';
 import type { MemoryType } from '../../../shared/types/memory.types.js';
+import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 import { hashMemoryContent } from '../../../shared/utils/memory-content-hash.js';
 import { createEmptyBatchJobResult, finalizeBatchJobTiming } from '../batch-scheduler/batch-scheduler-internal-helpers.js';
 import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
@@ -82,7 +83,7 @@ export class EmbeddingReconciliationBatchJob {
   constructor(
     private readonly db: Database.Database,
     private readonly embeddingService: EmbeddingWriter,
-    private readonly targetProvider: string
+    private readonly targetProvider: EmbeddingProvider
   ) {}
 
   async run(batchSize = 1000): Promise<BatchJobResult> {
@@ -96,7 +97,8 @@ export class EmbeddingReconciliationBatchJob {
             this.db,
             memory.id,
             memory.content,
-            memory.type as MemoryType
+            memory.type as MemoryType,
+            this.targetProvider
           );
           if (embedding) {
             result.processed++;

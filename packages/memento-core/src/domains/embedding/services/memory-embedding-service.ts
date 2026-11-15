@@ -366,13 +366,16 @@ export class MemoryEmbeddingService {
 
   /**
    * 메모리에 임베딩 생성 및 저장
+   *
+   * strictProvider 를 주면 그 제공자만 쓴다. 실패하면 다른 제공자로 넘어가지 않고 null 이다 (#1729).
+   * 재색인과 모델 이주가 쓴다.
    */
   async createAndStoreEmbedding(
     db: Database.Database,
     memoryId: string,
     content: string,
     _type: MemoryType,
-    preferredProvider?: EmbeddingProvider
+    strictProvider?: EmbeddingProvider
   ): Promise<EmbeddingResult | null> {
     if (!this.embeddingService.isAvailable()) {
       this.writeEmbeddingStderr('warn', '임베딩 서비스가 사용 불가능합니다. 임베딩을 건너뜁니다.');
@@ -382,7 +385,9 @@ export class MemoryEmbeddingService {
     try {
       await this.loadVecExtension(db);
 
-      const embeddingResult = await this.embeddingService.generateEmbedding(content, preferredProvider);
+      const embeddingResult = strictProvider
+        ? await this.embeddingService.generateEmbeddingStrict(content, strictProvider)
+        : await this.embeddingService.generateEmbedding(content);
       if (!embeddingResult) {
         return null;
       }

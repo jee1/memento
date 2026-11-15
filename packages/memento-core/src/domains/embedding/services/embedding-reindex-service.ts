@@ -123,6 +123,7 @@ type EmbeddingHealthRow = {
   dimensions: number | null;
   embedding: unknown;
   has_other_provider: number;
+  has_window_model_drift: number;
 };
 
 type InspectedEmbeddingHealthRow = EmbeddingHealthProblemMemory & { valid: boolean };
@@ -143,7 +144,8 @@ type ReindexEmbeddingService = {
     memoryId: string,
     content: string,
     type: MemoryType,
-    preferredProvider?: EmbeddingProvider,
+    /** 이 제공자만 쓴다. 실패하면 다른 제공자 행을 쓰지 않고 null (#1729). */
+    strictProvider?: EmbeddingProvider,
   ): Promise<{ embedding: number[]; provider?: EmbeddingProvider } | null>;
 };
 
@@ -283,7 +285,7 @@ export class EmbeddingReindexService {
     const expected = expectedDimensions(provider);
     const expectedModel = getEmbeddingModelFilter(provider);
     const clauses = ['COALESCE(mi.is_deleted, 0) = 0'];
-    const values: Array<string | number> = [provider, provider];
+    const values: Array<string | number | null> = [provider, provider, expectedModel, provider];
     if (options.ownerId) {
       clauses.push('mi.owner_id = ?');
       values.push(options.ownerId);
@@ -312,7 +314,14 @@ export class EmbeddingReindexService {
           WHERE other.memory_id = mi.id
             AND other.embedding_provider != ?
             AND other.projection_type = 'native'
-        ) AS has_other_provider
+        ) AS has_other_provider,
+        EXISTS (
+          SELECT 1 FROM memory_embedding win
+          WHERE win.memory_id = mi.id
+            AND win.embedding_provider = ?
+            AND win.projection_type LIKE 'window:%'
+            AND COALESCE(win.model, '') <> COALESCE(?, '')
+        ) AS has_window_model_drift
       FROM memory_item mi
       LEFT JOIN memory_embedding me
         ON me.memory_id = mi.id
@@ -330,7 +339,10 @@ export class EmbeddingReindexService {
       const dimensionMismatch =
         hasEmbedding &&
         (row.dimensions !== expected || (readable && vector.length !== expected));
-      const modelDrift = hasEmbedding && expectedModel !== null && row.model !== expectedModel;
+      // 창 행은 native 트랜잭션 밖에서 쓰여 그 사이에 멈추면 창만 옛 모델로 남는다 (#1729).
+      const modelDrift =
+        expectedModel !== null &&
+        ((hasEmbedding && row.model !== expectedModel) || row.has_window_model_drift === 1);
 
       if (!hasEmbedding) reasons.push('missing_embedding');
       if (hasEmbedding && !readable) reasons.push('unreadable_embedding');
