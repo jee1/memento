@@ -1,4 +1,4 @@
-import { EmbeddingReindexService, type EmbeddingProvider } from '@memento/core';
+import { EmbeddingReindexService, getBatchScheduler, type EmbeddingProvider } from '@memento/core';
 import { randomUUID } from 'crypto';
 import type Database from 'better-sqlite3';
 import { Router } from 'express';
@@ -91,6 +91,11 @@ export function createMaintenanceRouter(db: Database.Database, serverServices: S
   router.post('/reindex', (req, res) => {
     const options = parseRequest(req.body);
     if (typeof options === 'string') return res.status(400).json({ error: options });
+    // 전체 재색인은 양보하지 않는다. 모델 이주나 정합 잡과 같은 기억을 두 번 계산하지 않게 막는다 (#1729).
+    const scheduler = getBatchScheduler();
+    if (scheduler.isModelMigrationRunning() || scheduler.isJobRunning('embedding_reconciliation')) {
+      return res.status(409).json({ error: 'embedding migration or reconciliation is running' });
+    }
 
     const job: ReindexJob = { id: randomUUID(), status: 'queued', createdAt: new Date().toISOString() };
     jobs.set(job.id, job);

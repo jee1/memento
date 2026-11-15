@@ -84,6 +84,10 @@ _Avoid_: search embedding, document embedding
 질의-기억 코사인을 검색 상수가 맞춰진 척도로 옮기는 1차 변환 `clamp01(a × s + b)`. 계수는 로컬 임베딩 모델 정의에 있고 그 모델의 질의 점수에만 건다. 기억끼리 비교(중복 판정, 군집, 이웃, supersede 후보)는 raw 코사인이다.
 _Avoid_: calibration, score normalization
 
+**Model migration (모델 이주)**:
+native 또는 창 행의 모델이 지금 모델과 다른 기억을 다시 만드는 일. 새 작업이 아니라 `embedding_reconciliation` 이 하고, 기동 뒤에는 HTTP 서버를 띄운 프로세스가 그 실행을 후보 0 까지 잇달아 돌린다.
+_Avoid_: reindex(사람이 돌리는 재색인과 헷갈린다)
+
 **Native vector, window vector (native 벡터, 창 벡터)**:
 `projection_type` 이 `native` 인 기억 대표 벡터와 `window:N` 인 510토큰 조각 벡터. 저장 벡터를 직접 읽는 기능은 native 만 쓴다.
 _Avoid_: chunk embedding

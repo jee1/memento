@@ -117,6 +117,17 @@ npm run reindex-embeddings -- --provider minilm --dry-run   # modelDriftCount �
 npm run reindex-embeddings -- --provider minilm --batch-size 100
 ```
 
+### 자동 모델 이주 (#1729)
+
+빌드의 로컬 임베딩 모델(`LOCAL_EMBEDDING_MODEL.storedName`)이 바뀌면 서버가 기동 뒤 옛 모델 행을 저절로 다시 만듭니다. 손으로 재색인하지 않아도 됩니다.
+
+- `embedding_reconciliation` 실행(1,000건)을 잇달아 돌려, native 나 창 행이 옛 모델인 기억이 0 이 될 때까지 다시 만듭니다. 실행 하나는 4분이 지나면 새 기억을 잡지 않고 다음 실행으로 넘깁니다. 연속 20건이 실패하거나 한 실행이 아무것도 처리하지 못하면 멈추고, 남은 기억은 하루 1회 정기 실행이 봅니다.
+- HTTP 서버를 띄운 프로세스 하나만 돕니다(상시 HTTP 서버, 또는 stdio 에서 HTTP sidecar 잠금을 얻은 프로세스). sidecar 없는 stdio 전용 설치는 정기 실행으로 하루 1,000건씩 따라잡습니다.
+- 지정한 로컬 제공자만 씁니다. 실패해도 외부 임베딩 API 나 TF-IDF 로 넘어가지 않습니다.
+- 옛 모델 기억이 활성 기억의 1% 를 넘는 동안 Sleep consolidation 은 건너뛰고, 잡 이력 warnings 에 「모델 드리프트 N건(M%) 때문에 건너뜀」을 남깁니다.
+- 이주나 `embedding_reconciliation` 이 도는 동안 `POST /api/v1/maintenance/reindex` 는 409 입니다. CLI `reindex-embeddings` 는 이주를 하나 더 띄우므로 서버를 멈춘 뒤에만 씁니다. 진행은 관리 API 의 `modelDriftCount` 로 봅니다.
+- 끄기: 관리 API 로 `embedding_reconciliation` 을 일시정지(재시작하면 풀림)하거나 `BATCH_SCHEDULER_ENABLED=false`(모든 배치가 꺼짐)를 둡니다.
+
 검색어는 질의 벡터로, 저장하는 글은 기억 벡터로 만듭니다. 모델이 역할마다 다른 접두를 요구하면 `LOCAL_EMBEDDING_MODEL.prefixes` 에 두고, 창 크기는 510 에서 접두 토큰 수를 뺀 값입니다(#1729). 지금 모델은 두 접두가 비어 있습니다.
 
 기본 모델은 `Xenova/paraphrase-multilingual-MiniLM-L12-v2`(384차원, 50개 언어)입니다. 이전 기본값이던 `all-MiniLM-L6-v2`는 영어 전용이라 한국어 쿼리가 관련 없는 문서를 상위에 올렸습니다.
@@ -146,7 +157,7 @@ HTTP API에서는 요청 본문의 `pruneForeignProviders: true`가 같은 역�
 
 ### HTTP 관리 API
 
-로컬 CLI를 사용할 수 없는 환경에서는 HTTP 서버가 동일한 작업을 비동기로 실행할 수 있습니다. `admin:destructive` 스코프 토큰이 필요하며, 완료 여부는 응답의 `statusUrl`로 확인합니다.
+로컬 CLI를 사용할 수 없는 환경에서는 HTTP 서버가 동일한 작업을 비동기로 실행할 수 있습니다. `admin:destructive` 스코프 토큰이 필요하며, 완료 여부는 응답의 `statusUrl`로 확인합니다. 모델 이주나 `embedding_reconciliation` 이 도는 동안 전체 재색인 요청은 409 로 거절됩니다(#1729).
 
 ```bash
 curl -sS -X POST http://127.0.0.1:9001/api/v1/maintenance/reindex \
