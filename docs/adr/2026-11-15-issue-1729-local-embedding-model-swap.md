@@ -18,7 +18,7 @@
 - 이슈가 꼽은 기준값 8곳 가운데 둘(검색 임계 0.38, high_vector 0.8)은 사상이 흡수해 그대로 둔다. 나머지 여섯은 기억끼리 raw 코사인 기준값이라 분위 맞춤 값에서 시작하고, 데이터를 바꾸는 셋은 agent_panel 판정으로 확인한다. 앵커 다시 걸기는 운영 호출처가 없어 지운다.
 - 지금 코드는 전환 구간에 옛 모델 벡터와 새 모델 벡터를 섞어 비교하는 곳이 다섯이다(이웃 기억, 앵커 캐시, Sleep consolidation, 검색 backfill, fallback 벡터 검색). 전환 전에 고친다.
 - 야간 품질 검사는 한국어 모델에서 네 묶음이 실패한다. 전환 PR 에서 기준선을 다시 찍는다(결정 2). 그 전에 PR 범위 게이트를 먼저 재고 첫 질의가 어느 제공자로 갔는지 기록한다.
-- 모델 이주는 새 작업을 만들지 않고 `embedding_reconciliation` 을 넓혀서 한다(결정 3, 마름 판정). 설정 키를 더하지 않는다.
+- 모델 이주는 새 작업을 만들지 않고 `embedding_reconciliation` 을 넓혀서 한다(결정 3, 마름 판정). 설정 키를 더하지 않는다. 기동 직후에는 1,000건 실행을 잇달아 돌려 후보가 0 이 될 때까지 이주한다.
 - PR 은 여덟 개로 나눈다. PR 2~7 은 지금 모델에서 동작이 같고, 각 PR 이 무엇으로 같음을 보이는지 표에 적는다. PR 1 은 버그 수정이라 동작이 바뀐다.
 
 ## 용어
@@ -55,7 +55,7 @@
 - **실는 모양.** `<패키지>/multilingual-e5-small-ko-v2/{config.json, tokenizer.json, tokenizer_config.json, special_tokens_map.json, onnx/model_quantized.onnx}`. 풀었을 때 135,134,950 바이트, gzip 83,925,241 바이트다.
 - **런타임 경로.** 모델 폴더의 상위를 `env.localModelPath` 로 두고 `env.allowLocalModels = true`, `env.allowRemoteModels = false` 로 읽는다. 모델 id 는 폴더 이름이고 `storedName` 과 같다. `minilm-embedding-service.ts:55-56` 의 모듈 로드 때 `allowLocalModels = false` 기본값은 지운다. 이 `env` 를 쓰는 다른 런타임 코드는 없다(`docker-smoke.mjs` 와 `reindex-embeddings.ts` 의 진단 코드뿐이다). 확인했다. 위 모양의 폴더를 원격을 끈 transformers.js 4.3.0 으로 읽으면 fp32 까지 든 폴더로 읽은 출력과 코사인 0.9999998 이다.
 - **라이선스.** 원본은 apache-2.0, 기반 모델 `intfloat/multilingual-e5-small`(revision `614241f6`)은 MIT 다. 두 저장소 모두 LICENSE, NOTICE 파일이 없고 모델 카드 메타데이터에만 라이선스가 있다. 모델을 싣는 패키지에 `LICENSE`(Apache-2.0 전문, apache.org 원문)와 `NOTICE`(원본 저장소와 revision, 기반 모델과 MIT 허가 고지, 변경 사실과 도구 버전)를 넣는다.
-- **옛 경로 삭제.** 전환 PR 에서 Xenova id, HuggingFace 내려받기, 캐시 위치 주석, Docker warmup(`Dockerfile:75, 97-111`)과 빌드 인자 `SKIP_TRANSFORMERS_WARMUP`(`docker-compose.base.yml:205`), CI 의 HF 캐시 단계 세 곳(`nightly-tests.yml:47-52`, `search-quality-pr.yml:59-64`, `:87-92`)을 지운다. 두 경로를 같이 두지 않는다. PR revert 는 옛 경로를 함께 되살린다.
+- **옛 경로 삭제.** 전환 PR 에서 Xenova id, HuggingFace 내려받기, 캐시 위치 주석, Docker warmup(`Dockerfile:75, 97-111`)과 빌드 인자 `SKIP_TRANSFORMERS_WARMUP`(`docker-compose.base.yml:205`), CI 의 HF 캐시 단계 세 곳(`nightly-tests.yml:47-52`, `search-quality-pr.yml:59-64`, `:87-92`)을 지운다. 운영의 로컬 `docker-compose.override.yml`(gitignore 대상, 저장소 밖)은 호스트 `~/.memento/hf-cache` 를 이미지의 transformers 캐시 자리에 붙여 지금 모델을 그 폴더에서 읽는다(uid 1000 으로 돌 때 캐시를 못 만들어 tfidf 로 떨어진 일 때문에 붙였다). 새 경로는 패키지 폴더를 읽기만 하니 전환 뒤 이 마운트를 운영 절차에서 지운다. 두 경로를 같이 두지 않는다. PR revert 는 옛 경로를 함께 되살린다.
 - **크기 상한.** npm 의 tarball 크기 상한은 공식 문서를 찾지 못했다. 이미 게시된 `onnxruntime-node` 1.31.1 이 풀었을 때 307,626,018 바이트라 135MB 는 실제 범위 안이다. 처음 게시 전에 `npm publish --dry-run` 으로 크기를 보고, 실제 게시 한 번으로 확인한다.
 
 #### C 와 C' 비교 (사용자 확인 중, 확정하지 않는다)
@@ -270,12 +270,13 @@ agent_panel 확인 절차(데이터를 바꾸는 세 곳, 전환 PR 전에 한 �
 이주는 `embedding_reconciliation` 을 넓혀서 한다. 새 작업, 새 설정 키를 만들지 않는다.
 
 - **대상.** 지금 조건(native 없음, 내용 해시 불일치)에 「native 또는 창 행의 `model` 이 `storedName` 과 다름」을 더한다. 창 행을 같이 보는 이유는 창이 native 트랜잭션 밖에서 쓰여(`memory-embedding-service.ts:427`) 그 사이에 멈추면 창만 옛 모델로 남기 때문이다. 관리 화면의 `modelDriftCount`(`embedding-reindex-service.ts:320`, 지금은 native 만 센다)도 창을 함께 센다.
-- **실행 주체.** 정기 실행은 지금 잡 그대로다. 드리프트가 있으면 기동 직후 한 바퀴를 더 돈다. 이 한 바퀴는 상시 HTTP 서버 진입점과, stdio 면 instance lock(`tryAcquireLock`, `packages/memento-server/src/server/utils/instance-lock.ts:44`)을 얻은 프로세스에서만 돈다. 배치 스케줄러는 `createMementoCore` 안에서 늘 뜨고(`bootstrap/batch-telemetry-relation.ts:60`) 잠금이 없어서, 이 조건이 없으면 stdio 프로세스마다 이주가 하나씩 돈다.
-- **제공자 고정.** 이주는 지정한 로컬 제공자만 쓴다. 실패하면 다른 제공자로 넘어가지 않고 throw 한다. 지금 `UnifiedEmbeddingService.generateEmbedding` 은 실패하면 `tryFallbackProviders` 로 가고(`unified-embedding-service.ts:64, :73`), 이 함수는 원하는 제공자를 무시하고 우선순위 openai, gemini, minilm, tfidf 순으로 고른다(`embedding-provider-factory.ts:84-137`). 외부 키가 있으면 이주 대상 원문이 외부 임베딩 API 로 나가고, 없으면 tfidf 행이 쌓여 드리프트가 줄지 않는다.
-- **실패 상한.** 연속 실패가 20건이면 그 바퀴를 멈추고 잡 결과에 실패로 남긴다. 실패한 행은 드리프트로 남아 다음 바퀴가 다시 본다.
-- **Sleep consolidation.** 이번 기동의 첫 이주 한 바퀴가 끝나기 전에는 건너뛴다. 끝난 뒤에는 남은 드리프트 행이 있어도 돈다. 그 행은 #1732 의 모델 조건으로 군집에서 빠진다. 「드리프트 0」을 조건으로 두면 행 하나만 실패해도 consolidation 이 조용히 영구 정지한다.
-- **동시 쓰기.** `POST /api/v1/maintenance/reindex`(전체, 양보 없음)는 `embedding_reconciliation` 이 도는 동안 409 로 거절한다. CLI `reindex-embeddings` 는 `createMementoCore` 를 불러 이주를 하나 더 띄우니(`reindex-embeddings.ts:62`) 서버를 멈춘 뒤에만 쓴다고 문서에 적는다. 저장 쓰기는 트랜잭션 안에서 본문을 다시 확인하고 UNIQUE 로 덮어써 손상 위험은 낮다. 실제 비용은 중복 계산과 CPU 다.
-- **끄는 길.** 관리 API 의 잡 일시정지(재시작하면 풀린다)와 `BATCH_SCHEDULER_ENABLED=false`(모든 배치를 끈다)다. 기동 직후 한 바퀴도 스케줄러를 거치므로 둘 다 듣는다. 이주만 끄는 키는 더하지 않는다.
+- **실행 주체.** 정기 실행은 지금 잡 그대로다(하루 1회, 1,000건). 기동 직후 이주 반복은 core 의 배치 스케줄러가 메서드 `BatchScheduler.startModelMigration()` 으로 내놓고, 서버 진입점이 자기가 주인일 때만 부른다. 상시 HTTP 서버는 기동 뒤 부르고, stdio 는 HTTP sidecar 잠금(`tryAcquireLock`, `packages/memento-server/src/server/utils/instance-lock.ts:44`)을 얻은 직후에만 부른다. core 에 옵션을 넘기지 않고 잠금을 아는 서버가 부를지 정한다. 배치 스케줄러는 `createMementoCore` 안에서 늘 뜨고(`bootstrap/batch-telemetry-relation.ts:60`) 잠금이 없어서, 이렇게 하지 않으면 stdio 프로세스마다 이주가 하나씩 돈다. sidecar 없는 stdio 전용 설치는 반복이 없고 정기 실행으로 하루 1,000건씩 따라잡는다(13,511건이면 약 2주).
+- **한 바퀴의 단위.** 이주 반복은 1,000건 실행(`maxBatchSize`, `batch-scheduler-default-config.ts:84`)을 주기 대기 없이 잇달아 돌리고, 후보가 0 이 되거나 연속 실패 상한에 닿으면 멈춘다. 반복이 멈춘 시점이 한 바퀴의 끝이다. 실행 하나하나는 잡 제한 시간 5분(`:89`) 안에 끝나야 한다. 시간 초과는 작업을 멈추지 않고(`Promise.race`, `batch-job-execution-coordinator.ts:317-323`) 완료 표시와 재시도를 걸어 원래 실행과 겹치기 때문이다. 그래서 실행 안에서 경과가 4분을 넘으면 새 후보를 잡지 않고 남은 수를 돌려준다. 이 PC 혼잡 조건 속도(13,510건 665초)면 1,000건은 약 49초라 운영 CPU 가 5배 느려도 4분 안에 멈춘다. 반복이 도는 중이라는 상태는 스케줄러가 든다.
+- **제공자 고정.** 이주는 지정한 로컬 제공자만 쓴다. 실패하면 다른 제공자로 넘어가지 않고 throw 한다. 지금 `UnifiedEmbeddingService.generateEmbedding` 은 실패하면 `tryFallbackProviders` 로 가고(`unified-embedding-service.ts:64, :73`), 이 함수는 원하는 제공자를 무시하고 우선순위 openai, gemini, minilm, tfidf 순으로 고른다(`embedding-provider-factory.ts:84-137`). 외부 키가 있으면 이주 대상 원문이 외부 임베딩 API 로 나가고, 없으면 tfidf 행이 쌓여 드리프트가 줄지 않는다. 구현 지점은 `UnifiedEmbeddingService.generateEmbeddingStrict(text, provider)`(지정 제공자만 부르고 실패하면 throw)와, 이를 타는 `MemoryEmbeddingService.createAndStoreEmbedding` 의 `{ strictProvider }` 옵션이다. 지금 다섯째 인자 `preferredProvider`(`memory-embedding-service.ts:368`)는 선택만 바꾸고 fallback 을 막지 못한다. 수동 재색인(`reindex()`, `reindexByIds()`)도 지금 이 인자를 넘기니 실패하면 다른 제공자로 넘어간다. 같은 PR 에서 strict 경로로 바꾼다.
+- **실패 상한.** 연속 실패가 20건이면 반복을 멈추고 잡 결과에 실패로 남긴다. 실패한 행은 드리프트로 남아 다음 정기 실행이 다시 본다.
+- **Sleep consolidation.** 모델 드리프트 기억이 활성 기억의 1% 를 넘는 동안 건너뛴다. DB 로 판단하니 이주 반복을 돌리지 않는 stdio 프로세스에도 같은 조건이다. 반복이 끝난 뒤 실패로 남은 기억이 1% 이하면 돈다. 그 기억은 #1732 의 모델 조건으로 군집에서 빠진다. 「드리프트 0」을 조건으로 두면 기억 하나만 실패해도 consolidation 이 조용히 영구 정지하고, 「이 프로세스의 첫 바퀴 끝남」을 조건으로 두면 반복을 돌리지 않는 프로세스가 이주 중에 군집을 만든다.
+- **동시 쓰기.** `POST /api/v1/maintenance/reindex`(전체, 양보 없음)는 이주 반복이나 `embedding_reconciliation` 실행이 도는 동안 409 로 거절한다. CLI `reindex-embeddings` 는 `createMementoCore` 를 불러 이주를 하나 더 띄우니(`reindex-embeddings.ts:62`) 서버를 멈춘 뒤에만 쓴다고 문서에 적는다. 저장 쓰기는 트랜잭션 안에서 본문을 다시 확인하고 UNIQUE 로 덮어써 손상 위험은 낮다. 실제 비용은 중복 계산과 CPU 다.
+- **끄는 길.** 관리 API 의 잡 일시정지와 `BATCH_SCHEDULER_ENABLED=false`(모든 배치를 끈다)다. 이주 반복도 스케줄러를 거치므로 둘 다 듣는다. 일시정지는 메모리에만 있어 재시작하면 풀리고 반복이 다시 시작한다. 그래서 OOM 재시작 루프는 `BATCH_SCHEDULER_ENABLED=false` 로만 끊는다. 이주만 끄는 키는 더하지 않는다.
 - **이주 중 검색.** 벡터 검색은 지금 모델 행만 비교한다(#889 의 모델 필터). 이주 전 행은 KNN 자리를 차지했다가 걸러져 의미 레인이 덜 차기도 한다. 틀린 결과가 아니라 적은 결과다. 검색 backfill 과 fallback 은 PR 1 에서 모델 조건을 단다.
 - **진행 확인.** 관리 API 의 `modelDriftCount` 나 읽기 전용 SQL 로 본다. `reindex-embeddings --dry-run` 은 이주를 하나 더 띄우니 쓰지 않는다.
 - **지금 모델에서는 할 일이 없다.** 사본(2026-11-14)에서 native 13,511행과 창 1,237행이 모두 지금 모델 이름이고 임베딩 없는 활성 기억이 0이다. PR 6 머지 전에 운영의 `modelDriftCount` 와 임베딩 없는 기억 수를 한 번 더 본다.
@@ -285,9 +286,10 @@ agent_panel 확인 절차(데이터를 바꾸는 세 곳, 전환 PR 전에 한 �
 1. 사본 리허설. 운영 DB 사본으로 1GiB cgroup 안에서 이주를 돌려 이주 시간, peak RSS, 이주 뒤 규모 표, 하네스 주입 상위 5 를 잰다.
 2. `npm run db:backup` 으로 DB 전체를 백업한다(호스트 백업이 막히면 컨테이너 안에서 자동 재시도, 등가물 `npm run db:backup:docker`).
 3. 기존 배포 절차로 올린다. 배포 직후 관리 API 로 `sleep_consolidation_batch` 를 멈춘다.
-4. `modelDriftCount` 가 0 이 될 때까지 본다. 이 PC 기준 약 11분이다. 운영 컨테이너의 CPU 한도는 확인하지 않았다.
+4. `modelDriftCount` 가 0 이 될 때까지 본다. 이 PC 기준 약 11분이다. 운영 컨테이너의 CPU 한도는 확인하지 않았다. 이주 중 OOM 으로 재시작이 되풀이되면 `.env` 에 `BATCH_SCHEDULER_ENABLED=false` 를 두고 다시 올려 루프를 끊은 뒤 원인을 본다.
 5. 이주가 끝나면 `npm run db:backup:docker` 를 한 번 더 하고 Sleep consolidation 을 다시 켠다. 데이터를 바꾸는 배치가 처음 돌기 직전의 복원점이다.
 6. `/health`, 기억 수, 에러 로그, `memory_injection` 결과를 확인한다.
+7. 로컬 `docker-compose.override.yml` 의 `~/.memento/hf-cache` 마운트를 지우고 다시 올린다. 모델이 패키지 폴더에서 읽히는지 smoke 로 본다.
 
 되돌리기는 사고 종류마다 다르다.
 
@@ -318,7 +320,7 @@ PR 랭킹 게이트(`search-quality-pr.yml`)는 `shared/config`, `domains/search
 | 3 | 모델 정의 한 곳과 이름 정리(위 표). smoke 가 정의를 읽는다 | 같음 | 돈다 | `storedName` 을 리터럴 `'paraphrase-multilingual-MiniLM-L12-v2'` 로 고정하는 테스트, `getEmbeddingModelFilter('minilm')` 값 테스트, docker smoke | medium(파일 많음) |
 | 4 | `embedQuery` 분리, 창 크기를 `add_special_tokens: false` 접두 토큰으로 계산, 결과 캐시와 창 캐시 키에 `storedName` 과 역할 | 같음(접두 빈 문자열) | 돈다 | 510토큰을 넘는 글의 창 분할 골든 테스트(창 크기 510 그대로), 역할별 캐시가 갈리는 테스트 | medium |
 | 5 | 기준값과 사상이 모델 정의를 읽는다(기억끼리 기준값 여섯, 사상 다섯 자리, 앵커 슬롯 두 벌 합치기) | 같음(값 그대로, 사상 1, 0) | 돈다(`shared/config`) | 기준값 값 고정 테스트, 고정 fixture 의 군집, 이웃, supersede 후보 수 snapshot, 「중복 판정 점수는 사상되지 않는다」 테스트 | medium |
-| 6 | `embedding_reconciliation` 확장(모델 드리프트 native 와 창, 기동 직후 한 바퀴와 실행 주체, 제공자 고정, 연속 실패 상한, consolidation 첫 바퀴 조건, 수동 재색인 409, `modelDriftCount` 에 창) | 같음(드리프트 0, 머지 전 운영 확인) | 안 돈다 | 옛 모델 이름 행이 있는 DB 에서 native 와 창을 다시 만들고 중단 뒤 이어서 끝나는 통합 테스트, 로컬 제공자 실패 때 다른 제공자로 넘어가지 않는 테스트, 드리프트 0 이면 처리 0 | medium |
+| 6 | `embedding_reconciliation` 확장(모델 드리프트 native 와 창, `startModelMigration()` 반복과 실행 주체, 실행당 4분 예산, `generateEmbeddingStrict` 와 `{ strictProvider }`, 수동 재색인도 strict, 연속 실패 상한, consolidation 1% 조건, 수동 재색인 409, `modelDriftCount` 에 창) | 같음(드리프트 0, 머지 전 운영 확인) | 돈다(`domains/embedding` 을 건드린다). 이 변경을 재지는 않는다 | 옛 모델 이름 행이 3,000건 넘는 DB(상한 × 3 이상)에서 반복이 후보 0 까지 가고, 시간 예산을 줄여도 실행마다 예산 안에 끝나 재시도와 겹치지 않는 통합 테스트. 중단 뒤 이어서 끝나는 테스트, 로컬 제공자 실패 때 다른 제공자로 넘어가지 않는 테스트, 드리프트 0 이면 처리 0 | medium |
 | 7 | 모델 파일 소스(`models/multilingual-e5-small-ko-v2/`: 변환 스크립트, `requirements.txt`, `sha256.json`, `LICENSE`, `NOTICE`, C' 면 `package.json` 과 README). 게시는 결정 1 확정 뒤 PR 밖에서 주인이 한다 | 같음(런타임이 아직 읽지 않는다) | 안 돈다 | 스크립트로 다시 만든 파일의 sha256 이 `sha256.json` 과 같다 | low |
 | 8 | 전환. 모델 정의를 한국어 모델로(접두, 사상, 패널로 확인한 기준값, 패키지 폴더), 결정 1 의 공급 경로, 옛 원격 경로와 Docker warmup, CI HF 캐시 삭제, held-out 으로 확인된 관련성 축척, `VECTOR_SCORE_SCALE` 와 랭킹 버전 payload, 결정 2 의 여섯 단계, `minilm-korean-quality.spec.ts` 기대값, 문서 | 바뀐다 | 돌고 기준선을 다시 찍는다 | 하네스 주입 상위 5 구간 하한 > 0, 사본 규모 표, 야간과 PR 게이트, 리허설 peak RSS 1GiB 안 | high(사용자 승인) |
 
@@ -367,6 +369,7 @@ PR 랭킹 게이트(`search-quality-pr.yml`)는 `shared/config`, `domains/search
 | 패널을 통과해도 Sleep consolidation 규모가 1.2~1.6배 | 8 | 전환 뒤 첫 배치의 군집 수와 크기, 5번 백업 |
 | 관련성 축척 1.5 가 held-out 에서 확인되지 않으면 knowledge_update 한 문항 하락이 실제 지침 갱신에서 나타난다 | 8 | 지표 2(주입 적중), 지침 반복 수 |
 | PR 범위 게이트(400행)와 perf-smoke(p95 2배 여유)는 재지 않았다. 질의 지연 중앙값은 4.2ms → 6.4ms 다 | 8 | 결정 2 의 1단계, 전환 PR 의 CI |
+| sidecar 없는 stdio 전용 설치는 이주 반복이 없어 약 2주 동안 의미 검색이 차례로 찬다 | 6, 8 | 회사 설치 형태(결정 1 의 확인 항목과 같다) |
 | 다른 기계에서 변환 결과가 달라진다 | 7, 8 | sha256 대조가 게시 전에 막는다. C 는 CI 와 Docker 빌드 호스트마다 변환하니 이 위험을 매번 진다 |
 | 설치 크기 +135MB(gzip 84MB)를 다른 제공자를 쓰는 설치도 진다 | 8 | 기본 설치는 첫 사용 때 받던 것과 크기가 같다 |
 | 측정이 주인 한 사람의 기억과 생성한 질문(실제 질문 8건)에 기댄다 | 8 | 전환 뒤 지표 2 |
