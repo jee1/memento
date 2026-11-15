@@ -351,7 +351,6 @@ describe('EmbeddingProviderFactory', () => {
       const mockService: EmbeddingServiceInterface = {
         isAvailable: vi.fn(() => true),
         generateEmbedding: vi.fn(async () => null),
-        searchSimilar: vi.fn(async () => []),
         getModelInfo: vi.fn(() => ({ model: 'test', dimensions: 100, maxTokens: 1000 }))
       };
 
@@ -368,7 +367,6 @@ describe('EmbeddingProviderFactory', () => {
       const mockService: EmbeddingServiceInterface = {
         isAvailable: vi.fn(() => true),
         generateEmbedding: vi.fn(async () => null),
-        searchSimilar: vi.fn(async () => []),
         getModelInfo: vi.fn(() => ({ model: 'test', dimensions: 100, maxTokens: 1000 }))
       };
       factory.registerProvider('minilm', mockService);
@@ -409,7 +407,6 @@ describe('EmbeddingProviderFactory', () => {
       const mockService: EmbeddingServiceInterface = {
         isAvailable: vi.fn(() => true),
         generateEmbedding: vi.fn(async () => null),
-        searchSimilar: vi.fn(async () => []),
         getModelInfo: vi.fn(() => ({ model: 'test', dimensions: 100, maxTokens: 1000 }))
       };
       factory.registerProvider('minilm', mockService);
@@ -465,7 +462,6 @@ describe('EmbeddingProviderFactory', () => {
       const mockService: EmbeddingServiceInterface = {
         isAvailable: vi.fn(() => true),
         generateEmbedding: vi.fn(async () => null),
-        searchSimilar: vi.fn(async () => []),
         getModelInfo: vi.fn(() => ({ model: 'test', dimensions: 100, maxTokens: 1000 }))
       };
 

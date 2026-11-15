@@ -49,7 +49,6 @@ vi.mock('../../../embedding/providers/embedding-provider-factory.js', () => {
         provider: 'minilm',
         usage: { prompt_tokens: 10, total_tokens: 10 }
       })),
-      searchSimilar: vi.fn(async () => []),
       getModelInfo: vi.fn(() => ({ model: 'minilm', dimensions: 384, maxTokens: 512 }))
     }))
   };
@@ -70,20 +69,17 @@ vi.mock('../../../embedding/services/unified-embedding-service.js', () => {
     provider: 'minilm',
     usage: { prompt_tokens: 10, total_tokens: 10 }
   }));
-  const searchSimilar = vi.fn(async () => []);
   
   return {
     UnifiedEmbeddingService: vi.fn().mockImplementation(function () {
       return {
         isAvailable: vi.fn(() => true),
         generateEmbedding: generateEmbedding,
-        searchSimilar: searchSimilar,
         getModelInfo: vi.fn(() => ({ model: 'minilm', dimensions: 384, maxTokens: 512 }))
       };
     }),
     // 외부에서 접근할 수 있도록 export
-    __mockGenerateEmbedding: generateEmbedding,
-    __mockSearchSimilar: searchSimilar
+    __mockGenerateEmbedding: generateEmbedding
   };
 });
 
@@ -100,8 +96,7 @@ import { logger } from '../../../../shared/utils/logger.js';
 const getMockEmbeddingFunctions = async () => {
   const module = await import('../../../embedding/services/unified-embedding-service.js');
   return {
-    generateEmbedding: (module as any).__mockGenerateEmbedding,
-    searchSimilar: (module as any).__mockSearchSimilar
+    generateEmbedding: (module as any).__mockGenerateEmbedding
   };
 };
 
@@ -198,7 +193,6 @@ async function createMockEmbeddingService() {
   return {
     isAvailable: vi.fn(() => true),
     generateEmbedding: mockFunctions.generateEmbedding,
-    searchSimilar: mockFunctions.searchSimilar,
     getModelInfo: vi.fn(() => ({ model: 'minilm', dimensions: 384, maxTokens: 512 }))
   } as any;
 }
@@ -210,7 +204,6 @@ describe('LLMBasedRelationExtractor', () => {
   let mockOpenAICreate: any;
   let mockGeminiGenerateContent: any;
   let mockGenerateEmbedding: any;
-  let mockSearchSimilar: any;
   // 환경 변수 채널 보관함. LLM_PROVIDER 는 모킹된 mementoConfig.llmProvider 보다
   // 우선하므로(shared/services/llm-client-initializer/shared-helpers.ts:33)
   // 테스트마다 고정하고 끝나면 되돌린다.
@@ -235,12 +228,10 @@ describe('LLMBasedRelationExtractor', () => {
     // UnifiedEmbeddingService 모킹 함수 가져오기
     const mockFunctions = await getMockEmbeddingFunctions();
     mockGenerateEmbedding = mockFunctions.generateEmbedding;
-    mockSearchSimilar = mockFunctions.searchSimilar;
 
     // UnifiedEmbeddingService 모킹 (이미 vi.mock으로 모킹됨)
     mockEmbeddingService = {
-      get generateEmbedding() { return mockGenerateEmbedding; },
-      get searchSimilar() { return mockSearchSimilar; }
+      get generateEmbedding() { return mockGenerateEmbedding; }
     };
 
     // RelationCache 모킹
@@ -262,9 +253,6 @@ describe('LLMBasedRelationExtractor', () => {
     mockCacheService.set.mockClear();
     if (mockGenerateEmbedding && typeof mockGenerateEmbedding.mockClear === 'function') {
       mockGenerateEmbedding.mockClear();
-    }
-    if (mockSearchSimilar && typeof mockSearchSimilar.mockClear === 'function') {
-      mockSearchSimilar.mockClear();
     }
   });
 
@@ -811,7 +799,6 @@ describe('LLMBasedRelationExtractor', () => {
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
       });
-      mockSearchSimilar.mockResolvedValue([]);
 
       const newMemory = createTestMemory('mem1', '새로운 기능', 'episodic');
       const existingMemories = [
@@ -889,7 +876,6 @@ describe('LLMBasedRelationExtractor', () => {
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
       });
-      mockSearchSimilar.mockResolvedValue([]);
 
       const newMemory = createTestMemory('mem1', '새로운 기능', 'episodic');
       const existingMemories = [
@@ -953,7 +939,6 @@ describe('LLMBasedRelationExtractor', () => {
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
       });
-      mockSearchSimilar.mockResolvedValue([]);
 
       const newMemory = createTestMemory('mem1', '새로운 기능', 'episodic');
       const existingMemories = [
@@ -1019,7 +1004,6 @@ describe('LLMBasedRelationExtractor', () => {
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
       });
-      mockSearchSimilar.mockResolvedValue([]);
 
       const newMemory = createTestMemory('mem1', '새로운 기능', 'episodic');
       const existingMemories = [
@@ -1079,7 +1063,6 @@ describe('LLMBasedRelationExtractor', () => {
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
       });
-      mockSearchSimilar.mockResolvedValue([]);
 
       const newMemory = createTestMemory('mem1', '새로운 기능', 'episodic');
       const existingMemories = [
@@ -1153,7 +1136,6 @@ describe('LLMBasedRelationExtractor', () => {
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
       });
-      mockSearchSimilar.mockResolvedValue([]);
 
       const newMemory = createTestMemory('mem1', '새로운 기능', 'episodic');
       const existingMemories = [
@@ -1188,7 +1170,6 @@ describe('LLMBasedRelationExtractor', () => {
       // 모킹된 embeddingService 생성
       const mockEmbeddingService = await createMockEmbeddingService();
       mockGenerateEmbedding = mockEmbeddingService.generateEmbedding;
-      mockSearchSimilar = mockEmbeddingService.searchSimilar;
 
       // 생성자 비동기 초기화가 테스트 주입 클라이언트를 덮어쓰지 않도록 고정
       const OpenAI = (await import('openai')).default;
@@ -1231,13 +1212,6 @@ describe('LLMBasedRelationExtractor', () => {
         usage: { prompt_tokens: 10, total_tokens: 10 }
       });
 
-      const topSimilar = Array.from({ length: 30 }, (_, i) => ({
-        id: `mem${i + 2}`,
-        similarity: 0.9 - i * 0.01, // 높은 유사도
-        score: 0.9 - i * 0.01
-      }));
-
-      mockSearchSimilar.mockResolvedValue(topSimilar);
 
       // extractWithOpenAI를 직접 모킹
       if (extractWithOpenAISpy) {
@@ -1266,11 +1240,6 @@ describe('LLMBasedRelationExtractor', () => {
 
       // Then: MiniLM 임베딩이 생성되어야 함
       expect(mockGenerateEmbedding).toHaveBeenCalledWith('새로운 기능을 구현했습니다.');
-      
-      // Then: searchSimilar가 호출되어 상위 30개만 선정되어야 함
-      expect(mockSearchSimilar).toHaveBeenCalled();
-      const searchCall = mockSearchSimilar.mock.calls[0];
-      expect(searchCall[2]).toBe(30); // limit 파라미터
     });
 
     it('should use all memories when count is less than limit', async () => {
@@ -1282,7 +1251,6 @@ describe('LLMBasedRelationExtractor', () => {
 
       mockCacheService.get.mockReturnValue(null);
       // 10개 < 30개 limit이므로 filterCandidatesByEmbedding에서 바로 반환됨
-      // searchSimilar는 호출되지 않음 (정상 동작)
       mockGenerateEmbedding.mockResolvedValue({
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
@@ -1359,8 +1327,6 @@ describe('LLMBasedRelationExtractor', () => {
 
       // Then: 단순 slice로 제한되어야 함
       expect(mockGenerateEmbedding).toHaveBeenCalled();
-      // searchSimilar는 호출되지 않아야 함 (임베딩 생성 실패 시)
-      expect(mockSearchSimilar).not.toHaveBeenCalled();
     });
   });
 
@@ -1376,7 +1342,6 @@ describe('LLMBasedRelationExtractor', () => {
       // 모킹된 embeddingService 생성
       const mockEmbeddingService = await createMockEmbeddingService();
       mockGenerateEmbedding = mockEmbeddingService.generateEmbedding;
-      mockSearchSimilar = mockEmbeddingService.searchSimilar;
       
       // 생성자 비동기 초기화가 테스트 주입 클라이언트를 덮어쓰지 않도록 고정
       const OpenAI = (await import('openai')).default;
@@ -1450,9 +1415,6 @@ describe('LLMBasedRelationExtractor', () => {
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
       });
-      mockSearchSimilar.mockResolvedValue([
-        { id: 'mem2', similarity: 0.9, score: 0.9 }
-      ]);
 
       // extractWithOpenAI를 직접 모킹
       if (extractWithOpenAISpy) {
@@ -1544,9 +1506,6 @@ describe('LLMBasedRelationExtractor', () => {
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
       });
-      mockSearchSimilar.mockResolvedValue([
-        { id: 'mem2', similarity: 0.9, score: 0.9 }
-      ]);
 
       // extractWithOpenAI를 직접 모킹
       if (extractWithOpenAISpy) {
@@ -1611,9 +1570,6 @@ describe('LLMBasedRelationExtractor', () => {
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
       });
-      mockSearchSimilar.mockResolvedValue([
-        { id: 'mem2', similarity: 0.9, score: 0.9 }
-      ]);
 
       // extractWithOpenAI를 직접 모킹
       if (extractWithOpenAISpy) {
@@ -1677,9 +1633,6 @@ describe('LLMBasedRelationExtractor', () => {
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
       });
-      mockSearchSimilar.mockResolvedValue([
-        { id: 'mem2', similarity: 0.9, score: 0.9 }
-      ]);
 
       // extractWithOpenAI를 직접 모킹
       if (extractWithOpenAISpy) {
@@ -1744,9 +1697,6 @@ describe('LLMBasedRelationExtractor', () => {
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
       });
-      mockSearchSimilar.mockResolvedValue([
-        { id: 'mem2', similarity: 0.9, score: 0.9 }
-      ]);
 
       // extractWithOpenAI를 직접 모킹
       if (extractWithOpenAISpy) {
@@ -1797,7 +1747,6 @@ describe('LLMBasedRelationExtractor', () => {
       // 모킹된 embeddingService 생성
       const mockEmbeddingService = await createMockEmbeddingService();
       mockGenerateEmbedding = mockEmbeddingService.generateEmbedding;
-      mockSearchSimilar = mockEmbeddingService.searchSimilar;
       
       // 생성자 비동기 초기화가 테스트 주입 클라이언트를 덮어쓰지 않도록 고정
       const OpenAI = (await import('openai')).default;
@@ -1845,7 +1794,6 @@ describe('LLMBasedRelationExtractor', () => {
         score: 0.9 - i * 0.01
       }));
 
-      mockSearchSimilar.mockResolvedValue(topSimilar);
 
       // extractWithOpenAI를 직접 모킹
       if (extractWithOpenAISpy) {
@@ -1906,9 +1854,6 @@ describe('LLMBasedRelationExtractor', () => {
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
       });
-      mockSearchSimilar.mockResolvedValue([
-        { id: 'mem2', similarity: 0.9, score: 0.9 }
-      ]);
 
       // extractWithOpenAI를 직접 모킹
       if (extractWithOpenAISpy) {
@@ -1967,9 +1912,6 @@ describe('LLMBasedRelationExtractor', () => {
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
       });
-      mockSearchSimilar.mockResolvedValue([
-        { id: 'mem2', similarity: 0.9, score: 0.9 }
-      ]);
 
       const mockResult = {
         relations: [
@@ -2050,7 +1992,6 @@ describe('LLMBasedRelationExtractor', () => {
       // 모킹된 embeddingService 생성
       const mockEmbeddingService = await createMockEmbeddingService();
       mockGenerateEmbedding = mockEmbeddingService.generateEmbedding;
-      mockSearchSimilar = mockEmbeddingService.searchSimilar;
       
       // 생성자 비동기 초기화가 테스트 주입 클라이언트를 덮어쓰지 않도록 고정
       const OpenAI = (await import('openai')).default;
@@ -2143,9 +2084,6 @@ describe('LLMBasedRelationExtractor', () => {
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
       });
-      mockSearchSimilar.mockResolvedValue([
-        { id: 'mem2', similarity: 0.9, score: 0.9 }
-      ]);
 
       // extractWithOpenAI를 직접 모킹
       if (extractWithOpenAISpy) {
@@ -2209,9 +2147,6 @@ describe('LLMBasedRelationExtractor', () => {
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
       });
-      mockSearchSimilar.mockResolvedValue([
-        { id: 'mem2', similarity: 0.9, score: 0.9 }
-      ]);
 
       // LLM이 인가된 mem2 외에 임의의 타 메모리 foreign-mem99를 반환하도록 모킹
       if (extractWithOpenAISpy) {

@@ -22,7 +22,6 @@ function pair(id: string): { source: MemoryItem; target: MemoryItem } {
 
 const embedding = {
   generateEmbedding: () => { throw new Error('Single-pair reproduction must not embed'); },
-  searchSimilar: () => { throw new Error('Single-pair reproduction must not search'); },
 } as unknown as UnifiedEmbeddingService;
 
 function scored(entries: Array<[string, number]>) {

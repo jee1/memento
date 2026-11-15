@@ -13,13 +13,6 @@ export interface EmbeddingResult {
   };
 }
 
-export interface SimilarityResult {
-  id: string;
-  content: string;
-  similarity: number;
-  score: number;
-}
-
 export interface EmbeddingData {
   id: string;
   content: string;
@@ -35,16 +28,6 @@ export interface EmbeddingServiceInterface {
    * 텍스트를 임베딩 벡터로 변환
    */
   generateEmbedding(text: string): Promise<EmbeddingResult | null>;
-  
-  /**
-   * 쿼리와 유사한 임베딩 검색
-   */
-  searchSimilar(
-    query: string,
-    embeddings: EmbeddingData[],
-    limit?: number,
-    threshold?: number
-  ): Promise<SimilarityResult[]>;
   
   /**
    * 서비스 사용 가능 여부 확인

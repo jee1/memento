@@ -32,10 +32,10 @@ function isIsolatedCandidate(candidate: MemoryCandidate): boolean {
 /**
  * Periodically refreshes anchor slots with recent high-importance memories.
  *
- * Rationale: `autoReanchor` only discovers candidates via N-hop traversal from the
- * *current* anchor embedding, so it can never reach memories that have no relation
- * path back to a stale anchor.  This job bypasses that limitation by querying the
- * DB directly for recent/important memories and calling setAnchor explicitly.
+ * Rationale: N-hop traversal starts from the *current* anchor, so it can never reach
+ * memories that have no relation path back to a stale anchor.  This job bypasses that
+ * limitation by querying the DB directly for recent/important memories and calling
+ * setAnchor explicitly.
  *
  * Staleness threshold: 1 day.  Only slots whose `updated_at` is older than that
  * are touched, so anchors updated by normal recall flow are never overwritten.

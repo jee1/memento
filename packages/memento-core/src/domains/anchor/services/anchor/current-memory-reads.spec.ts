@@ -238,7 +238,7 @@ describe('#1552 current read contracts', () => {
     expect(await manager.getAnchor('agent', 'A')).toMatchObject({ memory_id: 'old' });
   });
 
-  it('cached embeddings, local seeds and reanchor scoring reject a replaced memory', async () => {
+  it('cached embeddings and local seeds reject a replaced memory', async () => {
     const embedding = Buffer.from(new Float32Array([1, 0]).buffer);
     db.prepare("INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions) VALUES ('old', 'tfidf', 'native', ?, 2, 2)").run(embedding);
     db.prepare("INSERT INTO anchor (agent_id, slot, memory_id) VALUES ('agent', 'A', 'old')").run();
@@ -246,7 +246,6 @@ describe('#1552 current read contracts', () => {
     local.setDatabase(db);
     expect(await cache.getAnchorEmbedding('old')).toBeNull();
     expect(await local.getAnchorWithEmbedding('agent', 'A')).toBeNull();
-    expect(await search.calculateReanchorScore('old')).toBe(0);
     await expect(search.searchLocal('agent', 'A', undefined, 1, { min_results: 0 }, 'old', null, Date.now())).rejects.toThrow();
   });
 });

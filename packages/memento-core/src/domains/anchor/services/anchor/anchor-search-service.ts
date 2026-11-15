@@ -6,7 +6,7 @@
 
 import type Database from 'better-sqlite3';
 import type { HybridSearchEngine, VectorSearchEngine } from '../../../search/index.js';
-import type { IAnchorCacheService, IAnchorSearchService, IAnchorManager, SearchOptions, SearchResult, AnchorSlot } from './anchor-interfaces.js';
+import type { IAnchorCacheService, IAnchorSearchService, SearchOptions, SearchResult, AnchorSlot } from './anchor-interfaces.js';
 import { DatabaseValidationError, AnchorNotFoundError, ServiceNotInitializedError } from './anchor-interfaces.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import { selectCurrentIdsInScope, type CallerMemoryScope } from '../../../../shared/utils/owned-ids.js';
@@ -16,8 +16,6 @@ import { QueryFilterService } from './query-filter-service.js';
 import { FallbackSearchService } from './fallback-search-service.js';
 import { LocalSearchService } from './local-search-service.js';
 import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../../../monitoring/index.js';
-import { AnchorReanchorService } from './anchor-reanchor-service.js';
-import type { AutoReanchorResult } from './anchor-reanchor-service.js';
 
 /**
  * Anchor Search Service 구현
@@ -32,7 +30,6 @@ export class AnchorSearchService implements IAnchorSearchService {
   private nHopSearchService: NHopSearchService;
   private queryFilterService: QueryFilterService;
   private fallbackSearchService: FallbackSearchService;
-  private reanchorService: AnchorReanchorService;
   
   // Phase 3.6: LocalSearchService
   private localSearchService: LocalSearchService | null = null;
@@ -54,13 +51,6 @@ export class AnchorSearchService implements IAnchorSearchService {
     this.nHopSearchService = new NHopSearchService(cacheService);
     this.queryFilterService = new QueryFilterService(cacheService);
     this.fallbackSearchService = new FallbackSearchService();
-    this.reanchorService = new AnchorReanchorService(
-      cacheService,
-      this.nHopSearchService,
-      () => this.db,
-      () => this.errorLoggingService,
-      (slot) => this.getSlotConfig(slot)
-    );
 
     if (options?.db) this.setDatabase(options.db);
     if (options?.hybridSearchEngine) this.setHybridSearchEngine(options.hybridSearchEngine);
@@ -415,81 +405,5 @@ export class AnchorSearchService implements IAnchorSearchService {
     startTime: number | undefined
   ): Promise<SearchResult> {
     return this.fallbackSearchService.fallbackToGlobalSearch(query, options, startTime);
-  }
-
-  /**
-   * 자동 앵커 이동 점수 계산
-   */
-  async calculateReanchorScore(
-    memoryId: string,
-    queryEmbedding?: number[],
-    anchorEmbedding?: number[]
-  ): Promise<number> {
-    return this.reanchorService.calculateReanchorScore(memoryId, queryEmbedding, anchorEmbedding);
-  }
-
-  /**
-   * 앵커 주변 메모리 사용 패턴 분석
-   */
-  async analyzeAnchorUsage(
-    agentId: string,
-    slot: AnchorSlot,
-    anchorMemoryId: string,
-    anchorEmbedding: { embedding: number[]; provider: string },
-    scope: CallerMemoryScope,
-    queryEmbedding?: number[]
-  ): Promise<Array<{ memory_id: string; score: number; reason: string }>> {
-    return this.reanchorService.analyzeAnchorUsage(
-      agentId,
-      slot,
-      anchorMemoryId,
-      anchorEmbedding,
-      scope,
-      queryEmbedding
-    );
-  }
-
-  /**
-   * 자동 앵커 이동 실행
-   */
-  async autoReanchor(
-    agentId: string,
-    slot: AnchorSlot,
-    anchorManager: IAnchorManager,
-    scope: CallerMemoryScope,
-    queryEmbedding?: number[],
-    threshold: number = 0.7,
-    strategy: 'gradual' | 'immediate' = 'gradual'
-  ): Promise<AutoReanchorResult> {
-    return this.reanchorService.autoReanchor(
-      agentId,
-      slot,
-      anchorManager,
-      scope,
-      queryEmbedding,
-      threshold,
-      strategy
-    );
-  }
-
-  /**
-   * 검색 후 자동 앵커 이동 체크
-   */
-  async checkAndAutoReanchor(
-    agentId: string,
-    slot: AnchorSlot,
-    anchorManager: IAnchorManager,
-    scope: CallerMemoryScope,
-    queryEmbedding?: number[],
-    autoMoveEnabled: boolean = false
-  ): Promise<AutoReanchorResult | null> {
-    return this.reanchorService.checkAndAutoReanchor(
-      agentId,
-      slot,
-      anchorManager,
-      scope,
-      queryEmbedding,
-      autoMoveEnabled
-    );
   }
 }

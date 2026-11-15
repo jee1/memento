@@ -38,7 +38,6 @@ vi.mock('../../../embedding/services/unified-embedding-service.js', () => {
           provider: 'tfidf',
           usage: { prompt_tokens: 10, total_tokens: 10 }
         })),
-        searchSimilar: vi.fn(async () => []),
         isAvailable: vi.fn(() => true)
       };
     })

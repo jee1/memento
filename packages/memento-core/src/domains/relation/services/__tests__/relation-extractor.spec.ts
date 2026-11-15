@@ -106,14 +106,10 @@ describe('RelationExtractor', () => {
 
     // UnifiedEmbeddingService 모킹
     mockEmbeddingService = {
-      generateEmbedding: vi.fn(),
-      searchSimilar: vi.fn()
+      generateEmbedding: vi.fn()
     };
     vi.spyOn(UnifiedEmbeddingService.prototype, 'generateEmbedding').mockImplementation(
       mockEmbeddingService.generateEmbedding
-    );
-    vi.spyOn(UnifiedEmbeddingService.prototype, 'searchSimilar').mockImplementation(
-      mockEmbeddingService.searchSimilar
     );
 
     // RelationCache 모킹
@@ -208,9 +204,6 @@ describe('RelationExtractor', () => {
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
       });
-      mockEmbeddingService.searchSimilar.mockResolvedValue([
-        { id: 'mem2', similarity: 0.9, score: 0.9 }
-      ]);
 
       // When: 하이브리드 방식으로 관계 추출 (minConfidence 0.5)
       const candidates = await extractor.extractRelations(newMemory, [existingMemory], {
@@ -338,9 +331,6 @@ describe('RelationExtractor', () => {
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
       });
-      mockEmbeddingService.searchSimilar.mockResolvedValue([
-        { id: 'mem2', similarity: 0.9, score: 0.9 }
-      ]);
 
       // When: candidateLimit 옵션과 함께 관계 추출
       await extractor.extractRelations(newMemory, existingMemories, {
@@ -370,9 +360,6 @@ describe('RelationExtractor', () => {
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
       });
-      mockEmbeddingService.searchSimilar.mockResolvedValue([
-        { id: 'mem2', similarity: 0.9, score: 0.9 }
-      ]);
 
       // When: candidateLimit 옵션 없이 관계 추출
       await extractor.extractRelations(newMemory, existingMemories);
@@ -572,9 +559,6 @@ describe('RelationExtractor', () => {
         embedding: new Array(384).fill(0.1),
         provider: 'minilm'
       });
-      mockEmbeddingService.searchSimilar.mockResolvedValue([
-        { id: 'mem2', similarity: 0.9, score: 0.9 }
-      ]);
 
       // When: method가 "llm"으로 설정된 경우
       const candidates = await extractor.extractRelations(newMemory, [existingMemory], {

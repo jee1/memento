@@ -28,7 +28,6 @@
 | restore-memory-db-from-corrupt.mjs | 손상 DB 테이블별 복구 | `npm run db:restore-from-corrupt` (인자: `--source`, `--target`, 선택 `--only-tables`) |
 | db-residue-cleanup.ts | DB 잔재 report·dimensions=0 embedding cleanup·rule 관계 cleanup | `npm run db:residue -- report`, `npm run db:residue -- cleanup-embeddings`, `npm run db:residue -- cleanup-embeddings --apply`, `npm run db:residue -- cleanup-rule-relations`, `npm run db:residue -- cleanup-rule-relations --apply` |
 | db-vacuum.ts | DELETE 후 공간 회수 측정 | `npm run db:vacuum` |
-| backup-embeddings.js | 임베딩 백업 | `npm run backup:embeddings` |
 | regenerate-embeddings.js | 임베딩 재생성 | `npm run regenerate:embeddings` |
 | reindex-embeddings | 임베딩 재색인 (마이그레이션 048·049 이후 stale 벡터 갱신) | 저장소: `npm run reindex-embeddings` / 배포판·컨테이너: `node dist/scripts/reindex-embeddings.js` (구현: `packages/memento-server/src/scripts`) |
 | debug-embeddings.js | 임베딩 디버깅 | `npm run debug:embeddings` |

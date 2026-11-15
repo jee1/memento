@@ -7,6 +7,7 @@ export type {
 } from './services/memory-embedding-service.js';
 
 export { UnifiedEmbeddingService } from './services/unified-embedding-service.js';
+export { rankSimilarEmbeddings } from './services/embedding-helpers.js';
 
 export { vectorCompatibilityService } from './services/vector-compatibility-service.js';
 
