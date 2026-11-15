@@ -130,7 +130,7 @@ npm run reindex-embeddings -- --provider minilm --batch-size 100
 
 검색어는 질의 벡터로, 저장하는 글은 기억 벡터로 만듭니다. 모델이 역할마다 다른 접두를 요구하면 `LOCAL_EMBEDDING_MODEL.prefixes` 에 두고, 창 크기는 510 에서 접두 토큰 수를 뺀 값입니다(#1729). 지금 모델은 검색어에 `query: `, 저장하는 글에 `passage: ` 를 붙입니다(e5 규약).
 
-기본 모델은 `dragonkue/multilingual-e5-small-ko-v2`(384차원, 한국어로 튜닝한 multilingual-e5-small, apache-2.0)입니다. 모델 파일은 npm 의존성 `@jee1/memento-embedding-e5-small-ko-v2`(내려받기 약 84MB, 풀면 135MB)로 함께 설치되므로 `npm install`과 Docker 빌드가 받아 오고, 실행 시 Hugging Face 다운로드 없이 디스크에서 읽습니다. 제공자 값은 역사적 이유로 `minilm`을 유지합니다. 이전 기본값 `Xenova/paraphrase-multilingual-MiniLM-L12-v2`의 행은 자동으로 이주됩니다(위 절 참고).
+기본 모델은 `dragonkue/multilingual-e5-small-ko-v2`(384차원, 한국어로 튜닝한 multilingual-e5-small, apache-2.0)입니다. 모델 파일은 npm 의존성 `@jee1/memento-embedding-e5-small-ko-v2`(내려받기 약 84MB, 풀면 135MB)로 함께 설치되므로 `npm install`과 Docker 빌드가 받아 오고, 실행 시 Hugging Face 다운로드 없이 디스크에서 읽습니다. 제공자 값은 역사적 이유로 `minilm`을 유지합니다. 앞 모델(paraphrase-multilingual-MiniLM-L12-v2)의 행은 자동으로 이주됩니다(위 절 참고).
 
 ### provider drift 정리 (#907)
 

@@ -125,7 +125,7 @@ When the build's local embedding model (`LOCAL_EMBEDDING_MODEL.storedName`) chan
 
 Search queries become query vectors and stored text becomes passage vectors. When a model expects a different prefix per role, the prefixes live in `LOCAL_EMBEDDING_MODEL.prefixes`, and the window size is 510 minus the prefix token count (#1729). The current model uses `query: ` for search queries and `passage: ` for stored memories (e5 convention).
 
-The default model is `dragonkue/multilingual-e5-small-ko-v2` (384 dimensions, Korean-tuned multilingual-e5-small, apache-2.0). The model files ship as the npm dependency `@jee1/memento-embedding-e5-small-ko-v2` (about 84MB download, 135MB unpacked), so `npm install` and Docker builds fetch it and the runtime reads it from disk with no Hugging Face download. The provider value stays `minilm` for historical reasons. The previous default, `Xenova/paraphrase-multilingual-MiniLM-L12-v2`, is replaced; its rows are migrated automatically (see above).
+The default model is `dragonkue/multilingual-e5-small-ko-v2` (384 dimensions, Korean-tuned multilingual-e5-small, apache-2.0). The model files ship as the npm dependency `@jee1/memento-embedding-e5-small-ko-v2` (about 84MB download, 135MB unpacked), so `npm install` and Docker builds fetch it and the runtime reads it from disk with no Hugging Face download. The provider value stays `minilm` for historical reasons. The previous default (paraphrase-multilingual-MiniLM-L12-v2) is replaced; its rows are migrated automatically (see above).
 
 ### Cleaning up provider drift (#907)
 

@@ -16,7 +16,9 @@ S = α·relevance + β·recency + γ·importance
 
 `relevance`에 들어가는 벡터 유사도는 **cosine similarity** 하나로 고정돼 있습니다. 모든 sqlite-vec 가상 테이블은 `vec0(embedding float[N] distance_metric=cosine)`로 생성되며, metric을 생략하면 sqlite-vec 기본값인 L2가 적용되어 계약이 깨집니다. 대상 테이블은 제공자별 `memory_item_vec_{tfidf,minilm,openai,gemini,mock}`이고, tfidf·lightweight 는 512차원 `memory_item_vec_tfidf` 를 함께 쓴다. 레거시 `memory_item_vec` 는 마이그레이션 056에서 제거했다. 정의는 `packages/memento-core/src/infrastructure/database/sqlite/vec-schema.ts`의 `VEC_TABLES` 하나에서만 관리합니다. `schema.sql`(신규 DB)·마이그레이션 041·`migrate.ts`가 모두 이 정의를 따릅니다.
 
-검색 결과 매핑은 `similarity = clamp(1 − cosine_distance, 0, 1)`입니다. cosine distance는 [0, 2] 범위이므로 양의 비례 벡터는 similarity 1.0, 직교는 0, 반대 방향(distance 2)은 하한 clamp로 0이 됩니다. 앵커 slot threshold 0.8/0.6/0.4도 이 cosine similarity 기준입니다.
+검색 결과 매핑은 `similarity = clamp(1 − cosine_distance, 0, 1)`입니다. cosine distance는 [0, 2] 범위이므로 양의 비례 벡터는 similarity 1.0, 직교는 0, 반대 방향(distance 2)은 하한 clamp로 0이 됩니다. 앵커 slot threshold(0.745/0.649/0.566)도 이 cosine similarity 기준입니다.
+
+**질의 점수 사상 (#1729)**: 로컬 임베딩 모델(`minilm`)의 질의-기억 코사인은 `mapQueryScore` 가 `clamp01(a × s + b)`(`LOCAL_EMBEDDING_MODEL.queryScoreMapping`, 지금 a=1.9943, b=-0.6838)로 검색 상수가 맞춰진 척도에 옮깁니다. 하이브리드 벡터 임계 0.38 과 high_vector 0.8 은 사상한 점수와 비교합니다. 다른 제공자 점수와 기억끼리 비교(중복 판정, 군집, 이웃, 앵커 slot)는 raw 코사인입니다.
 
 **척도 변경 이력 (issue #806, 2026-08-29)**: 이 날짜 이전의 하이브리드 벡터 채널은 제공자별 결과셋의 min-max로 점수를 다시 늘려 반환했고(최상위가 사실상 항상 1.0), 대체 경로는 거리값을 유사도 필드에 담아 방향이 반대였습니다. 두 결함을 교정해 반환값은 위 계약(`clamp(1 − cosine_distance, 0, 1)`)을 그대로 따릅니다. **해석 기준이 달라집니다**: 교정 후에는 관련 있는 결과도 실제 근접도를 반영해 낮은 값에 놓일 수 있으며, 낮아진 숫자는 검색 실패가 아니라 정직한 값입니다. 결과 수는 under-fill이 채우므로 거의 유지되고 달라지는 것은 점수 분포입니다. 교정 전후 기록은 `getRankingVersion()` 해시로 구분됩니다(`HYBRID_SEARCH.VECTOR_SCORE_SCALE`가 payload에 포함됨). 이전에 저장된 점수 스냅샷은 옛 척도이며 마이그레이션·백필은 수행하지 않았습니다.
 
@@ -84,7 +86,9 @@ scaled = clamp(0.5 + (raw − 0.5) × scale, 0, 1)
 
 적용 지점은 **융합 레인(`HybridResultRanker.normalizeScores`) 한 곳**입니다. 텍스트 레인의 관련성은 BM25 rank 시그모이드(`[fts_relevance].temperature`, #1079)로 별도 동적 범위를 가지므로 이 scale을 걸지 않습니다. 진단 리포트(`report-search-results.ts`)는 raw 융합값을 그대로 보여 줍니다.
 
-`scale`을 무한정 올릴 수는 없습니다. `benchmark-v3` macro 스윕에서 `2.0`이 평탄부의 마지막 안전점이고 `2.5`부터 `incident_ops` MRR이 0.7143 → 0.5918로 내려가 `3.0`에서는 0.3954로 게이트가 깨집니다. 원인은 clamp입니다 — scale이 커지면 관련 후보가 전부 상한 1.0에 붙어 **정답끼리 동점**이 되고, relevance가 순서를 정하는 힘을 오히려 잃습니다. 확장은 압축과 달리 상한이 있습니다.
+지금 값은 `1.5` 입니다(#1729). 로컬 임베딩 모델을 바꾸며 사상한 점수 폭이 달라져 `2.0` 이 과했고, held-out MRR 0.760 → 0.816 에 묶음별 하락이 없었습니다.
+
+`scale`을 무한정 올릴 수는 없습니다. 앞 모델의 `benchmark-v3` macro 스윕(#1180)에서 `2.0`이 평탄부의 마지막 안전점이고 `2.5`부터 `incident_ops` MRR이 0.7143 → 0.5918로 내려가 `3.0`에서는 0.3954로 게이트가 깨집니다. 원인은 clamp입니다 — scale이 커지면 관련 후보가 전부 상한 1.0에 붙어 **정답끼리 동점**이 되고, relevance가 순서를 정하는 힘을 오히려 잃습니다. 확장은 압축과 달리 상한이 있습니다.
 
 `scale`은 `getRankingVersion()` 해시에 포함됩니다.
 
