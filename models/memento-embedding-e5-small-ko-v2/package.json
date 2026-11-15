@@ -1,0 +1,21 @@
+{
+  "name": "@jee1/memento-embedding-e5-small-ko-v2",
+  "version": "1.0.0",
+  "description": "Model files for memento's local embedding: dragonkue/multilingual-e5-small-ko-v2 exported to ONNX and int8-quantized",
+  "license": "Apache-2.0",
+  "author": "Memento Team",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/jee1/memento.git",
+    "directory": "models/memento-embedding-e5-small-ko-v2"
+  },
+  "files": [
+    "multilingual-e5-small-ko-v2/",
+    "LICENSE",
+    "NOTICE",
+    "README.md"
+  ],
+  "publishConfig": {
+    "access": "public"
+  }
+}

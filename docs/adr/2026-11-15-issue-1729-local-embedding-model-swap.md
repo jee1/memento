@@ -41,7 +41,7 @@
 | 2. 야간 품질 검사 | 전환 PR 에서 기준선을 새 모델로 다시 찍고 identity 에 모델 이름을 더한다(사용자). 다시 찍기 전에 PR 범위 게이트를 먼저 잰다(마름) | 게이트 그대로(탐침에서 손잡이 하나로는 통과하지 못해 전환이 무기한 밀린다), 미끼 문항 빼기(tag_filter 실패가 남는다) |
 | 3. 기본값 전환 | 빌드 상수를 바꾸고 기동 뒤 자동으로 이주한다(사용자). 이주는 `embedding_reconciliation` 확장으로 하고 설정 키를 더하지 않는다(마름) | 설정 `EMBEDDING_LOCAL_MODEL` 추가(값이 사실상 하나인 손잡이), 수동 재색인 안내(업데이트만 한 설치가 의미 검색을 잃는다), 별도 이주 작업(같은 일을 하는 장치가 둘이 되고 끄는 길이 따로 필요하다) |
 
-열린 결정은 없다. 모델 패키지 이름은 한 번 게시하면 바꾸기 어려워 첫 게시 전에 마름이 사용자에게 확인한다(아래 권고). 공개 설정 값 `minilm` 의 별칭은 더하지 않는다(「이름」 절).
+열린 결정은 없다. 모델 패키지 이름은 사용자가 `@jee1/memento-embedding-e5-small-ko-v2` 로 확정했다(2026-11-15). 공개 설정 값 `minilm` 의 별칭은 더하지 않는다(「이름」 절).
 
 ### 결정 1. 모델 파일은 모델 전용 npm 패키지로 공급한다
 
@@ -49,7 +49,7 @@
 
 #### 변환, 런타임, 라이선스
 
-- **변환 스크립트.** `models/multilingual-e5-small-ko-v2/` 에 둔다. npm 워크스페이스가 아니다(루트 `workspaces` 는 명시 목록이다). 원본 revision `fcfc26bf` 를 고정해 받고, optimum 으로 내보낸 뒤 `quantize_dynamic(QUInt8)` 한다. 도구 버전은 `requirements.txt` 로 고정한다(optimum 2.1.0, onnxruntime 1.32.0, transformers 4.57.6, torch 2.15.0+cpu, onnx 1.23.2). fp32 `model.onnx`(470MB)는 싣지 않는다. 만든 파일은 `.gitignore` 로 커밋에서 뺀다.
+- **변환 스크립트.** `models/memento-embedding-e5-small-ko-v2/` 에 둔다. npm 워크스페이스가 아니다(루트 `workspaces` 는 명시 목록이다). 원본 revision `fcfc26bf` 를 고정해 받고, optimum 으로 내보낸 뒤 `quantize_dynamic(QUInt8)` 한다. 도구 버전은 `requirements.txt` 로 고정한다(optimum 2.1.0, onnxruntime 1.32.0, transformers 4.57.6, torch 2.15.0+cpu, onnx 1.23.2). fp32 `model.onnx`(470MB)는 싣지 않는다. 만든 파일은 `.gitignore` 로 커밋에서 뺀다.
 - **sha256 대조.** `sha256.json` 에 실을 파일 다섯 개(q8 모델, tokenizer, 설정 셋)의 해시를 둔다. 측정에 쓴 파일의 값이다(`model_quantized.onnx` 는 `7bc8d870e27a2c52…`). 스크립트는 만든 파일을 대조하고 다르면 멈춘다. `scripts/docker-smoke.mjs` 도 이미지 안 파일을 같은 값과 대조한다. 설치 쪽은 lockfile 의 `integrity`(sha512)가 tarball 을 지킨다. transformers.js 는 해시를 보지 않는다.
 - **재현성.** 같은 기계, 같은 도구 버전에서 세 번 변환해 `model_quantized.onnx` 와 `tokenizer.json` 해시가 세 번 모두 같았다. 다른 기계(CI 러너)에서도 같은지는 모른다. 대조가 막아 주므로 다르면 게시 전에 드러난다.
 - **싣는 모양.** `<패키지>/multilingual-e5-small-ko-v2/{config.json, tokenizer.json, tokenizer_config.json, special_tokens_map.json, onnx/model_quantized.onnx}`. 풀었을 때 135,134,950 바이트, gzip 83,925,241 바이트다.
@@ -60,14 +60,7 @@
 
 #### 모델 전용 패키지
 
-- **이름.** 지금 게시 중인 이름 규칙은 `@jee1/memento-client`, `@jee1/memento-assistant` 다(`@jee1` 범위, `memento-` 접두). 후보 셋 모두 아직 게시되지 않았다(npm view, 2026-11-15).
-
-| 후보 | 장점 | 단점 |
-|---|---|---|
-| **`@jee1/memento-embedding-e5-small-ko-v2` (권고)** | 역할(임베딩)과 모델이 이름에 드러난다. 모델 하나에 이름 하나라 버전이 곧 그 모델의 변환 판이다 | 다음 모델은 새 이름이다 |
-| `@jee1/memento-model-e5-small-ko-v2` | 짧다 | LLM 모델(jev)과 헷갈린다 |
-| `@jee1/memento-embedding-model` | 모델이 바뀌어도 이름이 같다 | 버전이 모델 정체성을 대신하게 되어 major 가 곧 모델 교체다. 되돌리기와 lockfile 을 읽기 어렵다 |
-
+- **이름.** `@jee1/memento-embedding-e5-small-ko-v2` 로 확정했다(사용자, 2026-11-15). 지금 게시 중인 이름 규칙(`@jee1` 범위, `memento-` 접두)을 따르고, 역할(임베딩)과 모델이 이름에 드러난다. 모델 하나에 이름 하나라 버전이 곧 그 모델의 변환 판이다. 다음 모델은 새 이름이다. 고르지 않은 후보는 `@jee1/memento-model-e5-small-ko-v2`(LLM 모델 jev 와 헷갈린다)와 `@jee1/memento-embedding-model`(major 가 곧 모델 교체라 되돌리기와 lockfile 을 읽기 어렵다)이다. 패키지 안 모델 폴더 이름은 `multilingual-e5-small-ko-v2` 로 `storedName` 과 같다.
 - **버전 규칙.** 1.0.0 에서 시작한다. 모델 파일 바이트가 그대로이고 README, NOTICE, `package.json` 만 바뀌면 patch 다. 모델 파일 바이트가 바뀌면(다시 변환) major 를 올리고 `storedName` 도 바꾼다(예 `multilingual-e5-small-ko-v2-r2`). 같은 저장 이름에 다른 벡터가 섞이지 않게 한다. 다른 모델은 새 패키지 이름이다. 앱은 `dependencies` 에 정확한 버전(범위 없음)으로 둔다.
 - **의존 위치.** 루트 `memento-mcp-server` 의 `dependencies` 다. 회사 설치가 npm 설치라 npm 설치 경로에서 모델을 받는 것이 필수다(사용자 확인). openai, gemini 제공자를 쓰는 설치도 받는다. 기본 제공자가 `minilm` 이고 지금도 첫 사용 때 q8 118MB 를 HuggingFace 에서 받으니, 기본 설치는 받는 시점이 첫 사용에서 설치로 옮겨 갈 뿐이다. `optionalDependencies` 로 빼지 않는다. 빠지면 로컬 제공자가 조용히 다른 제공자로 떨어진다.
 - **경로마다 받는 법.** npm 설치(회사), Docker(`npm ci`, `Dockerfile:18`, 운영 단계 `npm ci --omit=dev`), CI(`npm ci` 와 `actions/setup-node` 의 `cache: npm`), 개발 체크아웃과 worktree(`npm ci`)가 모두 lockfile 대로 레지스트리에서 받는다. python 이 필요 없다.
@@ -323,7 +316,7 @@ PR 랭킹 게이트(`search-quality-pr.yml`)는 `shared/config`, `domains/search
 | 4 | `embedQuery` 분리, 창 크기를 `add_special_tokens: false` 접두 토큰으로 계산, 결과 캐시와 창 캐시 키에 `storedName` 과 역할 | 같음(접두 빈 문자열) | 돈다 | 510토큰을 넘는 글의 창 분할 골든 테스트(창 크기 510 그대로), 역할별 캐시가 갈리는 테스트 | medium |
 | 5 | 기준값과 사상이 모델 정의를 읽는다(기억끼리 기준값 여섯, 사상 다섯 자리, 앵커 슬롯 두 벌 합치기) | 같음(값 그대로, 사상 1, 0) | 돈다(`shared/config`) | 기준값 값 고정 테스트, 고정 fixture 의 군집, 이웃, supersede 후보 수 snapshot, 「중복 판정 점수는 사상되지 않는다」 테스트 | medium |
 | 6 | `embedding_reconciliation` 확장(모델 드리프트 native 와 창, `startModelMigration()` 반복과 실행 주체, 실행당 4분 예산, `generateEmbeddingStrict` 와 `{ strictProvider }`, 수동 재색인도 strict, 연속 실패 상한, consolidation 1% 조건, 수동 재색인 409, `modelDriftCount` 에 창) | 같음(드리프트 0, 머지 전 운영 확인). 예외 하나: 수동 재색인이 로컬 실패 때 다른 제공자 행을 더 쓰지 않는다(지금도 `failedCount` 로 세지만 행은 남는다, `embedding-reindex-service.ts:404`) | 돈다(`domains/embedding` 을 건드린다). 이 변경을 재지는 않는다 | 옛 모델 이름 행이 3,000건 넘는 DB(상한 × 3 이상)에서 반복이 후보 0 까지 가고, 시간 예산을 줄여도 실행마다 예산 안에 끝나 재시도와 겹치지 않는 통합 테스트. 중단 뒤 이어서 끝나는 테스트, 로컬 제공자 실패 때 다른 제공자로 넘어가지 않는 테스트, 드리프트 0 이면 처리 0 | medium |
-| 7 | 모델 패키지 소스(`models/multilingual-e5-small-ko-v2/`: `package.json`, README, `LICENSE`, `NOTICE`, 변환 스크립트, `requirements.txt`, `sha256.json`, `publish.sh`). 앱은 아직 의존하지 않는다. 게시는 머지 뒤 PR 밖에서 주인이 한다 | 같음(런타임이 아직 읽지 않는다) | 안 돈다 | 스크립트로 다시 만든 파일의 sha256 이 `sha256.json` 과 같다, `npm publish --dry-run` 의 파일 목록이 다섯 파일과 문서뿐이다 | low |
+| 7 | 모델 패키지 소스(`models/memento-embedding-e5-small-ko-v2/`: `package.json`, README, `LICENSE`, `NOTICE`, 변환 스크립트, `requirements.txt`, `sha256.json`, `publish.sh`). 앱은 아직 의존하지 않는다. 게시는 머지 뒤 PR 밖에서 주인이 한다 | 같음(런타임이 아직 읽지 않는다) | 안 돈다 | 스크립트로 다시 만든 파일의 sha256 이 `sha256.json` 과 같다, `npm publish --dry-run` 의 파일 목록이 다섯 파일과 문서뿐이다 | low |
 | 8 | 전환. 모델 정의를 한국어 모델로(접두, 사상, 패널로 확인한 기준값, 패키지 폴더), 루트 `dependencies` 에 모델 패키지 정확한 버전과 lockfile, 패키지 폴더 로컬 로딩, 옛 원격 경로와 Docker warmup, CI HF 캐시 삭제, held-out 으로 확인된 관련성 축척, `VECTOR_SCORE_SCALE` 와 랭킹 버전 payload, 결정 2 의 여섯 단계, `minilm-korean-quality.spec.ts` 기대값, 문서 | 바뀐다 | 돌고 기준선을 다시 찍는다 | 하네스 주입 상위 5 구간 하한 > 0, 사본 규모 표, 야간과 PR 게이트, 리허설 peak RSS 1GiB 안 | high(사용자 승인) |
 
 - PR 2 와 PR 7 은 다른 PR 과 의존이 없어 언제든 간다. 나머지는 1 → 3 → 4 → 5 → 6 순서다. 같은 파일(`sleep-consolidation-service.ts`, `embedding-models.ts`)을 여러 PR 이 건드린다.

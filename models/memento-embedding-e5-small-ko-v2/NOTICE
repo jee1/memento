@@ -1,0 +1,39 @@
+@jee1/memento-embedding-e5-small-ko-v2
+Copyright 2026 Memento Team (packaging)
+
+This package contains model files derived from dragonkue/multilingual-e5-small-ko-v2
+(https://huggingface.co/dragonkue/multilingual-e5-small-ko-v2,
+revision fcfc26bf355882620c48df58be112275bd756f50), which its model card licenses under
+the Apache License, Version 2.0. A copy of that license is in LICENSE.
+
+Changes made to the original:
+- The safetensors weights were exported to ONNX with optimum 2.1.0 (optimum-onnx 0.1.0,
+  transformers 4.57.6, torch 2.15.0+cpu, onnx 1.23.2).
+- The ONNX model was quantized with onnxruntime 1.32.0 quantize_dynamic (QUInt8 weights)
+  and saved as onnx/model_quantized.onnx. The fp32 ONNX model is not included.
+- config.json, tokenizer.json, tokenizer_config.json and special_tokens_map.json were
+  written by the same tools from the original repository at the revision above.
+The exact build is reproduced by build.py and requirements.txt in
+https://github.com/jee1/memento/tree/main/models/memento-embedding-e5-small-ko-v2 and checked
+against sha256.json there.
+
+The original model is fine-tuned from intfloat/multilingual-e5-small
+(https://huggingface.co/intfloat/multilingual-e5-small,
+revision 614241f622f53c4eeff9890bdc4f31cfecc418b3), which its model card licenses under the
+MIT License. The model card states no copyright line. The MIT License terms follow:
+
+  Permission is hereby granted, free of charge, to any person obtaining a copy of this
+  software and associated documentation files (the "Software"), to deal in the Software
+  without restriction, including without limitation the rights to use, copy, modify, merge,
+  publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons
+  to whom the Software is furnished to do so, subject to the following conditions:
+
+  The above copyright notice and this permission notice shall be included in all copies or
+  substantial portions of the Software.
+
+  THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+  INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR
+  PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE
+  FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR
+  OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+  DEALINGS IN THE SOFTWARE.
