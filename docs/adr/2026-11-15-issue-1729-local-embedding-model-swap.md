@@ -1,6 +1,6 @@
 # ADR: 로컬 임베딩 모델을 한국어 검색용 e5-small-ko-v2 로 바꾼다 (이슈 #1729)
 
-- 상태: Proposed. 사용자 결정 3건 반영(2026-11-15). 결정 1 의 패키지 배치(C 와 C')는 사용자 확인 중. 설계 리뷰 1차(머슴5) 반영
+- 상태: Accepted (2026-11-15). 사용자 결정 3건 확정, 설계 리뷰(머슴5) 3차 승인
 - 날짜: 2026-11-15
 - 이슈: https://github.com/jee1/memento/issues/1729
 - 관련: #1731(이웃 기억과 앵커 캐시의 창 벡터), #1732(Sleep consolidation 벡터 읽기의 모델 필터), #889(모델 일관성), #1112(창 벡터), #1225(라벨 뗀 재임베딩), #806(유사도 변환 단일 원본), #1180(관련성 축척), #1399(랭킹 손잡이 도구)
@@ -10,7 +10,7 @@
 ## 요약
 
 - 모델은 한국어 검색용 `dragonkue/multilingual-e5-small-ko-v2`(384차원)로 바꾼다. 저장 공간과 스키마는 그대로다.
-- 모델 파일은 npm 으로 공급한다(결정 1). 앱 패키지에 넣는 C 와 모델 전용 패키지를 따로 두는 C' 를 비교해 올렸고 사용자가 고른다. 어느 쪽이든 변환은 고정 버전 스크립트로 하고 sha256 으로 대조한다. 같은 기계에서 세 번 변환해 해시가 같았다.
+- 모델 파일은 모델만 담은 npm 패키지로 공급하고 앱이 정확한 버전으로 의존한다(결정 1). 변환은 고정 버전 스크립트로 하고 sha256 으로 대조한다. 같은 기계에서 세 번 변환해 해시가 같았다. 첫 게시는 주인이 한다.
 - 기존 모델 파일 경로(HuggingFace 원격 내려받기)는 전환 PR 에서 지운다.
 - 모델에 따라 달라지는 값은 `embedding-models.ts` 의 모델 정의 하나에 모은다.
 - 질의는 `query: `, 기억은 `passage: ` 를 붙인다. 질의 진입점 `embedQuery` 를 따로 둔다. 기억끼리 비교는 저장한 기억 벡터를 그대로 쓴다.
@@ -37,45 +37,47 @@
 
 | 결정 | 고른 것 | 고르지 않은 것 |
 |---|---|---|
-| 1. 모델 파일 공급 | npm 으로 공급한다(사용자). 앱 패키지에 넣을지(C) 모델 전용 패키지로 둘지(C')는 사용자 확인 중 | HuggingFace 주인 계정 게시, GitHub Release 자산, git 커밋(118MB 는 GitHub 100MB 한도 초과), 설치 때 변환(npm 설치에 python, torch 필요) |
+| 1. 모델 파일 공급 | 모델만 담은 별도 npm 패키지(C'). 앱이 정확한 버전으로 의존한다. 첫 게시는 주인이 npm 로그인으로 한다(사용자) | 앱 패키지에 포함(C, 아래), HuggingFace 주인 계정 게시, GitHub Release 자산, git 커밋(118MB 는 GitHub 100MB 한도 초과), 설치 때 변환(npm 설치에 python, torch 필요) |
 | 2. 야간 품질 검사 | 전환 PR 에서 기준선을 새 모델로 다시 찍고 identity 에 모델 이름을 더한다(사용자). 다시 찍기 전에 PR 범위 게이트를 먼저 잰다(마름) | 게이트 그대로(탐침에서 손잡이 하나로는 통과하지 못해 전환이 무기한 밀린다), 미끼 문항 빼기(tag_filter 실패가 남는다) |
 | 3. 기본값 전환 | 빌드 상수를 바꾸고 기동 뒤 자동으로 이주한다(사용자). 이주는 `embedding_reconciliation` 확장으로 하고 설정 키를 더하지 않는다(마름) | 설정 `EMBEDDING_LOCAL_MODEL` 추가(값이 사실상 하나인 손잡이), 수동 재색인 안내(업데이트만 한 설치가 의미 검색을 잃는다), 별도 이주 작업(같은 일을 하는 장치가 둘이 되고 끄는 길이 따로 필요하다) |
 
-열린 결정은 결정 1 의 C 와 C' 하나다. 공개 설정 값 `minilm` 의 별칭은 더하지 않기로 했다(「이름」 절). 열린 결정이 아니다.
+열린 결정은 없다. 모델 패키지 이름은 한 번 게시하면 바꾸기 어려워 첫 게시 전에 마름이 사용자에게 확인한다(아래 권고). 공개 설정 값 `minilm` 의 별칭은 더하지 않는다(「이름」 절).
 
-### 결정 1. 모델 파일은 npm 으로 공급한다
+### 결정 1. 모델 파일은 모델 전용 npm 패키지로 공급한다
 
 원본 저장소(revision `fcfc26bf`, 2025-10-16)에는 safetensors 만 있고 ONNX 가 없다. 변환한 q8 파일을 만들어 npm 패키지에 담아야 한다. 118MB 파일은 git 에 넣지 못한다.
 
-#### C 와 C' 가 함께 쓰는 것
+#### 변환, 런타임, 라이선스
 
 - **변환 스크립트.** `models/multilingual-e5-small-ko-v2/` 에 둔다. npm 워크스페이스가 아니다(루트 `workspaces` 는 명시 목록이다). 원본 revision `fcfc26bf` 를 고정해 받고, optimum 으로 내보낸 뒤 `quantize_dynamic(QUInt8)` 한다. 도구 버전은 `requirements.txt` 로 고정한다(optimum 2.1.0, onnxruntime 1.32.0, transformers 4.57.6, torch 2.15.0+cpu, onnx 1.23.2). fp32 `model.onnx`(470MB)는 싣지 않는다. 만든 파일은 `.gitignore` 로 커밋에서 뺀다.
-- **sha256 대조.** `sha256.json` 에 실을 파일 다섯 개(q8 모델, tokenizer, 설정 셋)의 해시를 둔다. 측정에 쓴 파일의 값이다(`model_quantized.onnx` 는 `7bc8d870e27a2c52…`). 스크립트는 만든 파일을 대조하고 다르면 멈춘다. `scripts/docker-smoke.mjs` 도 이미지 안 파일을 같은 값과 대조한다. transformers.js 는 해시를 보지 않는다.
+- **sha256 대조.** `sha256.json` 에 실을 파일 다섯 개(q8 모델, tokenizer, 설정 셋)의 해시를 둔다. 측정에 쓴 파일의 값이다(`model_quantized.onnx` 는 `7bc8d870e27a2c52…`). 스크립트는 만든 파일을 대조하고 다르면 멈춘다. `scripts/docker-smoke.mjs` 도 이미지 안 파일을 같은 값과 대조한다. 설치 쪽은 lockfile 의 `integrity`(sha512)가 tarball 을 지킨다. transformers.js 는 해시를 보지 않는다.
 - **재현성.** 같은 기계, 같은 도구 버전에서 세 번 변환해 `model_quantized.onnx` 와 `tokenizer.json` 해시가 세 번 모두 같았다. 다른 기계(CI 러너)에서도 같은지는 모른다. 대조가 막아 주므로 다르면 게시 전에 드러난다.
-- **실는 모양.** `<패키지>/multilingual-e5-small-ko-v2/{config.json, tokenizer.json, tokenizer_config.json, special_tokens_map.json, onnx/model_quantized.onnx}`. 풀었을 때 135,134,950 바이트, gzip 83,925,241 바이트다.
+- **싣는 모양.** `<패키지>/multilingual-e5-small-ko-v2/{config.json, tokenizer.json, tokenizer_config.json, special_tokens_map.json, onnx/model_quantized.onnx}`. 풀었을 때 135,134,950 바이트, gzip 83,925,241 바이트다.
 - **런타임 경로.** 모델 폴더의 상위를 `env.localModelPath` 로 두고 `env.allowLocalModels = true`, `env.allowRemoteModels = false` 로 읽는다. 모델 id 는 폴더 이름이고 `storedName` 과 같다. `minilm-embedding-service.ts:55-56` 의 모듈 로드 때 `allowLocalModels = false` 기본값은 지운다. 이 `env` 를 쓰는 다른 런타임 코드는 없다(`docker-smoke.mjs` 와 `reindex-embeddings.ts` 의 진단 코드뿐이다). 확인했다. 위 모양의 폴더를 원격을 끈 transformers.js 4.3.0 으로 읽으면 fp32 까지 든 폴더로 읽은 출력과 코사인 0.9999998 이다.
-- **라이선스.** 원본은 apache-2.0, 기반 모델 `intfloat/multilingual-e5-small`(revision `614241f6`)은 MIT 다. 두 저장소 모두 LICENSE, NOTICE 파일이 없고 모델 카드 메타데이터에만 라이선스가 있다. 모델을 싣는 패키지에 `LICENSE`(Apache-2.0 전문, apache.org 원문)와 `NOTICE`(원본 저장소와 revision, 기반 모델과 MIT 허가 고지, 변경 사실과 도구 버전)를 넣는다.
+- **라이선스.** 원본은 apache-2.0, 기반 모델 `intfloat/multilingual-e5-small`(revision `614241f6`)은 MIT 다. 두 저장소 모두 LICENSE, NOTICE 파일이 없고 모델 카드 메타데이터에만 라이선스가 있다. 모델 패키지에 `LICENSE`(Apache-2.0 전문, apache.org 원문)와 `NOTICE`(원본 저장소와 revision, 기반 모델과 MIT 허가 고지, 변경 사실과 도구 버전)를 넣는다. `package.json` 의 `license` 는 `Apache-2.0` 이다. 앱 패키지 `memento-mcp-server`(MIT)는 모델을 재배포하지 않고 의존만 한다. README 의 의존성 안내에 한 줄 적는다.
 - **옛 경로 삭제.** 전환 PR 에서 Xenova id, HuggingFace 내려받기, 캐시 위치 주석, Docker warmup(`Dockerfile:75, 97-111`)과 빌드 인자 `SKIP_TRANSFORMERS_WARMUP`(`docker-compose.base.yml:205`), CI 의 HF 캐시 단계 세 곳(`nightly-tests.yml:47-52`, `search-quality-pr.yml:59-64`, `:87-92`)을 지운다. 운영의 로컬 `docker-compose.override.yml`(gitignore 대상, 저장소 밖)은 호스트 `~/.memento/hf-cache` 를 이미지의 transformers 캐시 자리에 붙여 지금 모델을 그 폴더에서 읽는다(uid 1000 으로 돌 때 캐시를 못 만들어 tfidf 로 떨어진 일 때문에 붙였다). 새 경로는 패키지 폴더를 읽기만 하니 전환 뒤 이 마운트를 운영 절차에서 지운다. 두 경로를 같이 두지 않는다. PR revert 는 옛 경로를 함께 되살린다.
 - **크기 상한.** npm 의 tarball 크기 상한은 공식 문서를 찾지 못했다. 이미 게시된 `onnxruntime-node` 1.31.1 이 풀었을 때 307,626,018 바이트라 135MB 는 실제 범위 안이다. 처음 게시 전에 `npm publish --dry-run` 으로 크기를 보고, 실제 게시 한 번으로 확인한다.
 
-#### C 와 C' 비교 (사용자 확인 중, 확정하지 않는다)
+#### 모델 전용 패키지
 
-| 기준 | C. 앱 패키지 `memento-mcp-server` 에 넣는다 | C'. 모델 전용 npm 패키지를 따로 두고 앱이 정확한 버전으로 의존한다 |
+- **이름.** 지금 게시 중인 이름 규칙은 `@jee1/memento-client`, `@jee1/memento-assistant` 다(`@jee1` 범위, `memento-` 접두). 후보 셋 모두 아직 게시되지 않았다(npm view, 2026-11-15).
+
+| 후보 | 장점 | 단점 |
 |---|---|---|
-| 게시하는 것 | 매주 릴리스 tarball 에 모델이 들어간다. 지금 풀었을 때 10,149,917 바이트(2.3.10, 3,276 파일)가 약 145MB 가 된다 | 모델 패키지(예 `@jee1/memento-model-e5-small-ko-v2`)를 모델이 바뀔 때 한 번 올린다. 앱 tarball 은 그대로다 |
-| 설치하는 쪽 | 업그레이드마다 모델을 다시 받는다(gzip 약 84MB) | 같은 모델 버전이면 다시 받지 않는다 |
-| 게시 때 파일 출처 | 릴리스 CI(`release.yml:222-243`)가 checkout 에서 빌드한다. 파일이 git 에 없으니 릴리스 작업이 변환 스크립트를 돌려야 한다(torch 설치, 원본 470MB 내려받기, 다른 기계 재현은 모름) | 주인 PC 에서 스크립트로 만들고 대조해 한 번 게시한다. 이 PC 에서는 재현이 확인됐다 |
-| Docker | `Dockerfile:21-25` 는 git checkout 을 COPY 하고 npm tarball 을 쓰지 않는다. 빌드 호스트에서 스크립트로 만든 파일을 빌드 문맥에 두거나 Docker 빌드 안에서 변환해야 한다 | `npm ci`(`Dockerfile:18`)가 lockfile 대로 받는다. 따로 할 일이 없다 |
-| CI | 모델이 필요한 작업(최근 30일 약 350회)마다 변환하거나, 변환 결과를 `actions/cache` 로 `sha256.json` 키에 묶어 둔다. 캐시가 비면 torch 설치와 변환이 다시 돈다 | `npm ci` 와 `actions/setup-node` 의 `cache: npm` 이 받는다 |
-| 개발 체크아웃, worktree | 스크립트를 돌려야 한다(python, torch 필요) | `npm ci` 로 받는다 |
-| 설치 무결성 | 앱 패키지의 lockfile `integrity`(sha512)가 tarball 을 지킨다. CI, Docker, 개발은 스크립트 대조에 기댄다 | 모든 경로가 lockfile `integrity` 로 같은 tarball 을 받는다 |
-| 새로 생기는 것 | 없음 | npm 패키지 이름 하나(같은 계정). 첫 게시는 주인의 npm 로그인이 필요하다. 지금 릴리스가 쓰는 npm OIDC trusted publishing 은 이미 있는 패키지에만 붙고 새 패키지를 만들지 못한다 |
-| 라이선스 위치 | 앱 패키지가 모델을 재배포하니 앱 패키지에 `LICENSE`(MIT)와 함께 모델의 `LICENSE`, `NOTICE` 를 따로 싣는다 | 모델 패키지에만 싣는다. 앱 README 의 의존성 안내에 한 줄 적는다 |
+| **`@jee1/memento-embedding-e5-small-ko-v2` (권고)** | 역할(임베딩)과 모델이 이름에 드러난다. 모델 하나에 이름 하나라 버전이 곧 그 모델의 변환 판이다 | 다음 모델은 새 이름이다 |
+| `@jee1/memento-model-e5-small-ko-v2` | 짧다 | LLM 모델(jev)과 헷갈린다 |
+| `@jee1/memento-embedding-model` | 모델이 바뀌어도 이름이 같다 | 버전이 모델 정체성을 대신하게 되어 major 가 곧 모델 교체다. 되돌리기와 lockfile 을 읽기 어렵다 |
 
-- 어느 쪽이든 모델은 루트 `dependencies`(C 는 tarball 안) 경로로 모든 설치가 받는다. openai, gemini 제공자를 쓰는 설치도 받는다. 기본 제공자가 `minilm` 이고 지금도 첫 사용 때 q8 118MB 를 HuggingFace 에서 받으니, 기본 설치는 받는 시점이 첫 사용에서 설치로 옮겨 갈 뿐이다. `optionalDependencies` 로 빼지 않는다. 빠지면 로컬 제공자가 조용히 다른 제공자로 떨어진다.
-- 사용자에게 함께 확인할 것. 회사 설치가 npm 설치인지 Docker 인지다. 두 설치가 모두 Docker 라면 C 의 npm 포함은 비용만 남는다.
-- 둘 다 고르지 않은 파일 출처. Git LFS 는 무료 한도가 저장과 대역폭 각각 월 10GiB 이고 지출 한도가 기본값 0 이면 넘는 순간 막힌다. 최근 30일 모델이 필요한 CI 실행(Search Quality PR 142회 × 작업 2, Docker Build 47회, 릴리스 15회, 야간 4회)이 약 350번이라 한 달 약 41GiB 다. 100MB 미만 조각으로 git 에 커밋하면 모든 클론이 모델 버전마다 118MB 를 영구히 짊어진다.
-- 게시한 바이트가 바뀌면 `storedName` 도 바꾼다. 같은 저장 이름에 다른 벡터가 섞이지 않게 한다.
+- **버전 규칙.** 1.0.0 에서 시작한다. 모델 파일 바이트가 그대로이고 README, NOTICE, `package.json` 만 바뀌면 patch 다. 모델 파일 바이트가 바뀌면(다시 변환) major 를 올리고 `storedName` 도 바꾼다(예 `multilingual-e5-small-ko-v2-r2`). 같은 저장 이름에 다른 벡터가 섞이지 않게 한다. 다른 모델은 새 패키지 이름이다. 앱은 `dependencies` 에 정확한 버전(범위 없음)으로 둔다.
+- **의존 위치.** 루트 `memento-mcp-server` 의 `dependencies` 다. 회사 설치가 npm 설치라 npm 설치 경로에서 모델을 받는 것이 필수다(사용자 확인). openai, gemini 제공자를 쓰는 설치도 받는다. 기본 제공자가 `minilm` 이고 지금도 첫 사용 때 q8 118MB 를 HuggingFace 에서 받으니, 기본 설치는 받는 시점이 첫 사용에서 설치로 옮겨 갈 뿐이다. `optionalDependencies` 로 빼지 않는다. 빠지면 로컬 제공자가 조용히 다른 제공자로 떨어진다.
+- **경로마다 받는 법.** npm 설치(회사), Docker(`npm ci`, `Dockerfile:18`, 운영 단계 `npm ci --omit=dev`), CI(`npm ci` 와 `actions/setup-node` 의 `cache: npm`), 개발 체크아웃과 worktree(`npm ci`)가 모두 lockfile 대로 레지스트리에서 받는다. python 이 필요 없다.
+- **첫 게시.** 주인이 저장소 checkout 에서 `models/multilingual-e5-small-ko-v2/publish.sh` 하나를 실행한다. 스크립트는 차례로 python 가상환경에 `requirements.txt` 를 설치하고, 변환하고, `sha256.json` 과 대조해 다르면 멈추고, `npm publish --dry-run` 으로 파일 목록과 크기를 보여 주고, 확인을 받은 뒤 `npm publish --access public` 한다(주인의 npm 로그인과 OTP). 끝나면 `npm view <패키지>@<버전> dist.integrity` 를 출력한다. 지금 릴리스가 쓰는 npm OIDC trusted publishing 은 이미 있는 패키지에만 붙고 새 패키지를 만들지 못해서 첫 게시는 사람이 한다.
+- **이후 게시.** 모델 파일이 바뀔 때만 있다. 주인이 같은 스크립트로 한다. 드물어서 게시 워크플로나 trusted publisher 는 만들지 않는다. 머슴은 게시하지 않는다.
+- **새로 생기는 것.** npm 패키지 이름 하나(같은 계정)와 `models/` 폴더 하나다.
+
+#### 고르지 않은 것: 앱 패키지에 넣기(C)
+
+릴리스 tarball 이 풀었을 때 10,149,917 바이트(2.3.10)에서 약 145MB 가 되고, 매주 릴리스와 업그레이드마다 다시 오간다. 파일이 git 에 없어 릴리스 CI, Docker 빌드(`Dockerfile:21-25` 는 git checkout 을 COPY 한다), CI, 개발 체크아웃이 모두 python 과 torch 로 변환해야 한다. Git LFS 는 최근 30일 모델이 필요한 CI 실행 약 350번 × 118MB, 한 달 약 41GiB 로 무료 10GiB 를 넘는다. 100MB 미만 조각으로 git 에 커밋하면 모든 클론이 모델 버전마다 118MB 를 영구히 짊어진다.
 
 ### 결정 2. 기준선을 새 모델로 다시 찍는다
 
@@ -270,11 +272,11 @@ agent_panel 확인 절차(데이터를 바꾸는 세 곳, 전환 PR 전에 한 �
 이주는 `embedding_reconciliation` 을 넓혀서 한다. 새 작업, 새 설정 키를 만들지 않는다.
 
 - **대상.** 지금 조건(native 없음, 내용 해시 불일치)에 「native 또는 창 행의 `model` 이 `storedName` 과 다름」을 더한다. 창 행을 같이 보는 이유는 창이 native 트랜잭션 밖에서 쓰여(`memory-embedding-service.ts:427`) 그 사이에 멈추면 창만 옛 모델로 남기 때문이다. 관리 화면의 `modelDriftCount`(`embedding-reindex-service.ts:320`, 지금은 native 만 센다)도 창을 함께 센다.
-- **실행 주체.** 정기 실행은 지금 잡 그대로다(하루 1회, 1,000건). 기동 직후 이주 반복은 core 의 배치 스케줄러가 메서드 `BatchScheduler.startModelMigration()` 으로 내놓고, 서버 진입점이 자기가 주인일 때만 부른다. 상시 HTTP 서버는 기동 뒤 부르고, stdio 는 HTTP sidecar 잠금(`tryAcquireLock`, `packages/memento-server/src/server/utils/instance-lock.ts:44`)을 얻은 직후에만 부른다. core 에 옵션을 넘기지 않고 잠금을 아는 서버가 부를지 정한다. 배치 스케줄러는 `createMementoCore` 안에서 늘 뜨고(`bootstrap/batch-telemetry-relation.ts:60`) 잠금이 없어서, 이렇게 하지 않으면 stdio 프로세스마다 이주가 하나씩 돈다. sidecar 없는 stdio 전용 설치는 반복이 없고 정기 실행으로 하루 1,000건씩 따라잡는다(13,511건이면 약 2주).
+- **실행 주체.** 정기 실행은 지금 잡 그대로다(하루 1회, 1,000건). 기동 직후 이주 반복은 core 의 배치 스케줄러가 메서드 `BatchScheduler.startModelMigration()` 으로 내놓고, 서버 진입점이 자기가 주인일 때만 부른다. 상시 HTTP 서버는 기동 뒤 부르고, stdio 는 HTTP sidecar 잠금(`tryAcquireLock`, `packages/memento-server/src/server/utils/instance-lock.ts:44`)을 얻은 직후에만 부른다. core 에 옵션을 넘기지 않고 잠금을 아는 서버가 부를지 정한다. 배치 스케줄러는 `createMementoCore` 안에서 늘 뜨고(`bootstrap/batch-telemetry-relation.ts:60`) 잠금이 없어서, 이렇게 하지 않으면 stdio 프로세스마다 이주가 하나씩 돈다. sidecar 없는 stdio 전용 설치는 반복이 없고 정기 실행으로 하루 1,000건씩 따라잡는다(13,511건이면 약 2주). 상시 HTTP 서버는 잠금을 잡지 않는다(`tryAcquireLock` 호출처는 sidecar 하나, `packages/memento-server/src/server/index.ts:104`). 그래서 같은 DB 를 Docker HTTP 서버와 호스트 sidecar 가 함께 열면 둘 다 반복을 돈다. sidecar 는 살아 있는 서버를 server-info 로 찾지만 컨테이너 안 서버의 server-info 는 호스트에서 보이지 않는다. 이 형태는 운영에 없다. 2026-11-15 집 PC 의 memento 프로세스는 컨테이너의 HTTP 서버(`TRANSPORT_TYPE=sse`) 하나뿐이고, 회사는 npm 설치라 Docker 서버가 없다. 생기면 이주를 두 번 계산해 CPU 를 더 쓸 뿐이다. 저장 쓰기는 트랜잭션 안 본문 재확인과 UNIQUE 덮어쓰기라 손상되지 않는다. 잠금은 더하지 않는다. 컨테이너와 호스트는 PID 공간이 달라 잠금 파일의 PID 생존 확인도 맞지 않는다.
 - **한 바퀴의 단위.** 이주 반복은 1,000건 실행(`maxBatchSize`, `batch-scheduler-default-config.ts:84`)을 주기 대기 없이 잇달아 돌리고, 후보가 0 이 되거나 연속 실패 상한에 닿으면 멈춘다. 반복이 멈춘 시점이 한 바퀴의 끝이다. 실행 하나하나는 잡 제한 시간 5분(`:89`) 안에 끝나야 한다. 시간 초과는 작업을 멈추지 않고(`Promise.race`, `batch-job-execution-coordinator.ts:317-323`) 완료 표시와 재시도를 걸어 원래 실행과 겹치기 때문이다. 그래서 실행 안에서 경과가 4분을 넘으면 새 후보를 잡지 않고 남은 수를 돌려준다. 이 PC 혼잡 조건 속도(13,510건 665초)면 1,000건은 약 49초라 운영 CPU 가 5배 느려도 4분 안에 멈춘다. 반복이 도는 중이라는 상태는 스케줄러가 든다.
 - **제공자 고정.** 이주는 지정한 로컬 제공자만 쓴다. 실패하면 다른 제공자로 넘어가지 않고 throw 한다. 지금 `UnifiedEmbeddingService.generateEmbedding` 은 실패하면 `tryFallbackProviders` 로 가고(`unified-embedding-service.ts:64, :73`), 이 함수는 원하는 제공자를 무시하고 우선순위 openai, gemini, minilm, tfidf 순으로 고른다(`embedding-provider-factory.ts:84-137`). 외부 키가 있으면 이주 대상 원문이 외부 임베딩 API 로 나가고, 없으면 tfidf 행이 쌓여 드리프트가 줄지 않는다. 구현 지점은 `UnifiedEmbeddingService.generateEmbeddingStrict(text, provider)`(지정 제공자만 부르고 실패하면 throw)와, 이를 타는 `MemoryEmbeddingService.createAndStoreEmbedding` 의 `{ strictProvider }` 옵션이다. 지금 다섯째 인자 `preferredProvider`(`memory-embedding-service.ts:368`)는 선택만 바꾸고 fallback 을 막지 못한다. 수동 재색인(`reindex()`, `reindexByIds()`)도 지금 이 인자를 넘기니 실패하면 다른 제공자로 넘어간다. 같은 PR 에서 strict 경로로 바꾼다.
 - **실패 상한.** 연속 실패가 20건이면 반복을 멈추고 잡 결과에 실패로 남긴다. 실패한 행은 드리프트로 남아 다음 정기 실행이 다시 본다.
-- **Sleep consolidation.** 모델 드리프트 기억이 활성 기억의 1% 를 넘는 동안 건너뛴다. DB 로 판단하니 이주 반복을 돌리지 않는 stdio 프로세스에도 같은 조건이다. 반복이 끝난 뒤 실패로 남은 기억이 1% 이하면 돈다. 그 기억은 #1732 의 모델 조건으로 군집에서 빠진다. 「드리프트 0」을 조건으로 두면 기억 하나만 실패해도 consolidation 이 조용히 영구 정지하고, 「이 프로세스의 첫 바퀴 끝남」을 조건으로 두면 반복을 돌리지 않는 프로세스가 이주 중에 군집을 만든다.
+- **Sleep consolidation.** 모델 드리프트 기억이 활성 기억의 1% 를 넘는 동안 건너뛰고, 잡 결과 warnings 에 「모델 드리프트 N건(M%) 때문에 건너뜀」을 남겨 관리 화면의 잡 이력에 보이게 한다. 분자는 native 또는 창 행의 `model` 이 `storedName` 과 다른 활성 기억이다. 임베딩이 아예 없는 기억은 세지 않는다. 그 기억은 군집 후보에서 원래 빠지고 지금 reconciliation 이 따로 만든다. DB 로 판단하니 이주 반복을 돌리지 않는 stdio 프로세스에도 같은 조건이다. 반복이 끝난 뒤 실패로 남은 기억이 1% 이하면 돈다. 그 기억은 #1732 의 모델 조건으로 군집에서 빠진다. 「드리프트 0」을 조건으로 두면 기억 하나만 실패해도 consolidation 이 조용히 영구 정지하고, 「이 프로세스의 첫 바퀴 끝남」을 조건으로 두면 반복을 돌리지 않는 프로세스가 이주 중에 군집을 만든다.
 - **동시 쓰기.** `POST /api/v1/maintenance/reindex`(전체, 양보 없음)는 이주 반복이나 `embedding_reconciliation` 실행이 도는 동안 409 로 거절한다. CLI `reindex-embeddings` 는 `createMementoCore` 를 불러 이주를 하나 더 띄우니(`reindex-embeddings.ts:62`) 서버를 멈춘 뒤에만 쓴다고 문서에 적는다. 저장 쓰기는 트랜잭션 안에서 본문을 다시 확인하고 UNIQUE 로 덮어써 손상 위험은 낮다. 실제 비용은 중복 계산과 CPU 다.
 - **끄는 길.** 관리 API 의 잡 일시정지와 `BATCH_SCHEDULER_ENABLED=false`(모든 배치를 끈다)다. 이주 반복도 스케줄러를 거치므로 둘 다 듣는다. 일시정지는 메모리에만 있어 재시작하면 풀리고 반복이 다시 시작한다. 그래서 OOM 재시작 루프는 `BATCH_SCHEDULER_ENABLED=false` 로만 끊는다. 이주만 끄는 키는 더하지 않는다.
 - **이주 중 검색.** 벡터 검색은 지금 모델 행만 비교한다(#889 의 모델 필터). 이주 전 행은 KNN 자리를 차지했다가 걸러져 의미 레인이 덜 차기도 한다. 틀린 결과가 아니라 적은 결과다. 검색 backfill 과 fallback 은 PR 1 에서 모델 조건을 단다.
@@ -320,9 +322,9 @@ PR 랭킹 게이트(`search-quality-pr.yml`)는 `shared/config`, `domains/search
 | 3 | 모델 정의 한 곳과 이름 정리(위 표). smoke 가 정의를 읽는다 | 같음 | 돈다 | `storedName` 을 리터럴 `'paraphrase-multilingual-MiniLM-L12-v2'` 로 고정하는 테스트, `getEmbeddingModelFilter('minilm')` 값 테스트, docker smoke | medium(파일 많음) |
 | 4 | `embedQuery` 분리, 창 크기를 `add_special_tokens: false` 접두 토큰으로 계산, 결과 캐시와 창 캐시 키에 `storedName` 과 역할 | 같음(접두 빈 문자열) | 돈다 | 510토큰을 넘는 글의 창 분할 골든 테스트(창 크기 510 그대로), 역할별 캐시가 갈리는 테스트 | medium |
 | 5 | 기준값과 사상이 모델 정의를 읽는다(기억끼리 기준값 여섯, 사상 다섯 자리, 앵커 슬롯 두 벌 합치기) | 같음(값 그대로, 사상 1, 0) | 돈다(`shared/config`) | 기준값 값 고정 테스트, 고정 fixture 의 군집, 이웃, supersede 후보 수 snapshot, 「중복 판정 점수는 사상되지 않는다」 테스트 | medium |
-| 6 | `embedding_reconciliation` 확장(모델 드리프트 native 와 창, `startModelMigration()` 반복과 실행 주체, 실행당 4분 예산, `generateEmbeddingStrict` 와 `{ strictProvider }`, 수동 재색인도 strict, 연속 실패 상한, consolidation 1% 조건, 수동 재색인 409, `modelDriftCount` 에 창) | 같음(드리프트 0, 머지 전 운영 확인) | 돈다(`domains/embedding` 을 건드린다). 이 변경을 재지는 않는다 | 옛 모델 이름 행이 3,000건 넘는 DB(상한 × 3 이상)에서 반복이 후보 0 까지 가고, 시간 예산을 줄여도 실행마다 예산 안에 끝나 재시도와 겹치지 않는 통합 테스트. 중단 뒤 이어서 끝나는 테스트, 로컬 제공자 실패 때 다른 제공자로 넘어가지 않는 테스트, 드리프트 0 이면 처리 0 | medium |
-| 7 | 모델 파일 소스(`models/multilingual-e5-small-ko-v2/`: 변환 스크립트, `requirements.txt`, `sha256.json`, `LICENSE`, `NOTICE`, C' 면 `package.json` 과 README). 게시는 결정 1 확정 뒤 PR 밖에서 주인이 한다 | 같음(런타임이 아직 읽지 않는다) | 안 돈다 | 스크립트로 다시 만든 파일의 sha256 이 `sha256.json` 과 같다 | low |
-| 8 | 전환. 모델 정의를 한국어 모델로(접두, 사상, 패널로 확인한 기준값, 패키지 폴더), 결정 1 의 공급 경로, 옛 원격 경로와 Docker warmup, CI HF 캐시 삭제, held-out 으로 확인된 관련성 축척, `VECTOR_SCORE_SCALE` 와 랭킹 버전 payload, 결정 2 의 여섯 단계, `minilm-korean-quality.spec.ts` 기대값, 문서 | 바뀐다 | 돌고 기준선을 다시 찍는다 | 하네스 주입 상위 5 구간 하한 > 0, 사본 규모 표, 야간과 PR 게이트, 리허설 peak RSS 1GiB 안 | high(사용자 승인) |
+| 6 | `embedding_reconciliation` 확장(모델 드리프트 native 와 창, `startModelMigration()` 반복과 실행 주체, 실행당 4분 예산, `generateEmbeddingStrict` 와 `{ strictProvider }`, 수동 재색인도 strict, 연속 실패 상한, consolidation 1% 조건, 수동 재색인 409, `modelDriftCount` 에 창) | 같음(드리프트 0, 머지 전 운영 확인). 예외 하나: 수동 재색인이 로컬 실패 때 다른 제공자 행을 더 쓰지 않는다(지금도 `failedCount` 로 세지만 행은 남는다, `embedding-reindex-service.ts:404`) | 돈다(`domains/embedding` 을 건드린다). 이 변경을 재지는 않는다 | 옛 모델 이름 행이 3,000건 넘는 DB(상한 × 3 이상)에서 반복이 후보 0 까지 가고, 시간 예산을 줄여도 실행마다 예산 안에 끝나 재시도와 겹치지 않는 통합 테스트. 중단 뒤 이어서 끝나는 테스트, 로컬 제공자 실패 때 다른 제공자로 넘어가지 않는 테스트, 드리프트 0 이면 처리 0 | medium |
+| 7 | 모델 패키지 소스(`models/multilingual-e5-small-ko-v2/`: `package.json`, README, `LICENSE`, `NOTICE`, 변환 스크립트, `requirements.txt`, `sha256.json`, `publish.sh`). 앱은 아직 의존하지 않는다. 게시는 머지 뒤 PR 밖에서 주인이 한다 | 같음(런타임이 아직 읽지 않는다) | 안 돈다 | 스크립트로 다시 만든 파일의 sha256 이 `sha256.json` 과 같다, `npm publish --dry-run` 의 파일 목록이 다섯 파일과 문서뿐이다 | low |
+| 8 | 전환. 모델 정의를 한국어 모델로(접두, 사상, 패널로 확인한 기준값, 패키지 폴더), 루트 `dependencies` 에 모델 패키지 정확한 버전과 lockfile, 패키지 폴더 로컬 로딩, 옛 원격 경로와 Docker warmup, CI HF 캐시 삭제, held-out 으로 확인된 관련성 축척, `VECTOR_SCORE_SCALE` 와 랭킹 버전 payload, 결정 2 의 여섯 단계, `minilm-korean-quality.spec.ts` 기대값, 문서 | 바뀐다 | 돌고 기준선을 다시 찍는다 | 하네스 주입 상위 5 구간 하한 > 0, 사본 규모 표, 야간과 PR 게이트, 리허설 peak RSS 1GiB 안 | high(사용자 승인) |
 
 - PR 2 와 PR 7 은 다른 PR 과 의존이 없어 언제든 간다. 나머지는 1 → 3 → 4 → 5 → 6 순서다. 같은 파일(`sleep-consolidation-service.ts`, `embedding-models.ts`)을 여러 PR 이 건드린다.
 - agent_panel 판정과 모델 파일 게시는 7 뒤, 8 앞이다.
@@ -334,7 +336,7 @@ PR 랭킹 게이트(`search-quality-pr.yml`)는 `shared/config`, `domains/search
 
 - 지운다. `anchor-reanchor-service.ts`(378줄)와 감싸는 메서드 넷, `autoMoveEnabled`, 관련성 임베딩 분기, 여섯 서비스와 인터페이스의 `searchSimilar`, `backup-embeddings.js`, Docker warmup 과 `SKIP_TRANSFORMERS_WARMUP`, CI HF 캐시 단계 셋.
 - 하나로 합친다. 저장 벡터 읽기 다섯 벌(이웃 둘, 앵커 캐시, `loadEmbeddingsMap`, backfill)과 fallback KNN SQL 의 모델 조건, 앵커 슬롯 기준값 두 벌, 모델 id 하드코딩 세 곳(상수, Dockerfile, smoke), `MINILM_MODEL_ID` 와 `MINILM_MODEL_NAME`.
-- 더한다. 모델 정의 필드, 질의 진입점 하나, reconciliation 의 조건 하나와 기동 직후 한 바퀴, 변환 스크립트(C' 면 모델 패키지 하나).
+- 더한다. 모델 정의 필드, 질의 진입점 하나, reconciliation 의 조건 하나와 기동 직후 한 바퀴, 모델 패키지 하나와 게시 스크립트.
 - 같은 일을 하는 장치를 둘 두지 않는다. 이주는 reconciliation 이 한다.
 - 다음 모델 교체는 모델 정의 하나, 사상 계수, agent_panel 판정, 기준선 다시 찍기, 모델 파일 다시 만들기로 끝난다.
 
@@ -369,8 +371,8 @@ PR 랭킹 게이트(`search-quality-pr.yml`)는 `shared/config`, `domains/search
 | 패널을 통과해도 Sleep consolidation 규모가 1.2~1.6배 | 8 | 전환 뒤 첫 배치의 군집 수와 크기, 5번 백업 |
 | 관련성 축척 1.5 가 held-out 에서 확인되지 않으면 knowledge_update 한 문항 하락이 실제 지침 갱신에서 나타난다 | 8 | 지표 2(주입 적중), 지침 반복 수 |
 | PR 범위 게이트(400행)와 perf-smoke(p95 2배 여유)는 재지 않았다. 질의 지연 중앙값은 4.2ms → 6.4ms 다 | 8 | 결정 2 의 1단계, 전환 PR 의 CI |
-| sidecar 없는 stdio 전용 설치는 이주 반복이 없어 약 2주 동안 의미 검색이 차례로 찬다 | 6, 8 | 회사 설치 형태(결정 1 의 확인 항목과 같다) |
-| 다른 기계에서 변환 결과가 달라진다 | 7, 8 | sha256 대조가 게시 전에 막는다. C 는 CI 와 Docker 빌드 호스트마다 변환하니 이 위험을 매번 진다 |
+| sidecar 없는 stdio 전용 설치는 이주 반복이 없어 약 2주 동안 의미 검색이 차례로 찬다 | 6, 8 | 회사 설치(npm)가 HTTP sidecar 를 쓰는지 전환 전에 본다. 안 쓰면 그 설치에서 `POST /api/v1/maintenance/reindex` 를 한 번 부르거나 sidecar 를 켠다 |
+| 다른 기계에서 변환 결과가 달라진다 | 7 | sha256 대조가 게시 전에 막는다. 게시는 재현이 확인된 주인 PC 에서 한 번이라 CI 와 Docker 는 이 위험을 지지 않는다 |
 | 설치 크기 +135MB(gzip 84MB)를 다른 제공자를 쓰는 설치도 진다 | 8 | 기본 설치는 첫 사용 때 받던 것과 크기가 같다 |
 | 측정이 주인 한 사람의 기억과 생성한 질문(실제 질문 8건)에 기댄다 | 8 | 전환 뒤 지표 2 |
 
