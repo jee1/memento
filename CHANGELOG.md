@@ -11,6 +11,7 @@
 
 ### Added
 
+- **로컬 임베딩 모델 패키지 소스** (#1729 PR 7): `models/memento-embedding-e5-small-ko-v2/` 에 npm 패키지 `@jee1/memento-embedding-e5-small-ko-v2` 의 소스를 둡니다. 원본 `dragonkue/multilingual-e5-small-ko-v2`(revision `fcfc26bf`, apache-2.0)를 고정 버전 도구(`requirements.txt`)로 ONNX 로 내보내고 int8 로 양자화하는 `build.py`, 결과 다섯 파일의 `sha256.json`, 라이선스 고지(`LICENSE`, `NOTICE`), 주인이 실행하는 `publish.sh`(변환, sha256 대조, `npm publish --dry-run` 크기 확인, 확인 뒤 게시)입니다. 같은 기계에서 다시 만든 파일은 sha256 이 같았습니다. 앱은 아직 이 패키지에 의존하지 않고 동작은 바뀌지 않습니다. 게시는 주인이 따로 합니다.
 - 문서: README, README.en, 릴리스 노트 템플릿(`release.yml`)에 「쓰고 있으면 Discussions 에 한 줄 남겨 달라」 안내를 넣고, `.github/ISSUE_TEMPLATE/config.yml` 에 Discussions contact link 를 추가한다. 사용 정보 수집은 넣지 않는다 (#1718).
 - Anchor Map 기억 노드 응답에 `anchors: [{ slot, hop_distance }]` 를 추가하고, 화면은 가장 가까운 소속 앵커 색으로 채우며 hop이 멀수록 옅게, 여러 앵커면 테두리를 두 번째 앵커 색으로 칠한다. 슬롯 문자·소속 문구·범례를 함께 맞춘다. 기존 `hop_distance` 의미는 그대로다 (#1692).
 - `GET /admin/ops/summary` `zones.system_ok` 에 마이그레이션 백업(최신 mtime·파일 수)과 DB/WAL 크기(MB) 신호를 추가한다. severity 는 null, window 는 null(현재 스냅샷). 새 설정·테이블 없음 (#1704).

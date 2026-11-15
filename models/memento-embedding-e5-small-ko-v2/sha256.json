@@ -1,0 +1,7 @@
+{
+  "multilingual-e5-small-ko-v2/config.json": "51d8afcd56f9cdaf391c71abe73f1179fb52e71baa944234d27d070992917a9d",
+  "multilingual-e5-small-ko-v2/special_tokens_map.json": "38d989b0fdad0fec0c67c14b1f3c8b68184022cf6d4adc5444526ced8653f738",
+  "multilingual-e5-small-ko-v2/tokenizer.json": "cd98e5698b201ba914efb8c18b6709fa8735ab71dcad8d2b431e52e8bf68d932",
+  "multilingual-e5-small-ko-v2/tokenizer_config.json": "088b1b60e1fbc7fbdbb3d4bc84922b388692c7089d4607a9909b46a549ebd57e",
+  "multilingual-e5-small-ko-v2/onnx/model_quantized.onnx": "7bc8d870e27a2c520cdc67975d0cffb1f486213aaaa634fd1c6a31c0508ea892"
+}
