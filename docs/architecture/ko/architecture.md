@@ -72,7 +72,7 @@ S = α·relevance + β·recency + γ·importance
 | 프로바이더 | 특징 |
 |-----------|------|
 | **TF-IDF** | 외부 API 없이 로컬 실행. 기본값. |
-| **MiniLM** | 경량 로컬 모델. |
+| **minilm** | 로컬 임베딩 모델(multilingual-e5-small-ko-v2, 384차원)의 제공자 값. |
 | **OpenAI** (`text-embedding-3-small`) | API 키 필요, 1536차원. |
 | **Gemini** | Google Gemini 임베딩. |
 

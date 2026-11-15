@@ -36,7 +36,7 @@ console.log(result.model); // 'minilm'
 
 #### embedQuery(text, preferredProvider?)
 
-검색어를 질의 벡터로 변환합니다(#1729). 매개변수와 반환값은 `generateEmbedding` 과 같습니다. 로컬 임베딩 모델(`minilm`)은 역할마다 다른 접두(`LOCAL_EMBEDDING_MODEL.prefixes`)를 창 앞에 붙이고, 결과 캐시도 역할마다 따로 둡니다. 다른 제공자는 `generateEmbedding` 과 같습니다. 지금 모델은 두 접두가 빈 문자열이라 같은 벡터가 나옵니다.
+검색어를 질의 벡터로 변환합니다(#1729). 매개변수와 반환값은 `generateEmbedding` 과 같습니다. 로컬 임베딩 모델(`minilm`)은 역할마다 다른 접두(`LOCAL_EMBEDDING_MODEL.prefixes`)를 창 앞에 붙이고, 결과 캐시도 역할마다 따로 둡니다. 다른 제공자는 `generateEmbedding` 과 같습니다. 지금 모델(multilingual-e5-small-ko-v2)은 검색어에 `query: `, 저장하는 글에 `passage: ` 를 붙이므로 같은 글이라도 두 벡터가 다릅니다.
 
 ```typescript
 const query = await service.embedQuery('지난주 배포 문제');

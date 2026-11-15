@@ -97,6 +97,7 @@ Memento가 **왜 이렇게 나뉘어 있는지**를 이해하려면 아키텍처
 | 배포 전 환경변수 점검 | [env-deployment-checklist.md](operations/ko/env-deployment-checklist.md) | — |
 | Docker 설정 | [docker-setup-guide.md](operations/ko/docker-setup-guide.md) | — |
 | Docker 배포 절차 (DB 백업 포함) | [docker-deploy-procedure.md](operations/ko/docker-deploy-procedure.md) | — |
+| 로컬 임베딩 모델 전환 (#1729) | [local-embedding-model-switch.md](operations/ko/local-embedding-model-switch.md) | — |
 | DB 보존 정책 | [db-retention-policy.md](operations/ko/db-retention-policy.md) | — |
 | 메모리 Export / Import (DR) | [memory-export-import.md](operations/ko/memory-export-import.md) | — |
 | 로그 이슈 모니터 | [log-issue-monitor.md](operations/ko/log-issue-monitor.md) | [log-issue-monitor.md](operations/en/log-issue-monitor.md) |

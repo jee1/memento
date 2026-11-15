@@ -153,7 +153,7 @@ erDiagram
 |--------|------|------|
 | `memory_item_fts` | FTS5 전문 검색. content, tags, source, reflection_notes. | content='memory_item' 연동, 트리거로 동기화 |
 | `memory_item_vec_tfidf` | TF-IDF·lightweight 512차원. | |
-| `memory_item_vec_minilm` | MiniLM 384차원. | |
+| `memory_item_vec_minilm` | 로컬 임베딩 모델 384차원. | |
 | `memory_item_vec_openai` | OpenAI 1536차원. | |
 | `memory_item_vec_gemini` | Gemini 768차원. | |
 

@@ -5,6 +5,7 @@
     "scope": "pr",
     "fixture": "benchmark-v3",
     "embedding_provider": "minilm",
+    "embedding_model": "multilingual-e5-small-ko-v2",
     "corpus_row_count": 400,
     "corpus_id_sha256": "dc61e5256936d935a6391313aca54c2b037bb0da7fc3892e69e998079e1f5df4",
     "scored_query_ids": {
@@ -75,11 +76,11 @@
   },
   "metrics": {
     "mrr_by_macro": {
-      "incident_ops": 0.8571428571428571,
-      "procedural": 0.9166666666666666,
-      "conceptual": 0.9111111111111111,
-      "tag_filter": 1,
-      "knowledge_update": 0.9375
+      "incident_ops": 1,
+      "procedural": 1,
+      "conceptual": 0.9199999999999999,
+      "tag_filter": 0.875,
+      "knowledge_update": 0.9583333333333334
     }
   }
 }

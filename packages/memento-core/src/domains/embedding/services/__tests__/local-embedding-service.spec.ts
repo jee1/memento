@@ -5,6 +5,13 @@
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { LocalEmbeddingService } from '../local-embedding-service.js';
+import { LOCAL_EMBEDDING_MODEL } from '../../../../shared/config/embedding-models.js';
+
+// 이 spec 은 창 나누기와 캐시 자체를 본다. 접두가 붙는 모양은 local-embedding-prefix.spec.ts 가 본다.
+vi.mock('../../../../shared/config/embedding-models.js', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('../../../../shared/config/embedding-models.js')>();
+  return { ...actual, LOCAL_EMBEDDING_MODEL: { ...actual.LOCAL_EMBEDDING_MODEL, prefixes: { query: '', passage: '' } } };
+});
 import { meanPoolNormalize } from '../embedding-helpers.js';
 
 describe('LocalEmbeddingService', () => {
@@ -60,15 +67,15 @@ describe('LocalEmbeddingService', () => {
   });
 
   describe('fallback 시 차원 정보', () => {
-    it('Given: MiniLM이 실패하고 TF-IDF로 fallback할 때, When: getModelInfo()를 호출하면, Then: MiniLM 차원(384)을 반환해야 함', () => {
+    it('Given: 로컬 임베딩 모델이 실패하고 TF-IDF로 fallback할 때, When: getModelInfo()를 호출하면, Then: 로컬 모델 차원(384)을 반환해야 함', () => {
       // Given: 로컬 임베딩 서비스 (실패 시에도 차원 정보는 유지)
       // When: getModelInfo() 호출
       const modelInfo = service.getModelInfo();
 
-      // Then: MiniLM 차원(384)을 반환해야 함
+      // Then: 로컬 모델 차원(384)을 반환해야 함
       expect(modelInfo).toBeDefined();
       expect(modelInfo.dimensions).toBe(384);
-      expect(modelInfo.model).toBe('paraphrase-multilingual-MiniLM-L12-v2');
+      expect(modelInfo.model).toBe(LOCAL_EMBEDDING_MODEL.storedName);
     });
   });
 
@@ -124,7 +131,7 @@ describe('LocalEmbeddingService', () => {
 
       expect(windowResult.vectors).toHaveLength(1);
       expect(windowResult.vectors[0]).toHaveLength(384);
-      expect(windowResult.model).toBe('paraphrase-multilingual-MiniLM-L12-v2');
+      expect(windowResult.model).toBe(LOCAL_EMBEDDING_MODEL.storedName);
       expect(meanPoolNormalize(windowResult.vectors)).toEqual(embeddingResult?.embedding);
     });
 

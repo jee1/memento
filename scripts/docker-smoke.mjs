@@ -1,5 +1,5 @@
 /**
- * Docker 이미지 안에서 네이티브 의존과 로컬 임베딩 모델 캐시가 실제로 동작하는지 검증한다 (#996).
+ * Docker 이미지 안에서 네이티브 의존과 로컬 임베딩 모델 패키지가 실제로 동작하는지 검증한다 (#996, #1729).
  *
  * 테스트와 type-check 로는 이 실패를 잡을 수 없다. sharp 0.35 에는 install script 가 없어
  * prebuilt optional dep 이 빠져도 빌드가 조용히 성공하고 `docker run` 에서야 터진다 (#993).
@@ -31,16 +31,33 @@ try {
   db.close();
 }
 
-// allowRemoteModels=false 로 원격 다운로드를 막는다.
-// 이미지에 로컬 임베딩 모델 캐시가 구워져 있지 않으면 여기서 실패한다 — Dockerfile 의 warmup 이
-// try/catch 로 실패를 삼키기 때문에 이 검증이 warmup 성공을 확인하는 유일한 지점이다.
-// 모델은 런타임과 같은 정의(LOCAL_EMBEDDING_MODEL)에서 읽는다 (#1729).
+// 모델은 런타임과 같은 정의(LOCAL_EMBEDDING_MODEL)로, 모델 패키지 폴더에서 원격을 끈 채 읽는다 (#1729).
+// 이미지 안 파일을 게시 때의 sha256 과 먼저 대조한다. 이미지에서는 Dockerfile 이 scripts/model-sha256.json 으로 넣는다.
+const { createRequire } = await import('node:module');
+const { createHash } = await import('node:crypto');
+const { existsSync, readFileSync } = await import('node:fs');
+const { dirname, join } = await import('node:path');
 const { LOCAL_EMBEDDING_MODEL: model } = await import(
   '../packages/memento-core/dist/shared/config/embedding-models.js'
 );
+const packageDir = dirname(createRequire(import.meta.url).resolve(`${model.source.packageName}/package.json`));
+const hashFile = [
+  new URL('./model-sha256.json', import.meta.url),
+  new URL('../models/memento-embedding-e5-small-ko-v2/sha256.json', import.meta.url),
+].find((url) => existsSync(url));
+if (!hashFile) throw new Error('[smoke] model sha256 list not found');
+const expected = JSON.parse(readFileSync(hashFile, 'utf8'));
+for (const [file, digest] of Object.entries(expected)) {
+  const actual = createHash('sha256').update(readFileSync(join(packageDir, file))).digest('hex');
+  if (actual !== digest) throw new Error(`[smoke] model file sha256 mismatch: ${file}`);
+}
+console.log(`[smoke] model package files match sha256: ${Object.keys(expected).length}`);
+
 const { pipeline, env } = await import('@huggingface/transformers');
+env.localModelPath = packageDir;
+env.allowLocalModels = true;
 env.allowRemoteModels = false;
-const embed = await pipeline('feature-extraction', model.source.repo, {
+const embed = await pipeline('feature-extraction', model.storedName, {
   dtype: model.source.dtype,
 });
 const output = await embed('smoke');

@@ -28,7 +28,7 @@ HTTP 관리 서버를 열면 **브라우저 세션**, **스코프드 API 토큰*
 
 - **Vitest 개발 의존성 경고 조치**: `vitest` · `@vitest/mocker` · `@vitest/coverage-v8`를 `4.1.12`로 갱신해 [수동 mock 코드 주입](https://github.com/advisories/GHSA-qxg6-89mg-rqv8)과 [Windows 경로 우회](https://github.com/advisories/GHSA-xp26-3454-mjgp)를 수정했다. 두 공지는 공개 mocker/interceptor 플러그인의 WebSocket 경로에 해당하며 일반 Node 테스트 실행은 해당 핸들러를 등록하지 않는다. dev 게이트는 High/Critical만 차단하며, Moderate의 minor/patch 수정은 의존성 유지보수에서 처리한다.
 - **CI**: `Full npm audit (dev included)` 스텝(`--include-dev`)이 wanted 범위에서 고칠 수 있는 High/Critical 을 막고, `npm audit summary` 스텝이 전체 목록을 job summary 에 남긴다. dev 취약점이 다시 조용히 쌓이지 않는다.
-- **Exploitability note**: MiniLM / local embedding 경로에서만 해당 transitive가 로드됩니다. ZIP/이미지 입력을 신뢰하지 않는 운영에서는 노출면이 제한적입니다. 새 fixable High/Moderate가 생기면 CI가 막습니다.
+- **Exploitability note**: 로컬 임베딩(`minilm`) 경로에서만 해당 transitive가 로드됩니다. ZIP/이미지 입력을 신뢰하지 않는 운영에서는 노출면이 제한적입니다. 새 fixable High/Moderate가 생기면 CI가 막습니다.
 
 ## HTTP API 인증·인가
 

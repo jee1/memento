@@ -1,4 +1,7 @@
 import { describe, expect, it, vi, afterEach } from 'vitest';
+import { LOCAL_EMBEDDING_MODEL } from '../config/embedding-models.js';
+
+const DEDUP_DEFAULT = LOCAL_EMBEDDING_MODEL.memorySimilarity.rememberDedup;
 import {
   parseRememberDedupLexicalFloor,
   parseRememberDedupMergeLexicalFloor,
@@ -11,9 +14,9 @@ describe('parseRememberDedupThreshold', () => {
     vi.restoreAllMocks();
   });
 
-  it('defaults to 0.85 when unset', () => {
-    expect(parseRememberDedupThreshold(undefined)).toBe(0.85);
-    expect(parseRememberDedupThreshold('')).toBe(0.85);
+  it('defaults to the local embedding model value when unset', () => {
+    expect(parseRememberDedupThreshold(undefined)).toBe(DEDUP_DEFAULT);
+    expect(parseRememberDedupThreshold('')).toBe(DEDUP_DEFAULT);
   });
 
   it('accepts valid values in (0, 1]', () => {
@@ -22,11 +25,11 @@ describe('parseRememberDedupThreshold', () => {
     expect(parseRememberDedupThreshold('  0.5  ')).toBe(0.5);
   });
 
-  it('falls back to 0.85 for invalid values', () => {
+  it('falls back to the default for invalid values', () => {
     const stderrSpy = vi.spyOn(process.stderr, 'write').mockImplementation(() => true);
-    expect(parseRememberDedupThreshold('0')).toBe(0.85);
-    expect(parseRememberDedupThreshold('1.5')).toBe(0.85);
-    expect(parseRememberDedupThreshold('abc')).toBe(0.85);
+    expect(parseRememberDedupThreshold('0')).toBe(DEDUP_DEFAULT);
+    expect(parseRememberDedupThreshold('1.5')).toBe(DEDUP_DEFAULT);
+    expect(parseRememberDedupThreshold('abc')).toBe(DEDUP_DEFAULT);
     expect(stderrSpy).toHaveBeenCalled();
   });
 });

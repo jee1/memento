@@ -246,6 +246,29 @@ describe('evaluateRanking', () => {
     ]);
   });
 
+  it('#1729: 기준선의 임베딩 모델이 지금과 다르거나 없으면 mismatch 다', () => {
+    for (const recorded of ['paraphrase-multilingual-MiniLM-L12-v2', undefined]) {
+      const { path, measurement, scope } = writeHigherBaseline(tempDir());
+      const parsed = JSON.parse(readFileSync(path, 'utf8')) as { identity: Record<string, unknown> };
+      expect(parsed.identity.embedding_model).toBe('multilingual-e5-small-ko-v2');
+      if (recorded === undefined) delete parsed.identity.embedding_model;
+      else parsed.identity.embedding_model = recorded;
+      writeFileSync(path, `${JSON.stringify(parsed, null, 2)}\n`);
+      const outcome = evaluateRanking({
+        measurement,
+        scope,
+        seededBenchmarkIds: scope.corpusBenchmarkIds,
+        embeddingProvider: 'minilm',
+        baselinePath: path,
+        elapsedMs: 10,
+        writeBaseline: false,
+      });
+      expect(outcome.mode).toBe('fail');
+      if (outcome.mode !== 'fail') return;
+      expect(outcome.causes).toEqual([{ kind: 'ranking', reason: 'mismatch', field: 'embedding_model' }]);
+    }
+  });
+
   it('returns only mismatch when a macro key is missing from the baseline', () => {
     const { path, measurement, scope } = writeHigherBaseline(tempDir());
     const parsed = JSON.parse(readFileSync(path, 'utf8')) as {

@@ -12,4 +12,4 @@ description: Docker / deploy — pointer + traps
 - 베이스 이미지 고정: `node:24.22.1-alpine`(builder) / `node:24.22.1-slim`(production) — 플로팅 `node:24-*` 금지
 - 배포 전 `npm run db:pre-docker-deploy`
 - `DB_PATH`는 절대 경로; `~`는 확장되지 않음
-- 이미지 검증은 `docker-build.yml` + `scripts/docker-smoke.mjs` — BuildKit 로그 grep으로 MiniLM warmup 판정 금지
+- 이미지 검증은 `docker-build.yml` + `scripts/docker-smoke.mjs` — 이미지 안 모델 패키지 sha256 과 오프라인 임베딩을 본다(warmup 없음, #1729)

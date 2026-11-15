@@ -8,6 +8,8 @@
  * - 개방-폐쇄: 확장에는 열려있고 수정에는 닫혀있음
  */
 
+import { createRequire } from 'node:module';
+import { dirname } from 'node:path';
 import { pipeline, env } from '@huggingface/transformers';
 import { LOCAL_EMBEDDING_MODEL, type EmbeddingRole } from '../../../shared/config/embedding-models.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
@@ -47,11 +49,6 @@ if (typeof process !== 'undefined' && process.env) {
   if (!process.env.ENABLE_WORKER) {
     env.useBrowserCache = false;
     env.useCustomCache = false;
-    // Worker 스레드 완전 비활성화를 위한 추가 설정
-    // MCP 서버와 HTTP 서버 간 일관성을 위해 명시적 설정
-    if (typeof env.allowLocalModels === 'undefined') {
-      env.allowLocalModels = false;
-    }
     // WASM 백엔드 사용 (Worker 스레드 없이 동작)
     if (typeof env.backends === 'undefined') {
       // env.backends는 공식 지원 여부가 불확실하므로 주석 처리
@@ -210,9 +207,13 @@ export class LocalEmbeddingService implements EmbeddingServiceInterface {
     try {
       // Node.js 환경에서 Worker 스레드 사용을 비활성화
       // 이는 ERR_WORKER_PATH 에러를 방지합니다
+      // 모델은 정확한 버전으로 의존하는 npm 패키지 안 폴더에서만 읽는다. 원격 내려받기는 끈다 (#1729).
+      env.localModelPath = resolveModelPackageDir();
+      env.allowLocalModels = true;
+      env.allowRemoteModels = false;
       const model = await pipeline(
         'feature-extraction',
-        LOCAL_EMBEDDING_MODEL.source.repo,
+        LOCAL_EMBEDDING_MODEL.storedName,
         {
           // q8 모델 사용 (메모리 사용량 감소)
           dtype: LOCAL_EMBEDDING_MODEL.source.dtype
@@ -393,6 +394,16 @@ export class LocalEmbeddingService implements EmbeddingServiceInterface {
    */
   getCacheSize(): number {
     return this.cache.size;
+  }
+}
+
+/** 모델 패키지 루트. 그 안의 `<storedName>/` 폴더가 transformers.js 의 모델 id 다. */
+function resolveModelPackageDir(): string {
+  const { packageName } = LOCAL_EMBEDDING_MODEL.source;
+  try {
+    return dirname(createRequire(import.meta.url).resolve(`${packageName}/package.json`));
+  } catch (error) {
+    throw new Error(`로컬 임베딩 모델 패키지 ${packageName} 를 찾을 수 없습니다. npm install 을 다시 실행하세요`, { cause: error });
   }
 }
 

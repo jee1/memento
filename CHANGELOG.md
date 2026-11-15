@@ -27,6 +27,14 @@
 
 ### Changed
 
+- **로컬 임베딩 모델을 multilingual-e5-small-ko-v2 로 바꾼다** (#1729 PR 8): 임베딩 제공자 `minilm` 뒤의 모델이 `dragonkue/multilingual-e5-small-ko-v2`(384차원, apache-2.0)입니다. 운영 질문 262개에서 주입 상위 5 가 52.7% 에서 61.8% 로 올랐습니다(+9.2%p, 95% 구간 [+5.7, +12.6]).
+  - 모델 파일은 npm 의존성 `@jee1/memento-embedding-e5-small-ko-v2@1.0.0`(정확한 버전) 안에 있고 그 폴더에서만 읽습니다. 원격 내려받기는 끕니다. Docker 의 모델 warmup 단계, `SKIP_TRANSFORMERS_WARMUP` 빌드 인자, CI 의 Hugging Face 캐시 단계를 지웠습니다. 이미지 스모크 검사는 패키지 파일 다섯 개의 sha256 과 오프라인 임베딩을 봅니다.
+  - 역할 접두 `query: `, `passage: ` 를 붙입니다(기억 창 507 토큰). 질의 점수 사상은 `{ a: 1.9943, b: -0.6838 }` 입니다.
+  - 기억끼리 기준값을 새 척도로 옮겼습니다. 군집과 supersede 후보 0.65 → 0.668, 요약 합침과 remember 중복 판정 0.85 → 0.794, 이웃 기억과 앵커 A 0.8 → 0.745, 앵커 B 0.6 → 0.649, 앵커 C 0.4 → 0.566. 운영 `.env` 에 앞 모델 값으로 적은 `CONSOLIDATION_SIMILARITY_THRESHOLD`, `CONSOLIDATION_MERGE_SIMILARITY_THRESHOLD`, `MEMENTO_REMEMBER_DEDUP_THRESHOLD` 가 있으면 지워야 합니다.
+  - `[relevance_signal].scale` 2.0 → 1.5, `VECTOR_SCORE_SCALE` `mapped-cosine-v3`. ranking_version payload 에 `local_embedding_model`, `query_score_mapping` 을 더했습니다.
+  - 검색 품질 기준선(`ranking-nightly.json`, `ranking-pr.json`)을 새 모델로 다시 찍고 identity 에 `embedding_model` 을 더했습니다. 모델 이름이 다르거나 없는 기준선은 `mismatch` 입니다.
+  - 기동 뒤 모델 이주(PR 6b)가 옛 모델 벡터를 다시 만듭니다. 운영 사본 리허설(활성 13,510건)은 1GiB 상한에서 14회, 580초에 끝났습니다. 배포와 되돌리기는 `docs/operations/ko/local-embedding-model-switch.md` 를 따릅니다.
+
 - **재색인과 임베딩 정합 잡은 지정한 제공자만 쓴다** (#1729 PR 6a): `UnifiedEmbeddingService.generateEmbeddingStrict(text, provider)` 를 더하고, `MemoryEmbeddingService.createAndStoreEmbedding` 의 다섯째 인자를 strict 제공자로 바꿨습니다. 수동 재색인(`reindex`, `reindexByIds`, CLI `reindex-embeddings`, `POST /api/v1/maintenance/reindex`)과 `embedding_reconciliation`, 저장소 스크립트의 벤치마크 시드(`scripts/lib/benchmark-search-database.ts`)와 `scripts/agent-memory-production-adapter.ts` 가 이 경로를 탑니다. 예전에는 지정한 제공자가 실패하면 우선순위대로 다른 제공자로 넘어가 외부 키가 있으면 원문이 외부 임베딩 API 로 나가고, 없으면 TF-IDF 행이 쌓였습니다. 이제는 실패로 세고 행을 쓰지 않습니다. 제공자 서비스 안에서 다른 제공자로 넘어간 결과(openai 의 TF-IDF 대체)도 받지 않습니다. `modelDriftCount` 는 native 행에 더해 창 행의 옛 모델도 셉니다.
 - **기억끼리 기준값과 질의 점수 사상을 모델 정의로** (#1729 PR 5): 값과 결과는 그대로입니다.
   - `LOCAL_EMBEDDING_MODEL.memorySimilarity` 가 Sleep consolidation 군집(0.65), 요약 합침(0.85), remember 중복 판정(0.85), supersede 후보(0.65), 이웃 기억(0.8), 앵커 슬롯 A/B/C(0.8/0.6/0.4)의 기본값입니다. env 덮어쓰기 셋(`CONSOLIDATION_SIMILARITY_THRESHOLD`, `CONSOLIDATION_MERGE_SIMILARITY_THRESHOLD`, `MEMENTO_REMEMBER_DEDUP_THRESHOLD`)은 그대로 받고, 값은 그 모델의 raw 코사인 척도입니다. 두 벌이던 앵커 슬롯 설정은 `anchor-slot-config.ts` 하나입니다.

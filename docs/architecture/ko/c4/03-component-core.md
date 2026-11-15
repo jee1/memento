@@ -20,7 +20,7 @@ C4Component
 
     Container_Ext(mcpServer, "MCP / HTTP Server", "memento-server", "dispatchTool() 호출")
     ContainerDb_Ext(db, "SQLite Database", "memory.db")
-    System_Ext(llm, "LLM / Embedding API", "OpenAI, Gemini, Ollama, MiniLM")
+    System_Ext(llm, "LLM / Embedding API", "OpenAI, Gemini, Ollama, 로컬 임베딩 모델(minilm)")
 
     Container_Boundary(core, "Memento Core Engine (@memento/core)") {
 

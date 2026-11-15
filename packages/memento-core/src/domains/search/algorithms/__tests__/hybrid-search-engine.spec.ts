@@ -10,6 +10,7 @@ import Database from 'better-sqlite3';
 import type { RelationGraph } from '../../../relation/services/relation-graph.js';
 import { createRelationGraph } from '../../../../infrastructure/relation-graph-factory.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
+import { mapQueryScore } from '../../../../shared/config/embedding-models.js';
 import { RelationEngineSchemaMigration } from '../../../../infrastructure/database/sqlite/migration/migrations/005-relation-engine-schema.js';
 import { initializeTestDatabase, insertMemoryItem, insertMemoryEmbedding } from '../../../../test/helpers/consolidation-test-data.js';
 import type { StoredEmbeddingProviderStats } from '../../../shared/types/search.types.js';
@@ -1764,7 +1765,8 @@ describe('HybridSearchEngine', () => {
       if (result.items && result.items.length > 0) {
         // 모든 점수가 동일한 경우, 정규화로 점수를 재조정하지 않고 그대로 유지해야 함.
         // #921 길이 감쇠만 반영되고 그 위에 추가 정규화가 얹히지 않는다는 뜻이다.
-        const expected = decayedSimilarity(0.5, `MiniLM 1 ${LONG_BODY}`);
+        // 로컬 임베딩 모델 점수는 질의 점수 사상을 거친다 (#1729).
+        const expected = decayedSimilarity(mapQueryScore('minilm', 0.5), `MiniLM 1 ${LONG_BODY}`);
         result.items.forEach(item => {
           expect(item.vectorScore).toBeCloseTo(expected, 10);
         });

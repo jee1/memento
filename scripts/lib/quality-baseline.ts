@@ -19,6 +19,7 @@ import {
   type ResolvedRankingScope,
 } from '../../packages/memento-core/src/shared/types/benchmark.types.js';
 import type { EmbeddingProvider } from '../../packages/memento-core/src/shared/types/embedding.types.js';
+import { getEmbeddingModelFilter } from '../../packages/memento-core/src/shared/config/embedding-models.js';
 
 /** Fail when baseline_mrr - candidate_mrr is greater than this. */
 export const MRR_DROP_EPSILON = 0.03;
@@ -63,6 +64,8 @@ export interface RankingIdentity {
   readonly scope: RankingScopeName;
   readonly fixture: 'benchmark-v3';
   readonly embedding_provider: EmbeddingProvider;
+  /** 로컬 임베딩 모델 저장 이름(getEmbeddingModelFilter). 모델이 바뀌면 기준선을 다시 찍게 한다 (#1729). */
+  readonly embedding_model: string | null;
   readonly corpus_row_count: number;
   readonly corpus_id_sha256: string;
   readonly scored_query_ids: Readonly<Record<MacroCategory, readonly string[]>>;
@@ -99,6 +102,7 @@ export type RankingMismatchField =
   | 'scope'
   | 'fixture'
   | 'embedding_provider'
+  | 'embedding_model'
   | 'corpus_row_count'
   | 'corpus_id_sha256'
   | 'scored_query_ids';
@@ -330,6 +334,7 @@ function buildRankingCandidate(input: EvaluateRankingInput): RankingBaseline {
       scope: input.scope.name,
       fixture: 'benchmark-v3',
       embedding_provider: input.embeddingProvider,
+      embedding_model: getEmbeddingModelFilter(input.embeddingProvider),
       corpus_row_count: sortedIds.length,
       corpus_id_sha256: sha256Text(sortedIds.join('\n')),
       scored_query_ids: scored,
@@ -379,6 +384,9 @@ function compareRanking(baseline: RankingBaseline, candidate: RankingBaseline): 
   if (left.fixture !== right.fixture) return { status: 'mismatch', field: 'fixture' };
   if (left.embedding_provider !== right.embedding_provider) {
     return { status: 'mismatch', field: 'embedding_provider' };
+  }
+  if (left.embedding_model !== right.embedding_model) {
+    return { status: 'mismatch', field: 'embedding_model' };
   }
   if (left.corpus_row_count !== right.corpus_row_count) {
     return { status: 'mismatch', field: 'corpus_row_count' };
@@ -481,6 +489,9 @@ function parseRanking(raw: Record<string, unknown>): RankingBaseline {
   if (typeof identity.embedding_provider !== 'string') {
     throw new Error('ranking baseline embedding_provider must be a string');
   }
+  if (identity.embedding_model !== undefined && identity.embedding_model !== null && typeof identity.embedding_model !== 'string') {
+    throw new Error('ranking baseline embedding_model must be a string or null');
+  }
   if (typeof identity.corpus_row_count !== 'number' || typeof identity.corpus_id_sha256 !== 'string') {
     throw new Error('ranking baseline corpus identity is incomplete');
   }
@@ -504,6 +515,8 @@ function parseRanking(raw: Record<string, unknown>): RankingBaseline {
       scope: identity.scope,
       fixture: 'benchmark-v3',
       embedding_provider: identity.embedding_provider as EmbeddingProvider,
+      // 모델 이름이 없던 옛 기준선은 null 이라 지금 모델과 맞지 않는다고 나온다.
+      embedding_model: typeof identity.embedding_model === 'string' ? identity.embedding_model : null,
       corpus_row_count: identity.corpus_row_count,
       corpus_id_sha256: identity.corpus_id_sha256,
       scored_query_ids: scored,
@@ -538,6 +551,7 @@ function incompleteRanking(
       scope: identity.scope === 'pr' ? 'pr' : 'nightly',
       fixture: 'benchmark-v3',
       embedding_provider: String(identity.embedding_provider) as EmbeddingProvider,
+      embedding_model: typeof identity.embedding_model === 'string' ? identity.embedding_model : null,
       corpus_row_count: Number(identity.corpus_row_count),
       corpus_id_sha256: String(identity.corpus_id_sha256),
       scored_query_ids: filledScores,

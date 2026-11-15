@@ -1,5 +1,5 @@
 /**
- * #1225: second opinion on consolidation clusters. MiniLM cosine similarity groups records of
+ * #1225: second opinion on consolidation clusters. Local embedding cosine similarity groups records of
  * the same genre (e.g. two unrelated work logs) above the cluster threshold; a judge model
  * decides whether two texts cover the same task or topic.
  *

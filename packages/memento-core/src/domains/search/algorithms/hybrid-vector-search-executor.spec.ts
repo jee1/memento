@@ -5,6 +5,7 @@
  */
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { LOCAL_EMBEDDING_MODEL } from '../../../shared/config/embedding-models.js';
+import { mapQueryScore } from '../../../shared/config/embedding-models.js';
 import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
 import { HybridVectorSearchExecutor } from './hybrid-vector-search-executor.js';
 import { vectorLengthDecayFactor } from './vector-length-decay.js';
@@ -173,7 +174,8 @@ describe('HybridVectorSearchExecutor 절대 척도 계약 (#806)', () => {
     const out = await run({ tfidf: [row('shared', 0.41)], minilm: [row('shared', 0.73)] });
     const hit = out.results.filter((r) => r.id === 'shared');
     expect(hit).toHaveLength(1);
-    expect(hit[0]!.similarity).toBeCloseTo(decayedSimilarity(0.73, hit[0]!.content), 5);
+    // 로컬 임베딩 모델 점수는 질의 점수 사상을 거친다 (#1729).
+    expect(hit[0]!.similarity).toBeCloseTo(decayedSimilarity(mapQueryScore('minilm', 0.73), hit[0]!.content), 5);
   });
 
   it('FR-008: 제공자별 결과셋의 최소·최대가 점수에 영향을 주지 않는다', async () => {

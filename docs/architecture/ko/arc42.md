@@ -81,7 +81,7 @@ AI 에이전트(LLM 기반)는 기본적으로 **무상태(stateless)** 입니�
 | **언어** | TypeScript 5.x strict |
 | **DB** | SQLite (better-sqlite3), WAL 모드, **단일 writer** |
 | **프로토콜** | MCP JSON-RPC; HTTP Admin/REST (Express 5.x) |
-| **임베딩** | TF-IDF/MiniLM(로컬) 또는 OpenAI/Gemini(클라우드, 선택) |
+| **임베딩** | TF-IDF/로컬 임베딩 모델(minilm) 또는 OpenAI/Gemini(클라우드, 선택) |
 
 ### 2.2 조직·운영 제약
 
@@ -122,7 +122,7 @@ C4Context
     System_Ext(mcpHost, "MCP Host", "Cursor, Claude Code/Desktop")
     System_Ext(httpClient, "HTTP Client", "memento-client, memento-assistant")
     System_Ext(sqlite, "SQLite", "memory.db")
-    System_Ext(llm, "LLM / Embedding", "OpenAI, Gemini, MiniLM/TF-IDF")
+    System_Ext(llm, "LLM / Embedding", "OpenAI, Gemini, 로컬 임베딩 모델(minilm)/TF-IDF")
 
     Rel(operator, memento, "Admin, introspection/heal", "HTTPS")
     Rel(mcpHost, memento, "recall, remember, feedback", "MCP stdio/HTTP")

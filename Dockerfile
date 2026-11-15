@@ -60,19 +60,14 @@ COPY --from=builder /app/packages/memento-agent-integration/dist ./packages/meme
 COPY --from=builder /app/packages/memento-agent-integration/package.json ./packages/memento-agent-integration/package.json
 COPY --from=builder /app/package*.json ./
 
+# smoke 가 이미지 안 모델 파일을 대조할 해시. 모델 패키지(npm)에는 실리지 않는다 (#1729).
+COPY models/memento-embedding-e5-small-ko-v2/sha256.json ./scripts/model-sha256.json
+
 # Install production dependencies and rebuild native modules for Debian/Linux
 # better-sqlite3: try prebuilt binaries first (much faster), fallback to source compile
-# The local embedding model warmup pulls the model named in LOCAL_EMBEDDING_MODEL (#889, #1729):
-# q8 onnx is ~118MB vs ~23MB for the old English-only all-MiniLM-L6-v2, so the image grows by roughly 95MB.
-# 로컬 임베딩 모델 캐시는 transformers.js 의 기본 경로인 node_modules/@huggingface/transformers/.cache/ 에 쌓인다 (#1012).
-# v4.2.0 은 캐시 위치 환경변수를 읽지 않는다 — src/env.js:162 의
-# `DEFAULT_CACHE_DIR = path.join(dirname__, '/.cache/')`(dirname__ = 패키지 루트)가 전부이고,
-# 옮기려면 pipeline() 호출 전에 코드에서 env.cacheDir 을 지정해야 한다.
-# 빌드 warmup 과 런타임이 같은 기본값을 쓰기 때문에 캐시가 재사용된다. 캐시를 볼륨으로 빼려면
-# 그 node_modules 하위 경로를 마운트해야 한다. 런타임 재사용 여부는 scripts/docker-smoke.mjs 가
-# env.allowRemoteModels = false 로 검증한다.
+# 로컬 임베딩 모델은 dependencies 의 @jee1/memento-embedding-e5-small-ko-v2(q8 onnx 약 118MB)로 함께 설치되고
+# 런타임이 원격을 끈 채 그 폴더에서 읽는다(#1729). 내려받는 warmup 과 transformers.js 캐시는 없다.
 # sqlite-vec: prebuilt vec0.so ships in the sqlite-vec-linux-x64 optional package (no build step), copy .so to /usr/lib/
-ARG SKIP_TRANSFORMERS_WARMUP=0
 RUN npm ci --omit=dev --ignore-scripts && \
     (npm rebuild better-sqlite3 2>/dev/null || npm rebuild better-sqlite3 --build-from-source) && \
     find /app/node_modules -name "*.so" -type f && \
@@ -93,23 +88,7 @@ RUN npm ci --omit=dev --ignore-scripts && \
            /app/node_modules/onnxruntime-node/bin/napi-v6/darwin \
            /app/node_modules/onnxruntime-node/bin/napi-v6/win32 \
            /app/node_modules/onnxruntime-web && \
-    npm cache clean --force && \
-    if [ "$SKIP_TRANSFORMERS_WARMUP" = "1" ]; then \
-      echo '[docker] SKIP_TRANSFORMERS_WARMUP=1: local embedding model cache warmup skipped'; \
-    else \
-      node --input-type=module -e "\
-        try { \
-          const { pipeline } = await import('@huggingface/transformers'); \
-          const { LOCAL_EMBEDDING_MODEL: m } = await import('/app/packages/memento-core/dist/shared/config/embedding-models.js'); \
-          const embed = await pipeline('feature-extraction', m.source.repo, { dtype: m.source.dtype }); \
-          await embed('cache warmup'); \
-          console.log('[docker] local embedding model cache warmup ok:', m.source.repo); \
-        } catch (e) { \
-          const msg = e instanceof Error ? e.message : String(e); \
-          console.warn('[docker] local embedding model cache warmup skipped (will fetch at runtime if needed):', msg); \
-        } \
-      "; \
-    fi
+    npm cache clean --force
 
 # Create data directory
 RUN mkdir -p /app/data /app/.memento

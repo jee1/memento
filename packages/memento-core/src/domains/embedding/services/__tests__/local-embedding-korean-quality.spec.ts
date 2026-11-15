@@ -3,14 +3,14 @@
  *
  * 영어 전용 모델(all-MiniLM-L6-v2)은 한국어 문장을 거의 UNK로 토크나이즈해서,
  * 관련 없는 한국어 문서가 관련 문서보다 높은 점수를 받았다. 이 테스트는 그 회귀를
- * 잡는다. 실제 모델을 내려받아야 하므로(q8 onnx 약 118MB) 기본은 건너뛴다.
+ * 잡는다. 실제 모델(q8 onnx 약 118MB)로 추론하므로 기본은 건너뛴다.
  *
  *   RUN_EMBEDDING_QUALITY=1 npx vitest run packages/memento-core/src/domains/embedding/services/__tests__/local-embedding-korean-quality.spec.ts
  */
 
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import * as transformers from '@huggingface/transformers';
-import { LOCAL_EMBEDDING_MODEL } from '../../../../shared/config/embedding-models.js';
+import { LOCAL_EMBEDDING_MODEL, mapQueryScore } from '../../../../shared/config/embedding-models.js';
 import { LocalEmbeddingService } from '../local-embedding-service.js';
 import { UnifiedEmbeddingService } from '../unified-embedding-service.js';
 
@@ -45,7 +45,7 @@ function dot(a: number[], b: number[]): number {
   return sum;
 }
 
-describe.skipIf(!ENABLED)('#889 MiniLM 한국어 검색 품질', () => {
+describe.skipIf(!ENABLED)('#889 로컬 임베딩 모델 한국어 검색 품질', () => {
   const service = new LocalEmbeddingService();
   let documents: number[][] = [];
 
@@ -55,9 +55,11 @@ describe.skipIf(!ENABLED)('#889 MiniLM 한국어 검색 품질', () => {
     return result!.embedding;
   }
 
-  /** 쿼리에 대한 문서 점수를 코퍼스 순서 그대로 돌려준다. */
+  /** 쿼리에 대한 문서 점수(raw 코사인)를 코퍼스 순서 그대로 돌려준다. 질의는 질의 벡터로 만든다. */
   async function scores(query: string): Promise<number[]> {
-    const queryVector = await embed(query);
+    const result = await service.embedQuery(query);
+    expect(result, `질의 임베딩 생성 실패: ${query}`).not.toBeNull();
+    const queryVector = result!.embedding;
     return documents.map((document) => dot(queryVector, document));
   }
 
@@ -75,7 +77,7 @@ describe.skipIf(!ENABLED)('#889 MiniLM 한국어 검색 품질', () => {
     expect(vector).toHaveLength(384);
   });
 
-  it('모델명이 MiniLM 으로 기록된다 (V3)', async () => {
+  it('모델명이 지금 모델 이름으로 기록된다 (V3)', async () => {
     const result = await service.generateEmbedding(ANCHOR_DOC);
     expect(result!.model).toBe(LOCAL_EMBEDDING_MODEL.storedName);
   });
@@ -111,9 +113,9 @@ describe.skipIf(!ENABLED)('#889 MiniLM 한국어 검색 품질', () => {
     expect(irrelevant).toBeLessThan(relevant);
   });
 
-  it('무관한 한국어 쿼리는 하이브리드 임계값(0.38)을 넘지 않는다', async () => {
-    // 이 하한이 통과 필터로 동작하던 것이 #889의 증상이었다.
-    expect(Math.max(...(await scores(IRRELEVANT_KO)))).toBeLessThan(0.38);
+  it('무관한 한국어 쿼리는 사상한 점수가 하이브리드 임계값(0.38)을 넘지 않는다', async () => {
+    // 이 하한이 통과 필터로 동작하던 것이 #889의 증상이었다. 검색은 사상한 점수로 이 하한과 비교한다 (#1729).
+    expect(mapQueryScore('minilm', Math.max(...(await scores(IRRELEVANT_KO))))).toBeLessThan(0.38);
   });
 
   it('UnifiedEmbeddingService는 minilm provider로 임베딩한다 — tfidf 폴백이 아님 (V8)', async () => {
@@ -141,7 +143,7 @@ describe.skipIf(!ENABLED)('#889 MiniLM 한국어 검색 품질', () => {
  * 예전에는 앞 1024자만 임베딩해서 뒤쪽 문단은 어떤 질의로도 닿지 않았다. 윈도 평균 풀링 이후
  * 뒤쪽 문단을 묻는 질의가 앞부분만 임베딩한 벡터보다 확실히 높은 유사도를 받아야 한다.
  *
- * 문서는 앞뒤 주제가 서로 다르고 각각 한 윈도(510토큰 = 한국어 약 1,083자)를 채우도록 만든다.
+ * 문서는 앞뒤 주제가 서로 다르고 각각 한 윈도(기억 창 507토큰, 한국어 약 1,000자)를 채우도록 만든다.
  * 같은 문장을 반복해 채우면 모든 윈도의 벡터가 같아져 평균이 원본과 구분되지 않는다.
  */
 const HEAD_TOPIC_KO = [
@@ -180,7 +182,7 @@ const TAIL_QUERY = '한국어 임베딩에서 문자당 토큰 비율과 토큰 
 const HEAD_BLOCK = `${HEAD_TOPIC_KO}. ${HEAD_TOPIC_KO}`;
 const TAIL_BLOCK = `${TAIL_TOPIC_KO}. ${TAIL_TOPIC_KO}`;
 
-describe.skipIf(!ENABLED)('#1013 MiniLM 윈도 평균 풀링', () => {
+describe.skipIf(!ENABLED)('#1013 윈도 평균 풀링', () => {
   it('긴 문서의 뒤쪽 문단이 벡터에 반영된다', async () => {
     const service = new LocalEmbeddingService();
     const longDoc = `${HEAD_BLOCK}. ${TAIL_BLOCK}`;
@@ -188,7 +190,7 @@ describe.skipIf(!ENABLED)('#1013 MiniLM 윈도 평균 풀링', () => {
     const headOnly = longDoc.slice(0, 1024);
     expect(HEAD_BLOCK.length).toBeGreaterThan(1024);
 
-    const query = (await service.generateEmbedding(TAIL_QUERY))!.embedding;
+    const query = (await service.embedQuery(TAIL_QUERY))!.embedding;
     const fullResult = (await service.generateEmbedding(longDoc))!;
     const head = (await service.generateEmbedding(headOnly))!.embedding;
 
