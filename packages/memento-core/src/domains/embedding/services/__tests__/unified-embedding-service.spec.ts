@@ -115,4 +115,56 @@ describe('UnifiedEmbeddingService', () => {
       expect(remote.generateEmbedding).toHaveBeenCalledWith('q');
     });
   });
+
+  describe('generateEmbeddingStrict (#1729)', () => {
+    const vector = { embedding: [0.1], model: 'm', usage: { prompt_tokens: 1, total_tokens: 1 } };
+
+    function useProviders(target: UnifiedEmbeddingService, providers: Record<string, EmbeddingServiceInterface>) {
+      const selectProviderWithHealthCheck = vi.fn();
+      (target as unknown as { factory: unknown }).factory = {
+        getProvider: (name: string) => providers[name] ?? null,
+        selectProviderWithHealthCheck,
+        getAvailableProviders: () => [],
+        handleProviderFailure: () => undefined,
+      };
+      return selectProviderWithHealthCheck;
+    }
+
+    function fakeService(generateEmbedding: () => Promise<unknown>): EmbeddingServiceInterface {
+      return {
+        generateEmbedding: vi.fn(generateEmbedding),
+        isAvailable: () => true,
+        getModelInfo: () => ({ model: 'm', dimensions: 1, maxTokens: 1 }),
+      } as unknown as EmbeddingServiceInterface;
+    }
+
+    it('지정한 제공자 결과에 그 제공자를 붙이고 현재 제공자로 둔다', async () => {
+      const local = fakeService(async () => ({ ...vector }));
+      const select = useProviders(service, { minilm: local });
+
+      expect((await service.generateEmbeddingStrict('memory', 'minilm')).provider).toBe('minilm');
+      expect(service.getCurrentProviderService()).toBe(local);
+      expect(select).not.toHaveBeenCalled();
+    });
+
+    it('지정한 제공자가 실패하면 다른 제공자로 넘어가지 않고 throw 한다', async () => {
+      const other = fakeService(async () => ({ ...vector }));
+      const select = useProviders(service, {
+        minilm: fakeService(async () => {
+          throw new Error('model load failed');
+        }),
+        openai: other,
+      });
+
+      await expect(service.generateEmbeddingStrict('memory', 'minilm')).rejects.toThrow('model load failed');
+      expect(other.generateEmbedding).not.toHaveBeenCalled();
+      expect(select).not.toHaveBeenCalled();
+    });
+
+    it('제공자 서비스 안에서 다른 제공자로 넘어간 결과는 받지 않는다', async () => {
+      useProviders(service, { openai: fakeService(async () => ({ ...vector, provider: 'tfidf' })) });
+
+      await expect(service.generateEmbeddingStrict('memory', 'openai')).rejects.toThrow(/tfidf/);
+    });
+  });
 });

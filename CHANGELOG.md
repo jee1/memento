@@ -25,6 +25,7 @@
 
 ### Changed
 
+- **재색인과 임베딩 정합 잡은 지정한 제공자만 쓴다** (#1729 PR 6a): `UnifiedEmbeddingService.generateEmbeddingStrict(text, provider)` 를 더하고, `MemoryEmbeddingService.createAndStoreEmbedding` 의 다섯째 인자를 strict 제공자로 바꿨습니다. 수동 재색인(`reindex`, `reindexByIds`, CLI `reindex-embeddings`, `POST /api/v1/maintenance/reindex`)과 `embedding_reconciliation`, 저장소 스크립트의 벤치마크 시드(`scripts/lib/benchmark-search-database.ts`)와 `scripts/agent-memory-production-adapter.ts` 가 이 경로를 탑니다. 예전에는 지정한 제공자가 실패하면 우선순위대로 다른 제공자로 넘어가 외부 키가 있으면 원문이 외부 임베딩 API 로 나가고, 없으면 TF-IDF 행이 쌓였습니다. 이제는 실패로 세고 행을 쓰지 않습니다. 제공자 서비스 안에서 다른 제공자로 넘어간 결과(openai 의 TF-IDF 대체)도 받지 않습니다. `modelDriftCount` 는 native 행에 더해 창 행의 옛 모델도 셉니다.
 - **기억끼리 기준값과 질의 점수 사상을 모델 정의로** (#1729 PR 5): 값과 결과는 그대로입니다.
   - `LOCAL_EMBEDDING_MODEL.memorySimilarity` 가 Sleep consolidation 군집(0.65), 요약 합침(0.85), remember 중복 판정(0.85), supersede 후보(0.65), 이웃 기억(0.8), 앵커 슬롯 A/B/C(0.8/0.6/0.4)의 기본값입니다. env 덮어쓰기 셋(`CONSOLIDATION_SIMILARITY_THRESHOLD`, `CONSOLIDATION_MERGE_SIMILARITY_THRESHOLD`, `MEMENTO_REMEMBER_DEDUP_THRESHOLD`)은 그대로 받고, 값은 그 모델의 raw 코사인 척도입니다. 두 벌이던 앵커 슬롯 설정은 `anchor-slot-config.ts` 하나입니다.
   - `LOCAL_EMBEDDING_MODEL.queryScoreMapping`(지금 `{ a: 1, b: 0 }`)과 `mapQueryScore` 를 질의 점수 네 자리(벡터 레인 길이 감쇠 직전, 텍스트 전용 backfill, fallback 유사도 검색, `search_local` 질의 필터의 질의 유사도)에만 겁니다. 로컬 임베딩 모델(`minilm`) 점수만 옮기고 다른 제공자 점수는 그대로입니다. remember 중복 판정과 기억끼리 비교는 사상하지 않습니다.

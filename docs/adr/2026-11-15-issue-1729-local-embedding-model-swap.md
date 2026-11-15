@@ -319,6 +319,7 @@ PR 랭킹 게이트(`search-quality-pr.yml`)는 `shared/config`, `domains/search
 | 7 | 모델 패키지 소스(`models/memento-embedding-e5-small-ko-v2/`: `package.json`, README, `LICENSE`, `NOTICE`, 변환 스크립트, `requirements.txt`, `sha256.json`, `publish.sh`). 앱은 아직 의존하지 않는다. 게시는 머지 뒤 PR 밖에서 주인이 한다 | 같음(런타임이 아직 읽지 않는다) | 안 돈다 | 스크립트로 다시 만든 파일의 sha256 이 `sha256.json` 과 같다, `npm publish --dry-run` 의 파일 목록이 다섯 파일과 문서뿐이다 | low |
 | 8 | 전환. 모델 정의를 한국어 모델로(접두, 사상, 패널로 확인한 기준값, 패키지 폴더), 루트 `dependencies` 에 모델 패키지 정확한 버전과 lockfile, 패키지 폴더 로컬 로딩, 옛 원격 경로와 Docker warmup, CI HF 캐시 삭제, held-out 으로 확인된 관련성 축척, `VECTOR_SCORE_SCALE` 와 랭킹 버전 payload, 결정 2 의 여섯 단계, `local-embedding-korean-quality.spec.ts` 기대값, 문서 | 바뀐다 | 돌고 기준선을 다시 찍는다 | 하네스 주입 상위 5 구간 하한 > 0, 사본 규모 표, 야간과 PR 게이트, 리허설 peak RSS 1GiB 안 | high(사용자 승인) |
 
+- PR 6 은 리뷰 크기 때문에 둘로 나눈다. 6a 는 제공자 고정(`generateEmbeddingStrict`, 수동 재색인과 `embedding_reconciliation` 의 strict 경로)과 창 행을 함께 세는 `modelDriftCount`, 6b 는 모델 드리프트 후보, 실행당 시간 예산, 연속 실패 상한, `startModelMigration()` 반복과 실행 주체, consolidation 1% 조건, 수동 재색인 409 다.
 - PR 2 와 PR 7 은 다른 PR 과 의존이 없어 언제든 간다. 나머지는 1 → 3 → 4 → 5 → 6 순서다. 같은 파일(`sleep-consolidation-service.ts`, `embedding-models.ts`)을 여러 PR 이 건드린다.
 - agent_panel 판정과 모델 파일 게시는 7 뒤, 8 앞이다.
 - 융합 재조정은 8 이 운영에서 soak 한 뒤 별도 이슈다(관련성 축척 예외는 위 절).

@@ -55,6 +55,7 @@ vi.mock('../../../embedding/services/unified-embedding-service.js', () => {
         isAvailable: vi.fn(() => true),
         generateEmbedding: vi.fn(mockEmbed),
         embedQuery: vi.fn(mockEmbed),
+        generateEmbeddingStrict: vi.fn(mockEmbed),
         getCurrentProviderName: vi.fn(() => 'tfidf')
       };
     })
@@ -469,6 +470,22 @@ describe('MemoryEmbeddingService', () => {
   });
 
   describe('캐시 및 폴백 시나리오', () => {
+    it('strictProvider 를 주면 그 제공자만 쓰고, 실패하면 다른 경로 없이 null 이다 (#1729)', async () => {
+      const { UnifiedEmbeddingService } = await import('../../../embedding/services/unified-embedding-service.js');
+      const mockService = new UnifiedEmbeddingService();
+      const strict = vi.spyOn(mockService, 'generateEmbeddingStrict').mockRejectedValue(new Error('model load failed'));
+      const fallback = vi.spyOn(mockService, 'generateEmbedding');
+      (service as any).embeddingService = mockService;
+      const memoryId = createTestMemory(db, { content: 'Strict memory', type: 'episodic' });
+
+      const result = await service.createAndStoreEmbedding(db, memoryId, 'Strict memory', 'episodic', 'minilm');
+
+      expect(result).toBeNull();
+      expect(strict).toHaveBeenCalledWith('Strict memory', 'minilm');
+      expect(fallback).not.toHaveBeenCalled();
+      expect(db.prepare('SELECT COUNT(*) AS n FROM memory_embedding WHERE memory_id = ?').get(memoryId)).toEqual({ n: 0 });
+    });
+
     it('임베딩 생성 실패 시 null을 반환해야 함', async () => {
       // Given: UnifiedEmbeddingService 모킹하여 null 반환
       const { UnifiedEmbeddingService } = await import('../../../embedding/services/unified-embedding-service.js');

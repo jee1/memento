@@ -2,13 +2,14 @@ import { mementoConfig } from '../../../shared/config/index.js';
 import { MemoryEmbeddingService } from '../../../domains/embedding/services/memory-embedding-service.js';
 import { EmbeddingReconciliationBatchJob } from '../jobs/embedding-reconciliation-batch-job.js';
 import type { BatchJobResult } from '../batch-scheduler/batch-scheduler-types.js';
+import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 import type { BatchSchedulerRunContext } from './batch-scheduler-run-context.js';
 
 const embeddingService = new MemoryEmbeddingService();
 
-function resolveTargetProvider(): string {
+function resolveTargetProvider(): EmbeddingProvider {
   const provider = mementoConfig.embeddingProvider.toLowerCase();
-  return provider === 'lightweight' ? 'tfidf' : provider;
+  return (provider === 'lightweight' ? 'tfidf' : provider) as EmbeddingProvider;
 }
 
 export async function runEmbeddingReconciliation(ctx: BatchSchedulerRunContext): Promise<BatchJobResult> {

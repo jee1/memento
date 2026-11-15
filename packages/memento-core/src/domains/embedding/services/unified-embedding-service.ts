@@ -45,6 +45,31 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
   }
 
   /**
+   * 지정한 제공자만으로 기억 벡터를 만든다 (#1729). 실패하면 다른 제공자로 넘어가지 않고 throw 한다.
+   * 재색인과 모델 이주가 쓴다. 넘어가면 원문이 외부 임베딩 API 로 나가거나 다른 제공자 행이 쌓인다.
+   */
+  async generateEmbeddingStrict(text: string, provider: EmbeddingProvider): Promise<EmbeddingResult> {
+    this.validateInput(text);
+    // offline strict 에서 원격 제공자는 getProvider 가 throw 한다.
+    const service = this.factory.getProvider(provider);
+    if (!service) {
+      throw new Error(`임베딩 제공자 ${provider} 를 쓸 수 없습니다`);
+    }
+    const result = await service.generateEmbedding(text);
+    if (!result) {
+      throw new Error(`임베딩 제공자 ${provider} 가 결과를 돌려주지 않았습니다`);
+    }
+    // 제공자 서비스가 안에서 다른 제공자로 넘어간 결과(openai 의 TF-IDF 대체 등)는 받지 않는다.
+    if (result.provider && result.provider !== provider) {
+      throw new Error(`임베딩 제공자 ${provider} 대신 ${result.provider} 결과가 왔습니다`);
+    }
+    this.currentProvider = service;
+    this.currentProviderName = provider;
+    result.provider = provider;
+    return result;
+  }
+
+  /**
    * 검색어를 질의 벡터로 변환한다 (#1729). 로컬 임베딩 모델만 역할 접두를 달리 붙이고,
    * 다른 제공자는 generateEmbedding 과 같다. 기억끼리 비교에는 쓰지 않는다.
    */

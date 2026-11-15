@@ -60,6 +60,8 @@ describe('EmbeddingReconciliationBatchJob', () => {
       expect(result.success).toBe(true);
       expect(result.processed).toBe(2);
       expect(createAndStoreEmbedding).toHaveBeenCalledTimes(2);
+      // 지정한 제공자만 쓴다(#1729). 다섯째 인자가 strict 제공자다.
+      expect(createAndStoreEmbedding.mock.calls.map((call) => call[4])).toEqual(['tfidf', 'tfidf']);
       expect(db.prepare('SELECT COUNT(*) AS n FROM memory_embedding').get()).toEqual({ n: 2 });
     } finally {
       db.close();
@@ -133,7 +135,7 @@ describe('EmbeddingReconciliationBatchJob', () => {
       await job.run();
 
       expect(createAndStoreEmbedding).toHaveBeenCalledTimes(1);
-      expect(createAndStoreEmbedding).toHaveBeenCalledWith(db, 'fallback', 'fb', 'semantic');
+      expect(createAndStoreEmbedding).toHaveBeenCalledWith(db, 'fallback', 'fb', 'semantic', 'minilm');
     } finally {
       db.close();
     }
