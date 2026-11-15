@@ -19,12 +19,13 @@ import {
   type ScopedMemory,
   type SupersedeVerdict,
 } from './supersede-judge.js';
+import { LOCAL_EMBEDDING_MODEL } from '../../../shared/config/embedding-models.js';
 
 const SUPERSEDE_DEFAULT_LOOKBACK_DAYS = 7;
 const SUPERSEDE_DEFAULT_MAX_PAIRS = 5;
 const TOP_OLD_PER_NEW = 3;
 /** sleep consolidation 의 seed 유사도에서 출발한 탐색 신호다. 대체 판정이 맞다는 근거가 아니다. */
-const MIN_COSINE = 0.65;
+const MIN_COSINE = LOCAL_EMBEDDING_MODEL.memorySimilarity.supersedeCandidate;
 
 export interface SupersedeScanOptions {
   lookbackDays?: number;

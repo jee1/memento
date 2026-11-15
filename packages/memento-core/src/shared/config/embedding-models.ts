@@ -23,6 +23,23 @@ export interface LocalEmbeddingModel {
   readonly dimensions: 384;
   /** 역할마다 창 앞에 붙이는 글. 창 크기는 510 에서 이 접두의 토큰 수를 뺀 값이다. */
   readonly prefixes: Readonly<Record<EmbeddingRole, string>>;
+  /** 질의-기억 코사인을 검색 상수가 맞춰진 척도로 옮기는 1차 변환. 기억끼리 비교에는 쓰지 않는다. */
+  readonly queryScoreMapping: { readonly a: number; readonly b: number };
+  /** 기억끼리 비교의 raw 코사인 기준값. env 덮어쓰기가 있는 셋도 이 값이 기본값이다. */
+  readonly memorySimilarity: {
+    /** Sleep consolidation 군집(env CONSOLIDATION_SIMILARITY_THRESHOLD) */
+    readonly consolidationCluster: number;
+    /** 요약 합침 대상(env CONSOLIDATION_MERGE_SIMILARITY_THRESHOLD) */
+    readonly consolidationMerge: number;
+    /** remember 중복 판정과 자동 합침(env MEMENTO_REMEMBER_DEDUP_THRESHOLD) */
+    readonly rememberDedup: number;
+    /** supersede 후보 탐색 */
+    readonly supersedeCandidate: number;
+    /** 이웃 기억 기본 임계값 */
+    readonly neighbor: number;
+    /** 앵커 슬롯별 벡터 임계값 */
+    readonly anchorSlots: { readonly A: number; readonly B: number; readonly C: number };
+  };
 }
 
 export const LOCAL_EMBEDDING_MODEL: LocalEmbeddingModel = {
@@ -30,7 +47,26 @@ export const LOCAL_EMBEDDING_MODEL: LocalEmbeddingModel = {
   source: { repo: 'Xenova/paraphrase-multilingual-MiniLM-L12-v2', dtype: 'q8' },
   dimensions: 384,
   prefixes: { query: '', passage: '' },
+  queryScoreMapping: { a: 1, b: 0 },
+  memorySimilarity: {
+    consolidationCluster: 0.65,
+    consolidationMerge: 0.85,
+    rememberDedup: 0.85,
+    supersedeCandidate: 0.65,
+    neighbor: 0.8,
+    anchorSlots: { A: 0.8, B: 0.6, C: 0.4 },
+  },
 };
+
+/**
+ * 질의 점수 사상 (#1729). `embedQuery` 로 만든 질의 벡터와 기억 벡터의 코사인에만 건다.
+ * 계수는 로컬 임베딩 모델의 것이라 다른 제공자 점수는 그대로 둔다. 기억끼리 비교(중복 판정 등)에는 쓰지 않는다.
+ */
+export function mapQueryScore(provider: string | undefined, score: number): number {
+  if (provider !== 'minilm') return score;
+  const { a, b } = LOCAL_EMBEDDING_MODEL.queryScoreMapping;
+  return Math.min(1, Math.max(0, a * score + b));
+}
 
 /**
  * provider별로 "이 모델로 만든 벡터만 비교하라"는 필터 값. null이면 거르지 않는다.

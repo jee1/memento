@@ -11,6 +11,7 @@ import type { IAnchorManager, IAnchorCacheService, IAnchorSearchService, AnchorS
 import { AnchorError, MemoryNotFoundError, DatabaseValidationError, AnchorNotFoundError } from './anchor-interfaces.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../../../monitoring/index.js';
+import { ANCHOR_SLOT_CONFIG } from './anchor-slot-config.js';
 
 /**
  * Anchor Manager 구현
@@ -22,15 +23,6 @@ export class AnchorManager implements IAnchorManager {
   private searchService: IAnchorSearchService;
   private errorLoggingService: ErrorLoggingService | null = null;
   private changeListeners = new Set<AnchorChangeListener>();
-
-  /**
-   * 슬롯별 설정
-   */
-  private readonly slotConfig = {
-    A: { hop_limit: 1, vector_threshold: 0.8 },
-    B: { hop_limit: 2, vector_threshold: 0.6 },
-    C: { hop_limit: 3, vector_threshold: 0.4 }
-  } as const;
 
   /**
    * 생성자 (옵션으로 db·errorLoggingService 주입 시 일괄 설정, 미전달 시 setDatabase/setErrorLoggingService 호출 필요)
@@ -371,7 +363,7 @@ export class AnchorManager implements IAnchorManager {
    * @returns 슬롯 설정 (hop_limit, vector_threshold)
    */
   getSlotConfig(slot: AnchorSlot): { hop_limit: number; vector_threshold: number } {
-    return this.slotConfig[slot];
+    return ANCHOR_SLOT_CONFIG[slot];
   }
 
   /**

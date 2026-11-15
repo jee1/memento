@@ -21,6 +21,7 @@ import { stripMemoryTemplateLabels } from '../../../shared/utils/template-label-
 import type { ClusterJudgePair, IClusterJudge } from './cluster-judge.js';
 import { getClusterJudgeThreshold } from '../../../shared/config/cluster-judge-config.js';
 import { getConsolidationMode } from '../../../shared/config/consolidation-mode-config.js';
+import { LOCAL_EMBEDDING_MODEL } from '../../../shared/config/embedding-models.js';
 import type { TelemetryService } from '../../telemetry/index.js';
 import type { Outcome } from '../../telemetry/index.js';
 
@@ -53,9 +54,10 @@ const REL_SUPPORTED_BY: RelationType = 'supported_by';
 const REL_REFERENCES: RelationType = 'REFERENCES';
 
 function getMergeSimilarityThreshold(): number {
+  const fallback = LOCAL_EMBEDDING_MODEL.memorySimilarity.consolidationMerge;
   const raw = process.env.CONSOLIDATION_MERGE_SIMILARITY_THRESHOLD;
-  const n = raw ? parseFloat(raw) : 0.85;
-  return Number.isFinite(n) && n > 0 && n <= 1 ? n : 0.85;
+  const n = raw ? parseFloat(raw) : fallback;
+  return Number.isFinite(n) && n > 0 && n <= 1 ? n : fallback;
 }
 
 function mergeOriginSourceJson(existingJson: string, clusterIds: string[]): string {

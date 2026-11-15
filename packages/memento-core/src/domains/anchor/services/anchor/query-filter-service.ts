@@ -5,6 +5,7 @@
 
 import { logger } from '../../../../shared/utils/logger.js';
 import { cosineSimilarity } from '../../../../shared/utils/vector-math.js';
+import { mapQueryScore } from '../../../../shared/config/embedding-models.js';
 import { UnifiedEmbeddingService } from '../../../embedding/index.js';
 import type { IAnchorCacheService } from './anchor-interfaces.js';
 
@@ -86,7 +87,11 @@ export class QueryFilterService implements IQueryFilterService {
             // 쿼리 임베딩과 메모리 임베딩 간 유사도 계산
             let querySim = 0;
             if (queryEmbedding.length === memoryEmbedding.embedding.length) {
-              querySim = cosineSimilarity(queryEmbedding, memoryEmbedding.embedding);
+              // 질의 점수만 사상한다. 앵커 쪽 유사도(result.similarity)는 기억끼리 raw 코사인 그대로다 (#1729).
+              querySim = mapQueryScore(
+                queryEmbeddingResult.provider,
+                cosineSimilarity(queryEmbedding, memoryEmbedding.embedding)
+              );
             } else {
               // 차원이 다르면 텍스트 기반 간단한 매칭
               querySim = this.calculateTextSimilarity(query, result.content);

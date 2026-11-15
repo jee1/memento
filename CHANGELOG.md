@@ -25,6 +25,10 @@
 
 ### Changed
 
+- **기억끼리 기준값과 질의 점수 사상을 모델 정의로** (#1729 PR 5): 값과 결과는 그대로입니다.
+  - `LOCAL_EMBEDDING_MODEL.memorySimilarity` 가 Sleep consolidation 군집(0.65), 요약 합침(0.85), remember 중복 판정(0.85), supersede 후보(0.65), 이웃 기억(0.8), 앵커 슬롯 A/B/C(0.8/0.6/0.4)의 기본값입니다. env 덮어쓰기 셋(`CONSOLIDATION_SIMILARITY_THRESHOLD`, `CONSOLIDATION_MERGE_SIMILARITY_THRESHOLD`, `MEMENTO_REMEMBER_DEDUP_THRESHOLD`)은 그대로 받고, 값은 그 모델의 raw 코사인 척도입니다. 두 벌이던 앵커 슬롯 설정은 `anchor-slot-config.ts` 하나입니다.
+  - `LOCAL_EMBEDDING_MODEL.queryScoreMapping`(지금 `{ a: 1, b: 0 }`)과 `mapQueryScore` 를 질의 점수 네 자리(벡터 레인 길이 감쇠 직전, 텍스트 전용 backfill, fallback 유사도 검색, `search_local` 질의 필터의 질의 유사도)에만 겁니다. 로컬 임베딩 모델(`minilm`) 점수만 옮기고 다른 제공자 점수는 그대로입니다. remember 중복 판정과 기억끼리 비교는 사상하지 않습니다.
+
 - **질의 벡터와 기억 벡터를 나눈다** (#1729 PR 4): 검색(하이브리드 벡터 레인과 backfill, fallback 유사도 검색, provider 병렬 검색, `search_local` 질의 필터)은 `UnifiedEmbeddingService.embedQuery` 로 질의 벡터를 만들고, 저장과 기억끼리 비교는 `generateEmbedding` 으로 기억 벡터를 만듭니다. 로컬 임베딩 모델은 역할 접두(`LOCAL_EMBEDDING_MODEL.prefixes`)를 창마다 붙이고 창 크기를 510 에서 접두 토큰 수(특수 토큰 빼고)를 뺀 값으로 잡으며, 결과 캐시와 창 캐시 키에 저장 이름과 역할을 넣습니다. 지금 모델은 두 접두가 비어 있어 벡터와 창 크기(510)가 같습니다. 같은 글을 검색어와 저장 글로 모두 쓰면 캐시가 따로라 모델을 한 번 더 부릅니다.
 
 - **로컬 임베딩 모델 정의를 한 곳으로** (#1729 PR 3): 모델 이름과 위치가 `LOCAL_EMBEDDING_MODEL`(`shared/config/embedding-models.ts`) 하나에만 있습니다. 모델과 저장 벡터는 그대로라 검색 결과가 같습니다.
@@ -61,6 +65,7 @@
 
 ### Removed
 
+- **쓰이지 않던 provider 병렬 검색** (#1729 PR 5): `VectorSearchService.providerHybridSearch`, `unifiedSearch`, `VectorSearchResultNormalizer` 와 타입 `ProviderHybridQuery`, `ProviderHybridResult`, `UnifiedSearchHit`, `UnifiedSearchResponse`. 운영 호출처가 없었습니다.
 - **쓰이지 않던 임베딩 경로 정리** (#1729 PR 2): 운영 호출처가 없던 코드를 지웁니다. 동작은 같습니다.
   - 앵커 다시 걸기 서비스(`anchor-reanchor-service.ts`)와 `AnchorSearchService` 의 감싸는 메서드 넷(`calculateReanchorScore`, `analyzeAnchorUsage`, `autoReanchor`, `checkAndAutoReanchor`), 이것만 쓰던 `SearchOptions.autoMoveEnabled`, `VectorDimensionMismatchError`. 저장소 안에서 이 메서드를 부르는 곳은 테스트뿐이었습니다.
   - 임베딩 서비스 인터페이스와 여섯 구현의 `searchSimilar`, 이것만 쓰던 `SimilarityResult`. 유일한 호출처였던 관계 후보 재정렬은 이미 만든 새 기억 벡터로 바로 순위를 매깁니다. 같은 글을 한 번 더 임베딩하던 호출이 사라지고 고르는 후보는 같습니다.

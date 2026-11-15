@@ -15,6 +15,7 @@ import { NHopSearchService, type NHopSearchResult } from './n-hop-search-service
 import { QueryFilterService } from './query-filter-service.js';
 import { FallbackSearchService } from './fallback-search-service.js';
 import { LocalSearchService } from './local-search-service.js';
+import { ANCHOR_SLOT_CONFIG } from './anchor-slot-config.js';
 import { ErrorLoggingService, ErrorSeverity, ErrorCategory } from '../../../monitoring/index.js';
 
 /**
@@ -231,7 +232,7 @@ export class AnchorSearchService implements IAnchorSearchService {
     if (!currentSeed) throw new AnchorNotFoundError(agentId, slot);
 
     // 슬롯별 설정 가져오기
-    const slotConfig = this.getSlotConfig(slot);
+    const slotConfig = ANCHOR_SLOT_CONFIG[slot];
     const finalHopLimit = hopLimit ?? slotConfig.hop_limit;
     const vectorThreshold = options?.vector_threshold ?? slotConfig.vector_threshold;
 
@@ -381,18 +382,6 @@ export class AnchorSearchService implements IAnchorSearchService {
         predecessor_ids
       };
     });
-  }
-
-  /**
-   * 슬롯별 설정 조회
-   */
-  private getSlotConfig(slot: AnchorSlot): { hop_limit: number; vector_threshold: number } {
-    const slotConfig = {
-      A: { hop_limit: 1, vector_threshold: 0.8 },
-      B: { hop_limit: 2, vector_threshold: 0.6 },
-      C: { hop_limit: 3, vector_threshold: 0.4 }
-    } as const;
-    return slotConfig[slot];
   }
 
   /**

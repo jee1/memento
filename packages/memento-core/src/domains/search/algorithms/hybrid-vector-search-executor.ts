@@ -2,6 +2,7 @@ import Database from 'better-sqlite3';
 import { HYBRID_SEARCH } from '../../../shared/config/constants.js';
 import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
 import { clamp01 } from '../../../shared/utils/clamp.js';
+import { mapQueryScore } from '../../../shared/config/embedding-models.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 import type { StoredEmbeddingProviderStats } from '../../../shared/types/search.types.js';
@@ -184,7 +185,11 @@ export class HybridVectorSearchExecutor {
         (sid, step, data) => this.searchLogger.logSearchStep(sid, step, data)
       );
 
-      const scored = withVectorLengthDecay(allResults);
+      const mapped = allResults.map(result => ({
+        ...result,
+        similarity: mapQueryScore(result.provider, result.similarity),
+      }));
+      const scored = withVectorLengthDecay(mapped);
       const thresholded = filterByVectorThreshold(scored, HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD);
       const rankingPool = HYBRID_SEARCH.VECTOR_UNDERFILL_FILL
         ? fillUnderfilledVectorResults(thresholded, scored, query.limit || 10)
@@ -356,7 +361,13 @@ export class HybridVectorSearchExecutor {
       }
     }
 
-    const scored = withVectorLengthDecay(results);
+    // searchBySimilarity 는 질의 벡터 하나로 같은 제공자 행만 비교한다.
+    const queryProvider = query_embedding_providers?.[0];
+    const mapped = results.map(result => ({
+      ...result,
+      similarity: mapQueryScore(queryProvider, result.similarity),
+    }));
+    const scored = withVectorLengthDecay(mapped);
     const thresholded = filterByVectorThreshold(scored, HYBRID_SEARCH.HYBRID_VECTOR_THRESHOLD);
     const rankingPool = HYBRID_SEARCH.VECTOR_UNDERFILL_FILL
       ? fillUnderfilledVectorResults(thresholded, scored, query.limit || 10)

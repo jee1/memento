@@ -3,7 +3,8 @@
  * #921 길이 감쇠는 기본 on — fixture content를 충분히 길게 두어 임계값 계약이 유지되게 하고,
  * 절대 점수 단언은 decay factor를 반영한다.
  */
-import { describe, expect, it, vi } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { LOCAL_EMBEDDING_MODEL } from '../../../shared/config/embedding-models.js';
 import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
 import { HybridVectorSearchExecutor } from './hybrid-vector-search-executor.js';
 import { vectorLengthDecayFactor } from './vector-length-decay.js';
@@ -295,5 +296,50 @@ describe('HybridVectorSearchExecutor lightweight availability check (#1475)', ()
     expect(out.fallback_used).toBe(false);
     expect(isAvailableSpy).toHaveBeenCalledTimes(1);
     expect(getIndexStatusSpy).not.toHaveBeenCalled();
+  });
+});
+
+describe('질의 점수 사상 (#1729)', () => {
+  type MutableMapping = { queryScoreMapping: { a: number; b: number } };
+  const originalMapping = LOCAL_EMBEDDING_MODEL.queryScoreMapping;
+  const setMapping = (a: number, b: number) => {
+    (LOCAL_EMBEDDING_MODEL as unknown as MutableMapping).queryScoreMapping = { a, b };
+  };
+
+  afterEach(() => {
+    (LOCAL_EMBEDDING_MODEL as unknown as MutableMapping).queryScoreMapping = originalMapping;
+  });
+
+  it('벡터 레인은 로컬 임베딩 모델 결과만 사상한 뒤 길이 감쇠를 건다', async () => {
+    setMapping(2, -0.5);
+    const out = await run({ minilm: [row('local', 0.6)], tfidf: [row('other', 0.6)] });
+
+    const local = out.results.find((r) => r.id === 'local')!;
+    const other = out.results.find((r) => r.id === 'other')!;
+    expect(local.similarity).toBeCloseTo(decayedSimilarity(0.7, local.content), 5);
+    expect(other.similarity).toBeCloseTo(decayedSimilarity(0.6, other.content), 5);
+  });
+
+  it('대체 경로는 질의 벡터가 로컬 임베딩 모델일 때만 사상한다', async () => {
+    setMapping(2, -0.5);
+    const fallbackFor = (provider: string) =>
+      new HybridVectorSearchExecutor(
+        {
+          isAvailable: () => true,
+          getUnifiedEmbeddingService: () => ({}),
+          searchBySimilarity: vi.fn(async () => ({
+            results: [{ ...row('near', 0.6), id: 'near', pinned: false, tags: [], similarity: 0.6 }],
+            query_embedding_providers: [provider],
+          })),
+        } as never,
+        unavailableEngine() as never,
+        {} as never,
+        { logSearchStep: vi.fn() } as never
+      ).execute({} as never, { query: 'q', limit: 1 } as never, 'sid');
+
+    const local = (await fallbackFor('minilm')).results[0]!;
+    const other = (await fallbackFor('tfidf')).results[0]!;
+    expect(local.similarity).toBeCloseTo(decayedSimilarity(0.7, local.content), 5);
+    expect(other.similarity).toBeCloseTo(decayedSimilarity(0.6, other.content), 5);
   });
 });

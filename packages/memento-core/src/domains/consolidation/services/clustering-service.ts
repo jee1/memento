@@ -7,6 +7,7 @@
 
 import type { ConsolidationCluster } from '../../../shared/types/consolidation.types.js';
 import { cosineSimilarity } from '../../../shared/utils/vector-math.js';
+import { LOCAL_EMBEDDING_MODEL } from '../../../shared/config/embedding-models.js';
 import type { EpisodicCandidateRow } from '../repositories/consolidation-repository.js';
 
 interface EpisodicWithEmbedding {
@@ -16,9 +17,10 @@ interface EpisodicWithEmbedding {
 
 export class ClusteringService {
   getSimilarityThreshold(): number {
+    const fallback = LOCAL_EMBEDDING_MODEL.memorySimilarity.consolidationCluster;
     const raw = process.env.CONSOLIDATION_SIMILARITY_THRESHOLD;
-    const n = raw ? parseFloat(raw) : 0.65;
-    return Number.isFinite(n) && n > 0 && n <= 1 ? n : 0.65;
+    const n = raw ? parseFloat(raw) : fallback;
+    return Number.isFinite(n) && n > 0 && n <= 1 ? n : fallback;
   }
 
   getMinClusterSize(): number {
