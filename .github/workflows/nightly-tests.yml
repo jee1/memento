@@ -79,12 +79,12 @@ jobs:
             packages/memento-core/src/domains/monitoring/services/quality-assurance/long-distractor-reach.nightly.spec.ts
         continue-on-error: true
       # #889 한국어 품질 회귀 — opt-in 환경변수 없으면 4 tests skip·exit 0 (#928).
-      - name: MiniLM Korean embedding quality
+      - name: Local embedding model Korean quality
         env:
           RUN_EMBEDDING_QUALITY: '1'
         run: |
           npx vitest --run \
-            packages/memento-core/src/domains/embedding/services/__tests__/minilm-korean-quality.spec.ts
+            packages/memento-core/src/domains/embedding/services/__tests__/local-embedding-korean-quality.spec.ts
       - name: Upload test results
         if: failure()
         uses: actions/upload-artifact@v6

@@ -8,7 +8,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { initializeDatabase } from '../../../../infrastructure/database/sqlite/init.js';
-import { MINILM_MODEL_NAME } from '../../../../shared/config/embedding-models.js';
+import { LOCAL_EMBEDDING_MODEL } from '../../../../shared/config/embedding-models.js';
 import { encodeFloat32Embedding } from '../../../../shared/utils/embedding-serialization.js';
 import { MemoryNeighborService } from '../../../memory/services/memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
@@ -52,11 +52,11 @@ describe('stored vector reads use the current-model native row', () => {
     db = await initializeDatabase(join(dir, 'memory.db'));
     for (const id of ['root', 'near-native', 'near-window', 'stale']) insertMemory(id);
     // root: native(e0) 뒤에 창 행(e1)이 쓰인 긴 기억. 창 행이 created_at 으로 더 최근이다.
-    insertEmbedding('root', 'native', unit(0), MINILM_MODEL_NAME, '2026-01-01 00:00:00');
-    insertEmbedding('root', 'window:0', unit(1), MINILM_MODEL_NAME, '2026-01-01 00:00:05');
-    insertEmbedding('root', 'window:1', unit(1), MINILM_MODEL_NAME, '2026-01-01 00:00:05');
-    insertEmbedding('near-native', 'native', unit(0), MINILM_MODEL_NAME, '2026-01-01 00:00:00');
-    insertEmbedding('near-window', 'native', unit(1), MINILM_MODEL_NAME, '2026-01-01 00:00:00');
+    insertEmbedding('root', 'native', unit(0), LOCAL_EMBEDDING_MODEL.storedName, '2026-01-01 00:00:00');
+    insertEmbedding('root', 'window:0', unit(1), LOCAL_EMBEDDING_MODEL.storedName, '2026-01-01 00:00:05');
+    insertEmbedding('root', 'window:1', unit(1), LOCAL_EMBEDDING_MODEL.storedName, '2026-01-01 00:00:05');
+    insertEmbedding('near-native', 'native', unit(0), LOCAL_EMBEDDING_MODEL.storedName, '2026-01-01 00:00:00');
+    insertEmbedding('near-window', 'native', unit(1), LOCAL_EMBEDDING_MODEL.storedName, '2026-01-01 00:00:00');
     // stale: 재색인 전의 옛 모델 행만 있는 기억.
     insertEmbedding('stale', 'native', unit(0), OLD_MODEL, '2026-01-01 00:00:00');
   });
@@ -109,7 +109,7 @@ describe('stored vector reads use the current-model native row', () => {
     vi.spyOn(unified, 'isAvailable').mockReturnValue(true);
     vi.spyOn(unified, 'generateEmbedding').mockResolvedValue({
       embedding: unit(0),
-      model: MINILM_MODEL_NAME,
+      model: LOCAL_EMBEDDING_MODEL.storedName,
       provider: 'minilm',
       usage: { prompt_tokens: 1, total_tokens: 1 },
     });

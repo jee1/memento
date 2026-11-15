@@ -65,7 +65,7 @@ export class OpenAIEmbeddingService implements EmbeddingServiceInterface {
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
       process.stderr.write(
-        `❌ OpenAI 초기화 실패. OPENAI_API_KEY 값과 네트워크 접근 권한을 확인하거나 MiniLM/TFiDF 모델로 폴백하세요: ${maskedError.message}\n`
+        `❌ OpenAI 초기화 실패. OPENAI_API_KEY 값과 네트워크 접근 권한을 확인하거나 로컬 임베딩 모델(EMBEDDING_PROVIDER=minilm)이나 TF-IDF 로 폴백하세요: ${maskedError.message}\n`
       );
       this.client = null;
     }

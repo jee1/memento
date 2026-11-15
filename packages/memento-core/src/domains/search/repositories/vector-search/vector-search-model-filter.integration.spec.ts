@@ -9,7 +9,7 @@ import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, beforeAll, describe, expect, it } from 'vitest';
-import { MINILM_MODEL_NAME } from '../../../../shared/config/embedding-models.js';
+import { LOCAL_EMBEDDING_MODEL } from '../../../../shared/config/embedding-models.js';
 import { initializeDatabase } from '../../../../infrastructure/database/sqlite/init.js';
 import { encodeFloat32Embedding } from '../../../../shared/utils/embedding-serialization.js';
 import { VectorSearchRepositoryImpl } from '../vector-search.repository.js';
@@ -74,7 +74,7 @@ describe('#889 모델이 섞인 상태의 벡터 검색', () => {
     db = await initializeDatabase(join(tempDir, 'memory.db'));
     // 옛 모델 행이 쿼리와 정확히 같은 방향이다. 모델을 거르지 않으면 항상 1등으로 나온다.
     insertMemory(db, 'stale-1', '옛 모델로 만든 임베딩', unitVector(0), STALE_MODEL);
-    insertMemory(db, 'current-1', '현재 모델로 만든 임베딩', partiallyAlignedVector(), MINILM_MODEL_NAME);
+    insertMemory(db, 'current-1', '현재 모델로 만든 임베딩', partiallyAlignedVector(), LOCAL_EMBEDDING_MODEL.storedName);
     return new VectorSearchRepositoryImpl(db);
   }
 
@@ -124,8 +124,8 @@ describe('#889 모델이 섞인 상태의 벡터 검색', () => {
     if (!vecAvailable) return;
     tempDir = mkdtempSync(join(tmpdir(), 'memento-model-filter-'));
     db = await initializeDatabase(join(tempDir, 'memory.db'));
-    insertMemory(db, 'a', '첫 번째', unitVector(0), MINILM_MODEL_NAME);
-    insertMemory(db, 'b', '두 번째', partiallyAlignedVector(), MINILM_MODEL_NAME);
+    insertMemory(db, 'a', '첫 번째', unitVector(0), LOCAL_EMBEDDING_MODEL.storedName);
+    insertMemory(db, 'b', '두 번째', partiallyAlignedVector(), LOCAL_EMBEDDING_MODEL.storedName);
 
     const results = await new VectorSearchRepositoryImpl(db).search({
       queryVector: unitVector(0),

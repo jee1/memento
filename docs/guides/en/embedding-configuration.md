@@ -101,7 +101,7 @@ Do not simply update the environment variable and leave existing data as-is.
 Two embeddings of the same dimension are still incomparable when they come from **different models** — the vector spaces do not line up. `minilm` guards against this automatically.
 
 - Every stored embedding records its model name in `memory_embedding.model`.
-- Vector search only compares rows produced by the model this build uses (`MINILM_MODEL_ID` in `packages/memento-core/src/shared/config/embedding-models.ts`).
+- Vector search only compares rows produced by the model this build uses (`LOCAL_EMBEDDING_MODEL.storedName` in `packages/memento-core/src/shared/config/embedding-models.ts`).
 - A half-finished reindex therefore never mixes models in one cosine comparison. The not-yet-reindexed memories simply drop out of vector search until they are rebuilt; FTS still finds them.
 - Features that read stored vectors directly (memory neighbors, anchors, sleep consolidation, the search backfill) also use only current-model rows, and only the native row that represents the whole memory, never a window row. Until a memory is reindexed these features treat it as having no embedding. The fallback vector search compares native and window rows like the main vector search, restricted to current-model rows (#1731, #1732).
 

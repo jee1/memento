@@ -1,17 +1,17 @@
 /**
- * MiniLMEmbeddingService 테스트
+ * LocalEmbeddingService 테스트
  * Worker 스레드 에러 처리 및 fallback 메커니즘 테스트
  */
 
 import { describe, it, expect, beforeEach, vi } from 'vitest';
-import { MiniLMEmbeddingService } from '../minilm-embedding-service.js';
+import { LocalEmbeddingService } from '../local-embedding-service.js';
 import { meanPoolNormalize } from '../embedding-helpers.js';
 
-describe('MiniLMEmbeddingService', () => {
-  let service: MiniLMEmbeddingService;
+describe('LocalEmbeddingService', () => {
+  let service: LocalEmbeddingService;
 
   beforeEach(() => {
-    service = new MiniLMEmbeddingService();
+    service = new LocalEmbeddingService();
   });
 
   describe('Worker 스레드 에러 처리', () => {
@@ -33,7 +33,7 @@ describe('MiniLMEmbeddingService', () => {
       process.env.ENABLE_WORKER = 'false';
 
       // When: 서비스 생성
-      const newService = new MiniLMEmbeddingService();
+      const newService = new LocalEmbeddingService();
 
       // Then: 서비스가 생성되어야 함
       expect(newService).toBeDefined();
@@ -61,7 +61,7 @@ describe('MiniLMEmbeddingService', () => {
 
   describe('fallback 시 차원 정보', () => {
     it('Given: MiniLM이 실패하고 TF-IDF로 fallback할 때, When: getModelInfo()를 호출하면, Then: MiniLM 차원(384)을 반환해야 함', () => {
-      // Given: MiniLM 서비스 (실패 시에도 차원 정보는 유지)
+      // Given: 로컬 임베딩 서비스 (실패 시에도 차원 정보는 유지)
       // When: getModelInfo() 호출
       const modelInfo = service.getModelInfo();
 

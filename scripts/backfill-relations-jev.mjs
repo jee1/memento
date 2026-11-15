@@ -11,7 +11,7 @@
 import { appendFileSync, existsSync, readFileSync } from 'node:fs';
 import { parseArgs } from 'node:util';
 import Database from 'better-sqlite3';
-import { MINILM_MODEL_NAME } from '../packages/memento-core/dist/shared/config/embedding-models.js';
+import { LOCAL_EMBEDDING_MODEL } from '../packages/memento-core/dist/shared/config/embedding-models.js';
 import { mementoConfig } from '../packages/memento-core/dist/shared/config/index.js';
 import { extractForRemember } from '../packages/memento-core/dist/domains/relation/services/remember-relation-extraction.js';
 import { createRelationGraph } from '../packages/memento-core/dist/infrastructure/relation-graph-factory.js';
@@ -126,11 +126,11 @@ function loadCandidatePool(id, row) {
   if (!row) return [];
   if (selectSourceEmbedding && selectVecPool) {
     try {
-      const embRow = selectSourceEmbedding.get(id, MINILM_MODEL_NAME);
+      const embRow = selectSourceEmbedding.get(id, LOCAL_EMBEDDING_MODEL.storedName);
       if (embRow && embRow.embedding) {
         const vecRows = selectVecPool.all(
           embRow.embedding,
-          MINILM_MODEL_NAME,
+          LOCAL_EMBEDDING_MODEL.storedName,
           id,
           row.owner_id,
           row.created_at

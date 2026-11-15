@@ -7,6 +7,7 @@ import Database from 'better-sqlite3';
 import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
+import { LOCAL_EMBEDDING_MODEL } from '../../../../shared/config/embedding-models.js';
 import { ensureMemoryEmbeddingMetadataDefaults } from '../ensure-memory-embedding-metadata-defaults.js';
 
 const LEGACY_MEMORY_ID = 'mem-legacy-meta-1';
@@ -90,6 +91,22 @@ describe('ensureMemoryEmbeddingMetadataDefaults (#753)', () => {
     expect(row.created_by).toBe('legacy');
     expect(row.dimensions).toBe(8);
     expect(row.dim).toBe(8);
+  });
+
+  it('Given: provider 가 빈 로컬 임베딩 모델 행, When: ensure, Then: provider=minilm (#1729)', () => {
+    db = new Database(':memory:');
+    createModernSchemaWithNullMetadata(db);
+    db.prepare(`UPDATE memory_embedding SET model = ? WHERE memory_id = ?`).run(
+      LOCAL_EMBEDDING_MODEL.storedName,
+      LEGACY_MEMORY_ID
+    );
+
+    ensureMemoryEmbeddingMetadataDefaults(db, 'openai');
+
+    const row = db
+      .prepare(`SELECT embedding_provider FROM memory_embedding WHERE memory_id = ?`)
+      .get(LEGACY_MEMORY_ID) as { embedding_provider: string };
+    expect(row.embedding_provider).toBe('minilm');
   });
 
   it('Given: memory_embedding without precision column, When: ensure, Then: no-op without throw', () => {

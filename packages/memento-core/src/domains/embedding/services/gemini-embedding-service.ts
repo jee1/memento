@@ -11,7 +11,7 @@ import { RetryManager } from '../../../shared/utils/retry-manager.js';
 import type { RetryConfig } from '../../../shared/utils/retry-manager.js';
 import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
 import { logger, isCliQuiet } from '../../../shared/utils/logger.js';
-import { MiniLMEmbeddingService } from './minilm-embedding-service.js';
+import { LocalEmbeddingService } from './local-embedding-service.js';
 import {
   cleanupEmbeddingCache,
   estimateEmbeddingTokens,
@@ -30,14 +30,14 @@ interface GeminiEmbeddingResult {
 
 export class GeminiEmbeddingService {
   private genAI: GoogleGenAI | null = null;
-  private miniLMService: MiniLMEmbeddingService;
+  private localService: LocalEmbeddingService;
   private readonly model: string;
   private readonly maxTokens = 2048; // Gemini text-embedding-004 최대 토큰
   private embeddingCache: Map<string, GeminiEmbeddingResult> = new Map(); // 임베딩 캐시
   private readonly retryManager: RetryManager;
 
   constructor() {
-    this.miniLMService = new MiniLMEmbeddingService();
+    this.localService = new LocalEmbeddingService();
     this.model = mementoConfig.geminiModel;
     
     // RetryManager 초기화 (embedding_api 설정 사용)
@@ -67,7 +67,7 @@ export class GeminiEmbeddingService {
       const errorMsg = error instanceof Error ? error.message : String(error);
       if (!isCliQuiet()) {
         process.stderr.write(
-          `❌ Gemini 초기화 실패. GEMINI_API_KEY 값과 네트워크 접근 권한을 확인하거나 MiniLM 모델을 사용하세요: ${errorMsg}\n`
+          `❌ Gemini 초기화 실패. GEMINI_API_KEY 값과 네트워크 접근 권한을 확인하거나 로컬 임베딩 모델(EMBEDDING_PROVIDER=minilm)을 사용하세요: ${errorMsg}\n`
         );
       }
       this.genAI = null;
@@ -161,23 +161,23 @@ export class GeminiEmbeddingService {
         return embeddingResult;
       } catch (error) {
         const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-        if (!isCliQuiet()) process.stderr.write(`⚠️ Gemini 임베딩 실패, MiniLM 서비스로 fallback: ${maskedError.message}\n`);
-        // Gemini 실패 시 MiniLM 서비스로 fallback
+        if (!isCliQuiet()) process.stderr.write(`⚠️ Gemini 임베딩 실패, 로컬 임베딩 서비스로 fallback: ${maskedError.message}\n`);
+        // Gemini 실패 시 로컬 임베딩 서비스로 fallback
       }
     }
 
-    // 3. Gemini가 없거나 실패한 경우 MiniLM 서비스 사용
-    if (!isCliQuiet()) process.stderr.write('🔄 MiniLM 임베딩 서비스 사용\n');
+    // 3. Gemini가 없거나 실패한 경우 로컬 임베딩 서비스 사용
+    if (!isCliQuiet()) process.stderr.write('🔄 로컬 임베딩 서비스 사용\n');
     try {
-      const miniLMResult = await this.miniLMService.generateEmbedding(text);
-      if (!miniLMResult) {
+      const localResult = await this.localService.generateEmbedding(text);
+      if (!localResult) {
         return null;
       }
 
       const result = {
-        embedding: miniLMResult.embedding,
-        model: miniLMResult.model,
-        usage: miniLMResult.usage,
+        embedding: localResult.embedding,
+        model: localResult.model,
+        usage: localResult.usage,
       };
 
       // 캐시에 저장
@@ -187,7 +187,7 @@ export class GeminiEmbeddingService {
       return result;
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      if (!isCliQuiet()) process.stderr.write(`❌ MiniLM 임베딩 생성 실패: ${maskedError.message}\n`);
+      if (!isCliQuiet()) process.stderr.write(`❌ 로컬 임베딩 생성 실패: ${maskedError.message}\n`);
       // eslint-disable-next-line preserve-caught-error -- the message is masked; a raw cause would expose unmasked PII
       throw new Error(`임베딩 생성 실패: ${maskedError.message}`);
     }
@@ -196,7 +196,7 @@ export class GeminiEmbeddingService {
   /**
    * 서비스 사용 가능 여부 확인
    * Gemini API가 실제로 초기화되어 사용 가능한 경우에만 true 반환
-   * (fallback인 miniLM은 별도로 확인하지 않음)
+   * (fallback인 로컬 임베딩 서비스는 별도로 확인하지 않음)
    */
   isAvailable(): boolean {
     return this.genAI !== null;
@@ -213,7 +213,7 @@ export class GeminiEmbeddingService {
         maxTokens: this.maxTokens,
       };
     } else {
-      return this.miniLMService.getModelInfo();
+      return this.localService.getModelInfo();
     }
   }
 }

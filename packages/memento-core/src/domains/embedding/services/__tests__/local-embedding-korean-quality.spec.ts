@@ -5,13 +5,13 @@
  * 관련 없는 한국어 문서가 관련 문서보다 높은 점수를 받았다. 이 테스트는 그 회귀를
  * 잡는다. 실제 모델을 내려받아야 하므로(q8 onnx 약 118MB) 기본은 건너뛴다.
  *
- *   RUN_EMBEDDING_QUALITY=1 npx vitest run packages/memento-core/src/domains/embedding/services/__tests__/minilm-korean-quality.spec.ts
+ *   RUN_EMBEDDING_QUALITY=1 npx vitest run packages/memento-core/src/domains/embedding/services/__tests__/local-embedding-korean-quality.spec.ts
  */
 
 import { beforeAll, describe, expect, it, vi } from 'vitest';
 import * as transformers from '@huggingface/transformers';
-import { MINILM_MODEL_NAME } from '../../../../shared/config/embedding-models.js';
-import { MiniLMEmbeddingService } from '../minilm-embedding-service.js';
+import { LOCAL_EMBEDDING_MODEL } from '../../../../shared/config/embedding-models.js';
+import { LocalEmbeddingService } from '../local-embedding-service.js';
 import { UnifiedEmbeddingService } from '../unified-embedding-service.js';
 
 // vitest.setup.ts가 두 모듈을 전역 모킹한다. 여기서는 실제 모델을 돌려야 하므로 되돌린다.
@@ -46,7 +46,7 @@ function dot(a: number[], b: number[]): number {
 }
 
 describe.skipIf(!ENABLED)('#889 MiniLM 한국어 검색 품질', () => {
-  const service = new MiniLMEmbeddingService();
+  const service = new LocalEmbeddingService();
   let documents: number[][] = [];
 
   async function embed(text: string): Promise<number[]> {
@@ -77,7 +77,7 @@ describe.skipIf(!ENABLED)('#889 MiniLM 한국어 검색 품질', () => {
 
   it('모델명이 MiniLM 으로 기록된다 (V3)', async () => {
     const result = await service.generateEmbedding(ANCHOR_DOC);
-    expect(result!.model).toBe(MINILM_MODEL_NAME);
+    expect(result!.model).toBe(LOCAL_EMBEDDING_MODEL.storedName);
   });
 
   it('벡터가 실제 추론 결과이다 — mock 상수 배제 (V4)', async () => {
@@ -182,7 +182,7 @@ const TAIL_BLOCK = `${TAIL_TOPIC_KO}. ${TAIL_TOPIC_KO}`;
 
 describe.skipIf(!ENABLED)('#1013 MiniLM 윈도 평균 풀링', () => {
   it('긴 문서의 뒤쪽 문단이 벡터에 반영된다', async () => {
-    const service = new MiniLMEmbeddingService();
+    const service = new LocalEmbeddingService();
     const longDoc = `${HEAD_BLOCK}. ${TAIL_BLOCK}`;
     // 예전 동작과 같은 입력: 앞 1024자만 임베딩한 벡터.
     const headOnly = longDoc.slice(0, 1024);
@@ -201,7 +201,7 @@ describe.skipIf(!ENABLED)('#1013 MiniLM 윈도 평균 풀링', () => {
   }, 120_000);
 
   it('한 윈도에 들어가는 짧은 문서는 예전과 같은 단일 호출 결과를 낸다', async () => {
-    const service = new MiniLMEmbeddingService();
+    const service = new LocalEmbeddingService();
     const short = ANCHOR_DOC;
     const result = (await service.generateEmbedding(short))!;
 

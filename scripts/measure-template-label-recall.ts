@@ -155,10 +155,10 @@ function summarizeFields(rows: Array<{ fields: TemplateFields }>): { noneFailed:
 async function embedSample(
   rows: Array<{ content: string; fields: TemplateFields }>,
 ): Promise<Record<string, number>> {
-  const { MiniLMEmbeddingService } = await import(
-    '../packages/memento-core/src/domains/embedding/services/minilm-embedding-service.js'
+  const { LocalEmbeddingService } = await import(
+    '../packages/memento-core/src/domains/embedding/services/local-embedding-service.js'
   );
-  const service = new MiniLMEmbeddingService();
+  const service = new LocalEmbeddingService();
   const labeledVectors: number[][] = [];
   const strippedVectors: number[][] = [];
   const queryVectors: number[][] = [];

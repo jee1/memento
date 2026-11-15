@@ -1,6 +1,6 @@
 /**
- * MiniLM 임베딩 서비스
- * paraphrase-multilingual-MiniLM-L12-v2 모델을 사용한 경량 다국어 임베딩 서비스 (#889)
+ * 로컬 임베딩 서비스
+ * 임베딩 제공자 값 `minilm` 뒤에서 도는 로컬 모델(`LOCAL_EMBEDDING_MODEL`)로 임베딩을 만든다 (#889, #1729)
  * 
  * 클린코드 원칙:
  * - 단일 책임 원칙: 임베딩 생성만 담당
@@ -9,7 +9,7 @@
  */
 
 import { pipeline, env } from '@huggingface/transformers';
-import { MINILM_MODEL_ID, MINILM_MODEL_NAME } from '../../../shared/config/embedding-models.js';
+import { LOCAL_EMBEDDING_MODEL } from '../../../shared/config/embedding-models.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { isCliQuiet } from '../../../shared/utils/logger.js';
 import type { 
@@ -37,7 +37,7 @@ type FeatureExtractionModel = ((
 };
 
 declare global {
-  var __minilmModelLoadWarningShown: boolean | undefined;
+  var __localEmbeddingModelLoadWarningShown: boolean | undefined;
 }
 
 // Node.js 환경에서 Worker 스레드 사용 비활성화
@@ -60,10 +60,10 @@ if (typeof process !== 'undefined' && process.env) {
   }
 }
 
-export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
+export class LocalEmbeddingService implements EmbeddingServiceInterface {
   // 상수 정의
-  private static readonly MODEL_NAME = MINILM_MODEL_NAME;
-  private static readonly DIMENSIONS = 384;
+  private static readonly MODEL_NAME = LOCAL_EMBEDDING_MODEL.storedName;
+  private static readonly DIMENSIONS = LOCAL_EMBEDDING_MODEL.dimensions;
   // 모델 창은 512 토큰이고 [CLS]/[SEP] 2개를 제외한 510 이 본문 한 윈도의 크기다 (#1013).
   private static readonly WINDOW_TOKENS = 510;
   private static readonly MODEL_MAX_TOKENS = 512;
@@ -74,8 +74,8 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
   private static readonly MAX_CACHE_ENTRIES = 256;
   private static readonly MAX_WINDOW_CACHE_ENTRIES = 64;
   
-  private readonly modelName = MiniLMEmbeddingService.MODEL_NAME;
-  private readonly dimensions = MiniLMEmbeddingService.DIMENSIONS;
+  private readonly modelName = LocalEmbeddingService.MODEL_NAME;
+  private readonly dimensions = LocalEmbeddingService.DIMENSIONS;
   private model: unknown = null;
   private loadingPromise: Promise<FeatureExtractionModel> | null = null;
   private readonly cache = new Map<string, EmbeddingResult>();
@@ -112,7 +112,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
         }
       };
 
-      this.setBoundedCacheEntry(this.cache, cacheKey, embeddingResult, MiniLMEmbeddingService.MAX_CACHE_ENTRIES);
+      this.setBoundedCacheEntry(this.cache, cacheKey, embeddingResult, LocalEmbeddingService.MAX_CACHE_ENTRIES);
       return embeddingResult;
 
     } catch (error) {
@@ -126,16 +126,16 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
       
       if (!isCliQuiet()) {
         if (isWorkerPathError) {
-          process.stderr.write(`⚠️ MiniLM 모델 로딩 실패 (Worker 스레드 제한): ${maskedError.message}\n`);
+          process.stderr.write(`⚠️ 로컬 임베딩 모델 로딩 실패 (Worker 스레드 제한): ${maskedError.message}\n`);
           process.stderr.write('💡 TF-IDF fallback으로 전환됩니다. 차원: 512\n');
         } else {
-          process.stderr.write(`❌ MiniLM 임베딩 생성 실패: ${maskedError.message}\n`);
+          process.stderr.write(`❌ 로컬 임베딩 생성 실패: ${maskedError.message}\n`);
         }
       }
       
       // 에러를 다시 던져서 UnifiedEmbeddingService에서 fallback 처리
       // eslint-disable-next-line preserve-caught-error -- the message is masked; a raw cause would expose unmasked PII
-      throw new Error(`MiniLM 임베딩 생성 실패: ${maskedError.message}`);
+      throw new Error(`로컬 임베딩 생성 실패: ${maskedError.message}`);
     }
   }
 
@@ -144,7 +144,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
    * TDD: 모델 로딩 상태 확인
    */
   isAvailable(): boolean {
-    // MiniLM은 항상 사용 가능 (모델이 로드되지 않아도 사용 가능)
+    // 로컬 임베딩 모델은 항상 사용 가능 (모델이 로드되지 않아도 사용 가능)
     // 실제 모델 로딩은 generateEmbedding 호출 시 lazy loading
     return true;
   }
@@ -157,7 +157,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
     return {
       model: this.modelName,
       dimensions: this.dimensions,
-      maxTokens: MiniLMEmbeddingService.MODEL_MAX_TOKENS
+      maxTokens: LocalEmbeddingService.MODEL_MAX_TOKENS
     };
   }
 
@@ -205,13 +205,13 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
       // 이는 ERR_WORKER_PATH 에러를 방지합니다
       const model = await pipeline(
         'feature-extraction',
-        MINILM_MODEL_ID,
+        LOCAL_EMBEDDING_MODEL.source.repo,
         {
           // q8 모델 사용 (메모리 사용량 감소)
-          dtype: 'q8'
+          dtype: LOCAL_EMBEDDING_MODEL.source.dtype
         }
       );
-      if (!isCliQuiet()) process.stderr.write('✅ MiniLM 모델 로딩 완료\n');
+      if (!isCliQuiet()) process.stderr.write('✅ 로컬 임베딩 모델 로딩 완료\n');
       return model as unknown as FeatureExtractionModel;
     } catch (error) {
       // ERR_WORKER_PATH 에러는 Node.js 환경에서 onnxruntime-web의 Worker가 
@@ -223,18 +223,18 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
       
       // 에러 로깅을 한 번만 출력하도록 조건부 처리
       // 왜 필요한가? 로그 스팸 방지 및 MCP 프로토콜 준수
-      if (!globalThis.__minilmModelLoadWarningShown) {
+      if (!globalThis.__localEmbeddingModelLoadWarningShown) {
         if (!isCliQuiet()) {
           if (isWorkerPathError) {
-            process.stderr.write(`⚠️ MiniLM 모델 로딩 실패 (Node.js 환경 제한, TF-IDF fallback 사용): ${errorMessage}\n`);
+            process.stderr.write(`⚠️ 로컬 임베딩 모델 로딩 실패 (Node.js 환경 제한, TF-IDF fallback 사용): ${errorMessage}\n`);
             process.stderr.write('💡 해결 방법: 환경 변수 ENABLE_WORKER=false 설정 또는 onnxruntime-node 설치 확인\n');
             process.stderr.write('💡 Fallback 시 차원 정보: TF-IDF는 512차원을 사용합니다\n');
           } else {
             const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-            process.stderr.write(`❌ MiniLM 모델 로딩 실패: ${maskedError.message}\n`);
+            process.stderr.write(`❌ 로컬 임베딩 모델 로딩 실패: ${maskedError.message}\n`);
           }
         }
-        globalThis.__minilmModelLoadWarningShown = true;
+        globalThis.__localEmbeddingModelLoadWarningShown = true;
       }
       
       throw new Error(`모델 로딩 실패: ${errorMessage}`, { cause: error });
@@ -309,7 +309,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
       this.windowCache,
       cacheKey,
       windowResult,
-      MiniLMEmbeddingService.MAX_WINDOW_CACHE_ENTRIES
+      LocalEmbeddingService.MAX_WINDOW_CACHE_ENTRIES
     );
     return windowResult;
   }
@@ -318,7 +318,7 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
    * 윈도별 임베딩 벡터를 반환한다 (issue 1107).
    *
    * generateEmbedding 과 달리 윈도마다의 벡터를 그대로 노출한다. MaxSim 등 윈도 단위 유사도 계산용 public seam.
-   * EmbeddingServiceInterface 에는 포함하지 않는 MiniLM 전용 API다.
+   * EmbeddingServiceInterface 에는 포함하지 않는 로컬 임베딩 전용 API다.
    */
   async generateWindowEmbeddings(text: string): Promise<{ vectors: number[][]; tokenCount: number; model: string }> {
     this.validateInput(text);
@@ -345,11 +345,11 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
       const ids = Array.from(iterable, (value) => Number(value));
       if (ids.length === 0) return null;
 
-      const size = MiniLMEmbeddingService.WINDOW_TOKENS;
+      const size = LocalEmbeddingService.WINDOW_TOKENS;
       if (ids.length <= size) return { texts: [text], tokenCount: ids.length };
 
       // 상한을 넘는 뒷부분은 버린다. tokenCount 는 실제로 모델에 들어간 토큰 수를 보고한다.
-      const limit = Math.min(ids.length, size * MiniLMEmbeddingService.MAX_WINDOWS);
+      const limit = Math.min(ids.length, size * LocalEmbeddingService.MAX_WINDOWS);
       const texts: string[] = [];
       for (let start = 0; start < limit; start += size) {
         texts.push(tokenizer.decode(ids.slice(start, start + size), { skip_special_tokens: true }));

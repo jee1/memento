@@ -87,10 +87,10 @@
       "import": "./dist/domains/embedding/services/unified-embedding-service.js",
       "default": "./dist/domains/embedding/services/unified-embedding-service.js"
     },
-    "./domains/embedding/services/minilm-embedding-service.js": {
-      "types": "./dist/domains/embedding/services/minilm-embedding-service.d.ts",
-      "import": "./dist/domains/embedding/services/minilm-embedding-service.js",
-      "default": "./dist/domains/embedding/services/minilm-embedding-service.js"
+    "./domains/embedding/services/local-embedding-service.js": {
+      "types": "./dist/domains/embedding/services/local-embedding-service.d.ts",
+      "import": "./dist/domains/embedding/services/local-embedding-service.js",
+      "default": "./dist/domains/embedding/services/local-embedding-service.js"
     },
     "./domains/embedding/services/embedding-helpers.js": {
       "types": "./dist/domains/embedding/services/embedding-helpers.d.ts",

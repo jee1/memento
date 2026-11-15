@@ -138,7 +138,7 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
 
   /**
    * 마지막으로 선택된 제공자 서비스 인스턴스 (#1112 윈도 임베딩 접근용).
-   * 인터페이스에 없는 제공자 전용 기능(MiniLM generateWindowEmbeddings)을 호출하려면 필요하다.
+   * 인터페이스에 없는 제공자 전용 기능(로컬 임베딩 generateWindowEmbeddings)을 호출하려면 필요하다.
    */
   getCurrentProviderService(): EmbeddingServiceInterface | null {
     return this.currentProvider;

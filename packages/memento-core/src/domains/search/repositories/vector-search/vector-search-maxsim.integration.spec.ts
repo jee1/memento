@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, describe, expect, it } from 'vitest';
-import { MINILM_MODEL_NAME } from '../../../../shared/config/embedding-models.js';
+import { LOCAL_EMBEDDING_MODEL } from '../../../../shared/config/embedding-models.js';
 import { initializeDatabase } from '../../../../infrastructure/database/sqlite/init.js';
 import { encodeFloat32Embedding } from '../../../../shared/utils/embedding-serialization.js';
 import { executeHybridQuery } from './vector-search-hybrid-query.js';
@@ -64,7 +64,7 @@ function insertMemory(
       embedding.projection_type,
       encodeFloat32Embedding(embedding.vector),
       DIMENSIONS,
-      MINILM_MODEL_NAME,
+      LOCAL_EMBEDDING_MODEL.storedName,
       DIMENSIONS
     );
   }

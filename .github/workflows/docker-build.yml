@@ -20,6 +20,8 @@ on:
       - 'apps/*/package.json'
       - 'scripts/start-container.sh'
       - 'scripts/docker-smoke.mjs'
+      # warmup 과 smoke 가 로컬 임베딩 모델 정의를 읽는다 (#1729).
+      - 'packages/memento-core/src/shared/config/embedding-models.ts'
       - '.github/workflows/docker-build.yml'
   workflow_dispatch:
 
@@ -33,7 +35,7 @@ jobs:
     steps:
       - uses: actions/checkout@v6
 
-      # MiniLM warmup 을 끄지 않는다. warmup 이 sharp/onnxruntime 경로를 실제로 타는
+      # 로컬 임베딩 모델 warmup 을 끄지 않는다. warmup 이 sharp/onnxruntime 경로를 실제로 타는
       # 유일한 지점이라 끄면 검증 가치가 사라진다.
       - name: Build image
         run: docker build -t memento-ci:smoke .

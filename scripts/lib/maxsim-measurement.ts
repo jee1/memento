@@ -1,7 +1,7 @@
 import type Database from 'better-sqlite3';
 import { decodeFloat32Embedding } from '@memento/core';
 import { meanPoolNormalize } from '@memento/core/domains/embedding/services/embedding-helpers.js';
-import { MiniLMEmbeddingService } from '@memento/core/domains/embedding/services/minilm-embedding-service.js';
+import { LocalEmbeddingService } from '@memento/core/domains/embedding/services/local-embedding-service.js';
 import { loadBenchmarkCorpus } from '@memento/core/domains/monitoring/services/quality-assurance/search-quality-benchmark-fixtures.js';
 
 const VECTOR_DIMS = 384;
@@ -90,7 +90,7 @@ export async function loadCorpusWindowVectors(
     storedRows.map((row) => [row.memory_id, row.embedding])
   );
 
-  const embeddingService = new MiniLMEmbeddingService();
+  const embeddingService = new LocalEmbeddingService();
   const docs: MaxsimDocVectors[] = [];
   let reproductionMismatchCount = 0;
   let multiWindowDocumentCount = 0;
