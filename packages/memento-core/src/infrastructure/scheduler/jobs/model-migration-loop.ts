@@ -12,7 +12,8 @@ export interface ModelMigrationSummary {
 
 /**
  * 모델 이주 반복 (#1729). embedding_reconciliation 실행(1,000건, 실행당 시간 예산)을 주기 대기 없이 잇달아 돌려
- * 후보가 0 이 되면 멈춘다. 연속 실패 상한에 닿거나 한 실행이 아무것도 처리하지 못하면 멈추고, 남은 기억은 정기 실행이 본다.
+ * 후보가 0 이 되면 멈춘다. 연속 실패 상한에 닿거나 한 실행이 남은 수를 줄이지 못하면 멈추고, 남은 기억은 정기 실행이 본다.
+ * 진행은 처리 수가 아니라 남은 수로 본다. 저장이 성공해도 그 기억이 후보에서 빠지지 않으면 대기 없이 같은 일을 되풀이한다.
  */
 export async function runModelMigrationLoop(deps: {
   runOnce: () => Promise<BatchJobResult>;
@@ -29,9 +30,10 @@ export async function runModelMigrationLoop(deps: {
     processed += result.processed;
     const details = result.details as Partial<EmbeddingReconciliationDetails> | undefined;
     if (typeof details?.remaining !== 'number') return { runs, processed, remaining, stoppedBy: 'run_failed' };
+    const before = typeof details.candidates === 'number' ? details.candidates : Number.POSITIVE_INFINITY;
     remaining = details.remaining;
     if (remaining === 0) return { runs, processed, remaining, stoppedBy: 'done' };
     if (details.failureLimitReached) return { runs, processed, remaining, stoppedBy: 'failure_limit' };
-    if (result.processed === 0) return { runs, processed, remaining, stoppedBy: 'no_progress' };
+    if (remaining >= before) return { runs, processed, remaining, stoppedBy: 'no_progress' };
   }
 }

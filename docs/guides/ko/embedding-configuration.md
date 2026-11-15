@@ -125,7 +125,7 @@ npm run reindex-embeddings -- --provider minilm --batch-size 100
 - HTTP 서버를 띄운 프로세스 하나만 돕니다(상시 HTTP 서버, 또는 stdio 에서 HTTP sidecar 잠금을 얻은 프로세스). sidecar 없는 stdio 전용 설치는 정기 실행으로 하루 1,000건씩 따라잡습니다.
 - 지정한 로컬 제공자만 씁니다. 실패해도 외부 임베딩 API 나 TF-IDF 로 넘어가지 않습니다.
 - 옛 모델 기억이 활성 기억의 1% 를 넘는 동안 Sleep consolidation 은 건너뛰고, 잡 이력 warnings 에 「모델 드리프트 N건(M%) 때문에 건너뜀」을 남깁니다.
-- 이주나 `embedding_reconciliation` 이 도는 동안 `POST /api/v1/maintenance/reindex` 는 409 입니다. CLI `reindex-embeddings` 는 이주를 하나 더 띄우므로 서버를 멈춘 뒤에만 씁니다. 진행은 관리 API 의 `modelDriftCount` 로 봅니다.
+- 이주나 `embedding_reconciliation` 이 도는 동안 `POST /api/v1/maintenance/reindex` 는 409 입니다. CLI `reindex-embeddings` 는 서버의 이주 반복과 같은 기억을 겹쳐 계산하므로 서버를 멈춘 뒤에만 씁니다. 진행은 관리 API 의 `modelDriftCount` 로 봅니다.
 - 끄기: 관리 API 로 `embedding_reconciliation` 을 일시정지(재시작하면 풀림)하거나 `BATCH_SCHEDULER_ENABLED=false`(모든 배치가 꺼짐)를 둡니다.
 
 검색어는 질의 벡터로, 저장하는 글은 기억 벡터로 만듭니다. 모델이 역할마다 다른 접두를 요구하면 `LOCAL_EMBEDDING_MODEL.prefixes` 에 두고, 창 크기는 510 에서 접두 토큰 수를 뺀 값입니다(#1729). 지금 모델은 두 접두가 비어 있습니다.

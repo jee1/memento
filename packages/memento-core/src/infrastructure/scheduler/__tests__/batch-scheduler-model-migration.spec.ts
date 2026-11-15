@@ -7,6 +7,7 @@ import { initializeDatabase } from '../../database/sqlite/init.js';
 import { encodeFloat32Embedding } from '../../../shared/utils/embedding-serialization.js';
 import { LOCAL_EMBEDDING_MODEL } from '../../../shared/config/embedding-models.js';
 import { BatchScheduler } from '../batch-scheduler/batch-scheduler.js';
+import { BatchJobAlreadyRunningError } from '../batch-scheduler/batch-scheduler-types.js';
 
 vi.mock('../handlers/batch-scheduler-embedding-handlers.js', async (importOriginal) => ({
   ...(await importOriginal<typeof import('../handlers/batch-scheduler-embedding-handlers.js')>()),
@@ -64,6 +65,27 @@ describe('BatchScheduler.startModelMigration (#1729)', () => {
     await vi.waitFor(() => expect(scheduler.isModelMigrationRunning()).toBe(false));
     expect(runJob).toHaveBeenCalledTimes(1);
     expect(runJob).toHaveBeenCalledWith('embedding_reconciliation');
+  });
+
+  it('기동 때 정기 실행이 먼저 잡을 쥐면 풀릴 때까지 기다렸다 다시 시작한다', async () => {
+    vi.useFakeTimers();
+    try {
+      const db = await dbWithModel('old-model');
+      dbs.push(db);
+      const { scheduler, runJob } = runningScheduler(db);
+      runJob.mockRejectedValueOnce(new BatchJobAlreadyRunningError('embedding_reconciliation'));
+
+      scheduler.startModelMigration();
+      await vi.advanceTimersByTimeAsync(0);
+      expect(runJob).toHaveBeenCalledTimes(1);
+      expect(scheduler.isModelMigrationRunning()).toBe(true);
+
+      await vi.advanceTimersByTimeAsync(5_000);
+      expect(runJob).toHaveBeenCalledTimes(2);
+      await vi.waitFor(() => expect(scheduler.isModelMigrationRunning()).toBe(false));
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('드리프트가 없거나 정합 잡이 일시정지면 돌지 않는다', async () => {

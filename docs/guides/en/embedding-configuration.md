@@ -120,7 +120,7 @@ When the build's local embedding model (`LOCAL_EMBEDDING_MODEL.storedName`) chan
 - Only one process runs it: the one that starts the HTTP server (an always-on HTTP server, or a stdio process that took the HTTP sidecar lock). A stdio-only install without the sidecar catches up through the daily run, 1,000 memories a day.
 - It uses only the configured local provider. A failure never falls back to an external embedding API or TF-IDF.
 - While old-model memories exceed 1% of active memories, Sleep consolidation skips and leaves `모델 드리프트 N건(M%) 때문에 건너뜀` in the job history warnings.
-- While the migration or `embedding_reconciliation` runs, `POST /api/v1/maintenance/reindex` returns 409. The CLI `reindex-embeddings` starts another migration, so use it only with the server stopped. Watch progress with `modelDriftCount` from the admin API.
+- While the migration or `embedding_reconciliation` runs, `POST /api/v1/maintenance/reindex` returns 409. The CLI `reindex-embeddings` would recompute the same memories as the server's migration, so use it only with the server stopped. Watch progress with `modelDriftCount` from the admin API.
 - To turn it off, pause `embedding_reconciliation` through the admin API (cleared on restart) or set `BATCH_SCHEDULER_ENABLED=false` (turns off every batch job).
 
 Search queries become query vectors and stored text becomes passage vectors. When a model expects a different prefix per role, the prefixes live in `LOCAL_EMBEDDING_MODEL.prefixes`, and the window size is 510 minus the prefix token count (#1729). Both prefixes are empty for the current model.

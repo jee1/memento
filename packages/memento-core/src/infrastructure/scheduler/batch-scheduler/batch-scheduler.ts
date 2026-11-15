@@ -62,6 +62,7 @@ import {
 
 /** Async augmentation pipeline worker; groups config, intervals, and failure handling. */
 export class BatchScheduler implements IBatchScheduler {
+  private static readonly MODEL_MIGRATION_RETRY_MS = 5_000;
   private config: BatchJobConfig;
   private forgettingService: BatchSchedulerServiceState['forgettingService'];
   private performanceMonitor: BatchSchedulerServiceState['performanceMonitor'];
@@ -554,6 +555,9 @@ export class BatchScheduler implements IBatchScheduler {
    * 서버 진입점이 HTTP 서버를 띄운 뒤 부른다(stdio 는 sidecar 잠금을 얻었을 때만 HTTP 를 띄운다).
    * 모델 드리프트가 없거나, BATCH_SCHEDULER_ENABLED=false 이거나, embedding_reconciliation 이 일시정지되면 돌지 않는다.
    * 임베딩이 없는 기억만 남은 경우는 정기 실행이 맡는다.
+   *
+   * 반복이 잡을 쥔 동안 큐의 정기 embedding_reconciliation(우선순위 8)은 tick 마다 꺼내졌다 다시 들어가
+   * 우선순위 9 잡의 기동 실행이 이주가 끝날 때까지 밀린다. 이주 한 번(한 시간 남짓)만의 일이라 그대로 둔다.
    */
   startModelMigration(): void {
     const canRun = () =>
@@ -561,7 +565,7 @@ export class BatchScheduler implements IBatchScheduler {
     if (!canRun() || this.modelMigration || !this.db) return;
     if (countModelDrift(this.db, resolveTargetProvider()).drifted === 0) return;
     this.modelMigration = runModelMigrationLoop({
-      runOnce: () => this.runJob('embedding_reconciliation'),
+      runOnce: () => this.runReconciliationWhenFree(canRun),
       shouldContinue: canRun,
     })
       .then(summary => this.log('모델 이주 반복 종료', summary))
@@ -578,6 +582,22 @@ export class BatchScheduler implements IBatchScheduler {
 
   isModelMigrationRunning(): boolean {
     return this.modelMigration !== null;
+  }
+
+  /**
+   * 기동 때 큐의 정기 실행이 먼저 잡을 쥐면 버리지 않고 풀릴 때까지 기다렸다 다시 시작한다.
+   * 버리면 이주가 하루 1,000건 정기 실행으로 떨어진다. 잡 제한 시간이 지나면 포기한다.
+   */
+  private async runReconciliationWhenFree(canRun: () => boolean): Promise<BatchJobResult> {
+    const giveUpAt = Date.now() + this.config.jobTimeout;
+    for (;;) {
+      try {
+        return await this.runJob('embedding_reconciliation');
+      } catch (error) {
+        if (!(error instanceof BatchJobAlreadyRunningError) || Date.now() >= giveUpAt || !canRun()) throw error;
+        await new Promise(resolve => setTimeout(resolve, BatchScheduler.MODEL_MIGRATION_RETRY_MS));
+      }
+    }
   }
 
   getPausedJobNames(): string[] {

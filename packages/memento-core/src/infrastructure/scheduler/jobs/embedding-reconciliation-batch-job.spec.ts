@@ -355,6 +355,46 @@ describe('EmbeddingReconciliationBatchJob', () => {
       }
     });
 
+    it('저장기가 성공해도 남은 수가 줄지 않으면 진행 없음으로 멈춘다', async () => {
+      const db = createDb();
+      try {
+        seedOldModel(db, 3);
+        insertEmbedding(db, 'm00001', hashMemoryContent('content m00001'), 'minilm', 'window:0', 'old-model');
+        // native 만 바꾸고 창 행은 남기는 저장기. 창 쓰기가 실패한 경우와 같다.
+        const writer = vi.fn(async (_db: unknown, memoryId: string, content: string) => {
+          db.prepare("DELETE FROM memory_embedding WHERE memory_id = ? AND projection_type = 'native'").run(memoryId);
+          insertEmbedding(db, memoryId, hashMemoryContent(content), 'minilm', 'native');
+          return { provider: 'minilm' };
+        });
+        const job = new EmbeddingReconciliationBatchJob(db, { createAndStoreEmbedding: writer } as never, 'minilm');
+        let guard = 0;
+
+        const summary = await runModelMigrationLoop({ runOnce: () => job.run(1000), shouldContinue: () => guard++ < 50 });
+
+        expect(summary).toMatchObject({ remaining: 1, stoppedBy: 'no_progress' });
+        expect(summary.runs).toBe(2);
+      } finally {
+        db.close();
+      }
+    });
+
+    it('저장기가 지울 수 없는 projection 행의 옛 모델은 드리프트로 세지 않는다', async () => {
+      const db = createDb();
+      try {
+        seedMemories(db, 1);
+        insertEmbedding(db, 'm00000', hashMemoryContent('content m00000'), 'minilm', 'native');
+        insertEmbedding(db, 'm00000', hashMemoryContent('content m00000'), 'minilm', 'zero_pad', 'old-model');
+        const createAndStoreEmbedding = vi.fn(async () => ({ provider: 'minilm' }));
+
+        await new EmbeddingReconciliationBatchJob(db, { createAndStoreEmbedding } as never, 'minilm').run();
+
+        expect(createAndStoreEmbedding).not.toHaveBeenCalled();
+        expect(countModelDrift(db, 'minilm').drifted).toBe(0);
+      } finally {
+        db.close();
+      }
+    });
+
     it('계속 실패하는 기억만 남으면 처리 0 실행에서 멈춘다', async () => {
       const db = createDb();
       try {

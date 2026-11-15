@@ -41,6 +41,11 @@ export interface EmbeddingReconciliationRunOptions {
 
 type EmbeddingWriter = Pick<MemoryEmbeddingService, 'createAndStoreEmbedding'>;
 
+/** 다시 만들 때 createAndStoreEmbedding 이 덮어쓰는 행(native upsert, 창 교체). 다른 projection 은 지우지 못해 드리프트로 세지 않는다. */
+function isRewrittenProjection(projectionType: string): boolean {
+  return projectionType === 'native' || projectionType.startsWith('window:');
+}
+
 function findCandidates(
   memories: ActiveMemoryRow[],
   embeddings: EmbeddingRow[],
@@ -65,7 +70,9 @@ function findCandidates(
         && (currentModel === null || row.model === currentModel)
     );
     const hasModelDrift = currentModel !== null && rows.some(
-      row => row.embedding_provider === targetProvider && row.model !== currentModel
+      row => row.embedding_provider === targetProvider
+        && isRewrittenProjection(row.projection_type)
+        && row.model !== currentModel
     );
     return !hasCurrentTargetNative || hasModelDrift || rows.some(row => row.content_hash !== contentHash);
   });
@@ -110,6 +117,7 @@ export const MODEL_DRIFT_CONSOLIDATION_LIMIT = 0.01;
 
 /**
  * native 나 창 행의 모델이 지금 모델과 다른 활성 기억 수. 임베딩이 아예 없는 기억은 세지 않는다.
+ * 후보 판정(findCandidates)과 같은 행만 본다. 다르면 반복이 줄지 않는 수를 기다린다.
  * 모델을 고정하지 않는 제공자(openai, gemini, tfidf)는 0 이다.
  */
 export function countModelDrift(
@@ -125,7 +133,8 @@ export function countModelDrift(
     `SELECT COUNT(DISTINCT me.memory_id) AS n
      FROM memory_embedding me JOIN memory_item mi ON mi.id = me.memory_id
      WHERE COALESCE(mi.is_deleted, 0) = 0 AND mi.deleted_at IS NULL
-       AND me.embedding_provider = ? AND COALESCE(me.model, '') <> ?`
+       AND me.embedding_provider = ? AND COALESCE(me.model, '') <> ?
+       AND (me.projection_type = 'native' OR me.projection_type LIKE 'window:%')`
   ).get(targetProvider, currentModel) as { n: number }).n;
   return { drifted, active };
 }
