@@ -68,6 +68,18 @@ _Avoid_: validity model, version chain
 FTS5 텍스트 검색과 벡터 검색을 함께 돌려 점수를 합치는 기본 검색 방식.
 _Avoid_: combined search
 
+**Local embedding model (로컬 임베딩 모델)**:
+임베딩 제공자 값 `minilm` 뒤에서 도는 모델 하나. 코드의 정의는 `LOCAL_EMBEDDING_MODEL` 이고, 저장 이름(`storedName`)이 `memory_embedding.model` 에 남는다. `minilm` 은 역사적 이름이다.
+_Avoid_: MiniLM(모델을 가리킬 때)
+
+**Embedding provider value (임베딩 제공자 값)**:
+`memory_embedding.embedding_provider` 와 `EMBEDDING_PROVIDER` 의 값(tfidf, minilm, openai, gemini). LLM 제공자(typesafe 등)와 다르다.
+_Avoid_: embedding model(값을 가리킬 때)
+
+**Native vector, window vector (native 벡터, 창 벡터)**:
+`projection_type` 이 `native` 인 기억 대표 벡터와 `window:N` 인 510토큰 조각 벡터. 저장 벡터를 직접 읽는 기능은 native 만 쓴다.
+_Avoid_: chunk embedding
+
 **Anchor**:
 `search_local`이 탐색 기준점으로 삼는 A, B, C 슬롯.
 _Avoid_: pin, bookmark

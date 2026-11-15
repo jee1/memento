@@ -7,7 +7,7 @@ import { mkdtempSync, rmSync } from 'fs';
 import { tmpdir } from 'os';
 import { join } from 'path';
 import { afterEach, describe, expect, it, vi } from 'vitest';
-import { MINILM_MODEL_NAME } from '../../../../shared/config/embedding-models.js';
+import { LOCAL_EMBEDDING_MODEL } from '../../../../shared/config/embedding-models.js';
 import { initializeDatabase } from '../../../../infrastructure/database/sqlite/init.js';
 import { encodeFloat32Embedding } from '../../../../shared/utils/embedding-serialization.js';
 import type { MemorySearchFilters } from '../../../../shared/types/search.types.js';
@@ -70,7 +70,7 @@ function insertMemory(
     `INSERT INTO memory_embedding
        (memory_id, embedding_provider, projection_type, embedding, dim, model, dimensions, precision, normalized, version, created_by)
      VALUES (?, 'minilm', 'native', ?, ?, ?, ?, 32, 1, 1, 'test')`
-  ).run(id, encodeFloat32Embedding(vector), DIMENSIONS, MINILM_MODEL_NAME, DIMENSIONS);
+  ).run(id, encodeFloat32Embedding(vector), DIMENSIONS, LOCAL_EMBEDDING_MODEL.storedName, DIMENSIONS);
 }
 
 const queryVector = unitVector(0);
@@ -173,7 +173,7 @@ describe.skipIf(!vecAvailable)('#998 벡터 레인 필터 적용', () => {
     const embeddings = fallback.getUnifiedEmbeddingService();
     const availableSpy = vi.spyOn(embeddings, 'isAvailable').mockReturnValue(true);
     const embeddingSpy = vi.spyOn(embeddings, 'generateEmbedding').mockResolvedValue({
-      embedding: queryVector, provider: 'minilm', dimensions: DIMENSIONS, model: MINILM_MODEL_NAME,
+      embedding: queryVector, provider: 'minilm', dimensions: DIMENSIONS, model: LOCAL_EMBEDDING_MODEL.storedName,
     });
     try {
       const outcome = await fallback.searchBySimilarity(database, 'supersede', { limit: 3 });
@@ -202,7 +202,7 @@ describe.skipIf(!vecAvailable)('#998 벡터 레인 필터 적용', () => {
     const embeddings = fallback.getUnifiedEmbeddingService();
     const availableSpy = vi.spyOn(embeddings, 'isAvailable').mockReturnValue(true);
     const embeddingSpy = vi.spyOn(embeddings, 'generateEmbedding').mockResolvedValue({
-      embedding: queryVector, provider: 'minilm', dimensions: DIMENSIONS, model: MINILM_MODEL_NAME,
+      embedding: queryVector, provider: 'minilm', dimensions: DIMENSIONS, model: LOCAL_EMBEDDING_MODEL.storedName,
     });
     vi.stubEnv('SUPERSEDE_APPLY_ENABLED', 'false');
     async function expectTop(id: string): Promise<void> {
@@ -376,7 +376,7 @@ describe.skipIf(!vecAvailable)('#998 벡터 레인 필터 적용', () => {
         `INSERT INTO memory_embedding
            (memory_id, embedding_provider, projection_type, embedding, dim, model, dimensions, precision, normalized, version, created_by)
          VALUES (?, 'minilm', 'native', ?, ?, ?, ?, 32, 1, 1, 'test')`
-      ).run(id, encodeFloat32Embedding(vector), DIMENSIONS, MINILM_MODEL_NAME, DIMENSIONS);
+      ).run(id, encodeFloat32Embedding(vector), DIMENSIONS, LOCAL_EMBEDDING_MODEL.storedName, DIMENSIONS);
     };
     insert('mem_a_v1', unitVector(0), 1, 'series-a');
     insert('mem_a_v2', unitVector(0), 2, 'series-a');

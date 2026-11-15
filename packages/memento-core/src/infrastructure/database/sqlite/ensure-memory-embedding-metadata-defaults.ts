@@ -5,6 +5,7 @@
  */
 
 import type Database from 'better-sqlite3';
+import { LOCAL_EMBEDDING_MODEL } from '../../../shared/config/embedding-models.js';
 
 const MEMORY_EMBEDDING_METADATA_DEFAULTS_SQL = `
   UPDATE memory_embedding
@@ -12,7 +13,7 @@ const MEMORY_EMBEDDING_METADATA_DEFAULTS_SQL = `
     NULLIF(embedding_provider, ''),
     CASE
       WHEN model IN ('lightweight-hybrid', 'tfidf') THEN 'tfidf'
-      WHEN model LIKE '%minilm%' THEN 'minilm'
+      WHEN model = ? OR model LIKE '%minilm%' THEN 'minilm'
       WHEN model LIKE '%openai%' THEN 'openai'
       WHEN model LIKE '%gemini%' THEN 'gemini'
       WHEN model = 'mock' THEN 'mock'
@@ -96,5 +97,5 @@ export function ensureMemoryEmbeddingMetadataDefaults(
     return;
   }
 
-  db.prepare(MEMORY_EMBEDDING_METADATA_DEFAULTS_SQL).run(defaultProvider);
+  db.prepare(MEMORY_EMBEDDING_METADATA_DEFAULTS_SQL).run(LOCAL_EMBEDDING_MODEL.storedName, defaultProvider);
 }

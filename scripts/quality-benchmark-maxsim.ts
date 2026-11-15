@@ -8,7 +8,7 @@ import { isMain } from './lib/cli.js';
 import Database from 'better-sqlite3';
 import { existsSync, readFileSync, writeFileSync } from 'fs';
 import { join } from 'path';
-import { MiniLMEmbeddingService } from '@memento/core/domains/embedding/services/minilm-embedding-service.js';
+import { LocalEmbeddingService } from '@memento/core/domains/embedding/services/local-embedding-service.js';
 import {
   loadBenchmarkGroundTruth,
   loadBenchmarkQueries,
@@ -465,7 +465,7 @@ export async function runMaxsimMeasurement(options?: {
     const groundTruths = loadBenchmarkGroundTruth(benchmarkDir).filter(
       (groundTruth) => groundTruth.relevantIds.length > 0
     );
-    const embeddingService = new MiniLMEmbeddingService();
+    const embeddingService = new LocalEmbeddingService();
 
     const perQuery: MaxsimPerQueryInput[] = [];
     for (const groundTruth of groundTruths) {

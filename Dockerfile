@@ -62,9 +62,9 @@ COPY --from=builder /app/package*.json ./
 
 # Install production dependencies and rebuild native modules for Debian/Linux
 # better-sqlite3: try prebuilt binaries first (much faster), fallback to source compile
-# MiniLM warmup pulls the multilingual model (#889): q8 onnx is ~118MB vs ~23MB for the old
-# English-only all-MiniLM-L6-v2, so the image grows by roughly 95MB.
-# MiniLM 캐시는 transformers.js 의 기본 경로인 node_modules/@huggingface/transformers/.cache/ 에 쌓인다 (#1012).
+# The local embedding model warmup pulls the model named in LOCAL_EMBEDDING_MODEL (#889, #1729):
+# q8 onnx is ~118MB vs ~23MB for the old English-only all-MiniLM-L6-v2, so the image grows by roughly 95MB.
+# 로컬 임베딩 모델 캐시는 transformers.js 의 기본 경로인 node_modules/@huggingface/transformers/.cache/ 에 쌓인다 (#1012).
 # v4.2.0 은 캐시 위치 환경변수를 읽지 않는다 — src/env.js:162 의
 # `DEFAULT_CACHE_DIR = path.join(dirname__, '/.cache/')`(dirname__ = 패키지 루트)가 전부이고,
 # 옮기려면 pipeline() 호출 전에 코드에서 env.cacheDir 을 지정해야 한다.
@@ -95,17 +95,18 @@ RUN npm ci --omit=dev --ignore-scripts && \
            /app/node_modules/onnxruntime-web && \
     npm cache clean --force && \
     if [ "$SKIP_TRANSFORMERS_WARMUP" = "1" ]; then \
-      echo '[docker] SKIP_TRANSFORMERS_WARMUP=1: MiniLM cache warmup skipped'; \
+      echo '[docker] SKIP_TRANSFORMERS_WARMUP=1: local embedding model cache warmup skipped'; \
     else \
       node --input-type=module -e "\
         try { \
           const { pipeline } = await import('@huggingface/transformers'); \
-          const embed = await pipeline('feature-extraction', 'Xenova/paraphrase-multilingual-MiniLM-L12-v2', { dtype: 'q8' }); \
+          const { LOCAL_EMBEDDING_MODEL: m } = await import('/app/packages/memento-core/dist/shared/config/embedding-models.js'); \
+          const embed = await pipeline('feature-extraction', m.source.repo, { dtype: m.source.dtype }); \
           await embed('cache warmup'); \
-          console.log('[docker] MiniLM cache warmup ok'); \
+          console.log('[docker] local embedding model cache warmup ok:', m.source.repo); \
         } catch (e) { \
           const msg = e instanceof Error ? e.message : String(e); \
-          console.warn('[docker] MiniLM cache warmup skipped (will fetch at runtime if needed):', msg); \
+          console.warn('[docker] local embedding model cache warmup skipped (will fetch at runtime if needed):', msg); \
         } \
       "; \
     fi

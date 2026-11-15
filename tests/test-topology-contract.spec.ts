@@ -127,11 +127,11 @@ describe('test topology contracts', () => {
     }
   });
 
-  it('runs MiniLM Korean embedding quality on nightly with opt-in env (#928)', () => {
+  it('runs local embedding model Korean quality on nightly with opt-in env (#928)', () => {
     const ci = readFileSync(join(ROOT, '.github/workflows/ci.yml'), 'utf8');
     const nightly = readFileSync(join(ROOT, '.github/workflows/nightly-tests.yml'), 'utf8');
     const koreanQualitySpec =
-      'packages/memento-core/src/domains/embedding/services/__tests__/minilm-korean-quality.spec.ts';
+      'packages/memento-core/src/domains/embedding/services/__tests__/local-embedding-korean-quality.spec.ts';
 
     expect(nightly).toContain('RUN_EMBEDDING_QUALITY: \'1\'');
     expect(nightly).toContain(koreanQualitySpec);

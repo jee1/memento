@@ -4,7 +4,7 @@ import { ConsolidationRepository } from './consolidation-repository.js';
 import { applyConsolidationTestSchema } from '../__tests__/consolidation-test-schema.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { encodeFloat32Embedding } from '../../../shared/utils/embedding-serialization.js';
-import { MINILM_MODEL_NAME } from '../../../shared/config/embedding-models.js';
+import { LOCAL_EMBEDDING_MODEL } from '../../../shared/config/embedding-models.js';
 
 function insertEmbedding(
   db: Database.Database,
@@ -155,30 +155,30 @@ describe('ConsolidationRepository', () => {
   it('loadEmbeddingsMap prefers native over window rows with same created_at', () => {
     DatabaseUtils.run(db, `INSERT INTO memory_item (id, type, content, created_at) VALUES ('e1', 'episodic', 'x', datetime('now'))`);
     const sameTs = '2026-01-01T00:00:00.000Z';
-    insertEmbeddingWithProjection(db, 'e1', [0, 1, 0], 'minilm', MINILM_MODEL_NAME, 'window:0', sameTs);
-    insertEmbeddingWithProjection(db, 'e1', [1, 0, 0], 'minilm', MINILM_MODEL_NAME, 'native', sameTs);
+    insertEmbeddingWithProjection(db, 'e1', [0, 1, 0], 'minilm', LOCAL_EMBEDDING_MODEL.storedName, 'window:0', sameTs);
+    insertEmbeddingWithProjection(db, 'e1', [1, 0, 0], 'minilm', LOCAL_EMBEDDING_MODEL.storedName, 'native', sameTs);
 
     expect(repo.loadEmbeddingsMap(['e1']).get('e1')).toEqual([1, 0, 0]);
   });
 
   it('loadEmbeddingsMap prefers native even when window row is newer', () => {
     DatabaseUtils.run(db, `INSERT INTO memory_item (id, type, content, created_at) VALUES ('e1', 'episodic', 'x', datetime('now'))`);
-    insertEmbeddingWithProjection(db, 'e1', [0, 1, 0], 'minilm', MINILM_MODEL_NAME, 'window:0', '2026-01-01T00:00:00.000Z');
-    insertEmbeddingWithProjection(db, 'e1', [1, 0, 0], 'minilm', MINILM_MODEL_NAME, 'native', '2026-01-01T00:00:00.000Z');
+    insertEmbeddingWithProjection(db, 'e1', [0, 1, 0], 'minilm', LOCAL_EMBEDDING_MODEL.storedName, 'window:0', '2026-01-01T00:00:00.000Z');
+    insertEmbeddingWithProjection(db, 'e1', [1, 0, 0], 'minilm', LOCAL_EMBEDDING_MODEL.storedName, 'native', '2026-01-01T00:00:00.000Z');
 
     expect(repo.loadEmbeddingsMap(['e1']).get('e1')).toEqual([1, 0, 0]);
   });
 
   it('loadEmbeddingsMap omits memories with only window projection rows', () => {
     DatabaseUtils.run(db, `INSERT INTO memory_item (id, type, content, created_at) VALUES ('e2', 'episodic', 'x', datetime('now'))`);
-    insertEmbeddingWithProjection(db, 'e2', [0, 1, 0], 'minilm', MINILM_MODEL_NAME, 'window:0');
+    insertEmbeddingWithProjection(db, 'e2', [0, 1, 0], 'minilm', LOCAL_EMBEDDING_MODEL.storedName, 'window:0');
 
     expect(repo.loadEmbeddingsMap(['e2']).has('e2')).toBe(false);
   });
 
   it('loadEmbeddingsMap filters by provider when requested', () => {
     DatabaseUtils.run(db, `INSERT INTO memory_item (id, type, content, created_at) VALUES ('e3', 'episodic', 'x', datetime('now'))`);
-    insertEmbeddingWithProjection(db, 'e3', [1, 0, 0], 'minilm', MINILM_MODEL_NAME, 'native', '2026-01-01T00:00:00.000Z');
+    insertEmbeddingWithProjection(db, 'e3', [1, 0, 0], 'minilm', LOCAL_EMBEDDING_MODEL.storedName, 'native', '2026-01-01T00:00:00.000Z');
     insertEmbeddingWithProjection(db, 'e3', [0, 0, 1], 'tfidf', 'lightweight-hybrid', 'native', '2026-01-02T00:00:00.000Z');
 
     expect(repo.loadEmbeddingsMap(['e3'], { provider: 'minilm' }).get('e3')).toEqual([1, 0, 0]);

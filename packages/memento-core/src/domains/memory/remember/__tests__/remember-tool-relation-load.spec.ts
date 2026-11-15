@@ -1,6 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
-import { MINILM_MODEL_NAME } from '../../../../shared/config/embedding-models.js';
+import { LOCAL_EMBEDDING_MODEL } from '../../../../shared/config/embedding-models.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { setupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { RememberTool } from '../remember-tool.js';
@@ -190,9 +190,9 @@ describe('RememberTool relation load (Issue #544)', () => {
           ) VALUES (?, 'minilm', 'native', ?, 384, 384, ?, 32, 1, 1, 'test')
         `);
 
-        insertEmb.run('mem-old-near', vecNear, MINILM_MODEL_NAME);
-        insertEmb.run('mem-recent-far', vecFar, MINILM_MODEL_NAME);
-        insertEmb.run('mem-new', vecNew, MINILM_MODEL_NAME);
+        insertEmb.run('mem-old-near', vecNear, LOCAL_EMBEDDING_MODEL.storedName);
+        insertEmb.run('mem-recent-far', vecFar, LOCAL_EMBEDDING_MODEL.storedName);
+        insertEmb.run('mem-new', vecNew, LOCAL_EMBEDDING_MODEL.storedName);
 
         const candidates = await getExistingMemoriesForRelationExtraction(vecDb, 'mem-new', 1, host);
         expect(candidates).toHaveLength(1);
@@ -226,10 +226,10 @@ describe('RememberTool relation load (Issue #544)', () => {
             memory_id, embedding_provider, projection_type, embedding, dim, dimensions, model, precision, normalized, version, created_by
           ) VALUES (?, 'minilm', 'native', ?, 384, 384, ?, 32, 1, 1, 'test')
         `);
-        insertEmb.run('mem-other-project', makeVecJson(1.0), MINILM_MODEL_NAME);
-        insertEmb.run('mem-replaced', makeVecJson(0.99), MINILM_MODEL_NAME);
-        insertEmb.run('mem-current', makeVecJson(0.5), MINILM_MODEL_NAME);
-        insertEmb.run('mem-new', makeVecJson(1.0), MINILM_MODEL_NAME);
+        insertEmb.run('mem-other-project', makeVecJson(1.0), LOCAL_EMBEDDING_MODEL.storedName);
+        insertEmb.run('mem-replaced', makeVecJson(0.99), LOCAL_EMBEDDING_MODEL.storedName);
+        insertEmb.run('mem-current', makeVecJson(0.5), LOCAL_EMBEDDING_MODEL.storedName);
+        insertEmb.run('mem-new', makeVecJson(1.0), LOCAL_EMBEDDING_MODEL.storedName);
 
         const all = vi.spyOn(DatabaseUtils, 'all');
         const candidates = await getExistingMemoriesForRelationExtraction(vecDb, 'mem-new', 1, host);
@@ -242,7 +242,7 @@ describe('RememberTool relation load (Issue #544)', () => {
       }
     });
 
-    it('재색인 중 구버전 MiniLM 모델 행이 섞여 있어도 현재 모델(MINILM_MODEL_NAME) 후보만 선정한다 (#1473)', async () => {
+    it('재색인 중 옛 모델 행이 섞여 있어도 현재 모델(LOCAL_EMBEDDING_MODEL.storedName) 후보만 선정한다 (#1473)', async () => {
       const vecDb = await setupTestDatabase();
       try {
         const makeVecJson = (val: number) => {
@@ -266,8 +266,8 @@ describe('RememberTool relation load (Issue #544)', () => {
         `);
 
         insertEmb.run('mem-legacy-closest', makeVecJson(1.0), 'all-MiniLM-L6-v2');
-        insertEmb.run('mem-current-near', makeVecJson(0.9), MINILM_MODEL_NAME);
-        insertEmb.run('mem-new', makeVecJson(1.0), MINILM_MODEL_NAME);
+        insertEmb.run('mem-current-near', makeVecJson(0.9), LOCAL_EMBEDDING_MODEL.storedName);
+        insertEmb.run('mem-new', makeVecJson(1.0), LOCAL_EMBEDDING_MODEL.storedName);
 
         const candidates = await getExistingMemoriesForRelationExtraction(vecDb, 'mem-new', 1, host);
         expect(candidates).toHaveLength(1);

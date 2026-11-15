@@ -11,7 +11,7 @@
 import type { EmbeddingServiceInterface, EmbeddingProvider, ProviderInfo } from '../../../shared/types/embedding.types.js';
 import type { ProviderFallbackDecision, ProviderHealthStatus } from '../../../shared/types/embedding-provider-monitoring.types.js';
 import { mementoConfig } from '../../../shared/config/index.js';
-import { MiniLMEmbeddingService } from '../services/minilm-embedding-service.js';
+import { LocalEmbeddingService } from '../services/local-embedding-service.js';
 import { LightweightEmbeddingService } from '../services/lightweight-embedding-service.js';
 import { GeminiEmbeddingService } from '../services/gemini-embedding-service.js';
 import { OpenAIEmbeddingService } from '../services/openai-embedding-service.js';
@@ -81,7 +81,7 @@ export class EmbeddingProviderFactory {
   getAvailableProviders(): ProviderInfo[] {
     const providerInfos: ProviderInfo[] = [];
 
-    // MiniLM
+    // 로컬 임베딩 모델 (제공자 값 minilm)
     const minilm = this.providers.get('minilm');
     const minilmStatus = this.availabilityService.getLastStatus('minilm');
     providerInfos.push({
@@ -286,7 +286,7 @@ export class EmbeddingProviderFactory {
     }
     switch (provider) {
       case 'minilm':
-        return new MiniLMEmbeddingService();
+        return new LocalEmbeddingService();
       case 'tfidf':
         return new LightweightEmbeddingService();
       case 'gemini':

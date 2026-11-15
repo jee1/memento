@@ -1,20 +1,30 @@
 /**
- * 임베딩 모델 식별자 단일 원본 (#889)
+ * 로컬 임베딩 모델 정의 단일 원본 (#889, #1729)
  *
- * `MINILM_MODEL_NAME`은 두 곳에서 같은 값이어야 한다.
+ * 임베딩 제공자 값 `minilm` 뒤에서 도는 모델은 한 번에 하나다. 모델에 따라 달라지는 값은
+ * 이 객체에 둔다. `storedName` 은 두 곳에서 같은 값이어야 한다.
  * 1. 임베딩 생성 시 `memory_embedding.model`에 기록되는 값
  * 2. 벡터 검색이 "같은 모델로 만든 벡터끼리만 비교"하도록 거르는 기준
  *
- * 모델을 바꾸려면 `MINILM_MODEL_ID`만 바꾸고 `npm run reindex-embeddings`를 돌린다.
- * 재색인이 끝나기 전에도 옛 모델로 만든 행은 검색에서 제외되므로 검색이 깨지지 않는다.
+ * 모델을 바꾸면 `storedName` 이 달라져 옛 모델로 만든 행은 검색에서 빠진다.
+ * 재색인이 끝나기 전에도 검색이 깨지지 않는다.
  *
  * 다국어 모델을 쓰는 이유: `all-MiniLM-L6-v2`는 영어 전용이라 한국어 쿼리가
  * 관련성과 무관한 문서를 상위에 올렸다. 측정은 #889 참조.
  */
-export const MINILM_MODEL_ID = 'Xenova/paraphrase-multilingual-MiniLM-L12-v2';
+export interface LocalEmbeddingModel {
+  /** memory_embedding.model 에 저장되는 이름. 벡터 공간의 정체성이다. 위치(source)에서 떼어 내지 않는다. */
+  readonly storedName: string;
+  /** 파일 위치. 지금은 transformers.js 가 내려받는 원격 저장소다. */
+  readonly source: { readonly repo: string; readonly dtype: 'q8' };
+  readonly dimensions: 384;
+}
 
-/** HuggingFace 조직 접두사를 뗀 이름. DB `model` 컬럼에 저장되는 값이다. */
-export const MINILM_MODEL_NAME = MINILM_MODEL_ID.split('/').pop() as string;
+export const LOCAL_EMBEDDING_MODEL: LocalEmbeddingModel = {
+  storedName: 'paraphrase-multilingual-MiniLM-L12-v2',
+  source: { repo: 'Xenova/paraphrase-multilingual-MiniLM-L12-v2', dtype: 'q8' },
+  dimensions: 384,
+};
 
 /**
  * provider별로 "이 모델로 만든 벡터만 비교하라"는 필터 값. null이면 거르지 않는다.
@@ -22,5 +32,5 @@ export const MINILM_MODEL_NAME = MINILM_MODEL_ID.split('/').pop() as string;
  * 런타임 설정이라 여기서 단정하지 않는다(#889 범위 밖).
  */
 export function getEmbeddingModelFilter(provider: string | undefined): string | null {
-  return provider === 'minilm' ? MINILM_MODEL_NAME : null;
+  return provider === 'minilm' ? LOCAL_EMBEDDING_MODEL.storedName : null;
 }

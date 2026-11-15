@@ -3,7 +3,7 @@
  */
 
 import type Database from 'better-sqlite3';
-import { MINILM_MODEL_NAME } from '../../../shared/config/embedding-models.js';
+import { LOCAL_EMBEDDING_MODEL } from '../../../shared/config/embedding-models.js';
 import type { MemoryItem } from '../../../shared/types/memory.types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { supersedeByActiveTargetSql } from '../../../shared/utils/memory-filter-sql.js';
@@ -106,7 +106,7 @@ function tryLoadVecRelationCandidateRows(
          AND COALESCE(projection_type, 'native') = 'native'
        ORDER BY id ASC
        LIMIT 1`,
-      [excludeId, MINILM_MODEL_NAME]
+      [excludeId, LOCAL_EMBEDDING_MODEL.storedName]
     ) as { embedding: Buffer | string | null } | undefined;
     if (!sourceEmbRow || !sourceEmbRow.embedding) {
       return null;
@@ -155,7 +155,7 @@ function tryLoadVecRelationCandidateRows(
        ) top_k
        JOIN memory_item mi ON mi.id = top_k.memory_id
        ORDER BY top_k.min_distance ASC`,
-      [queryVectorParam, prefetchK, MINILM_MODEL_NAME, excludeId, excludeId, excludeId, limit]
+      [queryVectorParam, prefetchK, LOCAL_EMBEDDING_MODEL.storedName, excludeId, excludeId, excludeId, limit]
     ) as MemoryItemRow[];
 
     return rows.length > 0 ? rows : null;

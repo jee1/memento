@@ -25,6 +25,13 @@
 
 ### Changed
 
+- **로컬 임베딩 모델 정의를 한 곳으로** (#1729 PR 3): 모델 이름과 위치가 `LOCAL_EMBEDDING_MODEL`(`shared/config/embedding-models.ts`) 하나에만 있습니다. 모델과 저장 벡터는 그대로라 검색 결과가 같습니다.
+  - `MINILM_MODEL_ID`, `MINILM_MODEL_NAME` 을 `LOCAL_EMBEDDING_MODEL.storedName`, `.source`, `.dimensions` 로 바꿨습니다. Dockerfile warmup 과 `scripts/docker-smoke.mjs` 도 모델 id 를 직접 적지 않고 빌드된 정의를 읽습니다.
+  - `MiniLMEmbeddingService`(`minilm-embedding-service.ts`)를 `LocalEmbeddingService`(`local-embedding-service.ts`)로, 로그의 「MiniLM」을 「로컬 임베딩 모델」로 바꿨습니다. 내부 패키지 `@memento/core` 의 subpath export 도 새 파일 이름입니다.
+  - nightly 단계와 spec 이름을 `local-embedding-korean-quality` 로 바꿨습니다.
+  - provider 가 빈 옛 행 보정이 저장 이름으로도 `minilm` 을 채웁니다. 지금 이름은 이미 `%minilm%` 로 잡혀 결과가 같습니다.
+  - 그대로 둔 것: 제공자 값 `minilm`(`EMBEDDING_PROVIDER`, recall `provider_filter`, 관리 API), vec 테이블 `memory_item_vec_minilm`, 마이그레이션.
+
 - 대시보드 「대체 후보」 탭을 「검토 대기열」 탭 안의 접이식 구역으로 옮겼다. 둘 다 사람이 승인하는 후보 큐다. 목록, 승인, 되돌리기, 거절 동작과 `/admin/memory/supersede-candidates*` 응답은 그대로이고, 구역을 펼칠 때 목록을 불러온다. 상태 탭 「대체 후보 대기」 행의 링크가 이 구역을 펼친다. 옮기면서 화면의 영어 키(`project_id`, `confirmed`, `pending`, `compatible`, `apply`, `restore`, `SUPERSEDE_APPLY_ENABLED`)를 한국어로 바꿨다. 후보 표의 상태, 판정 열은 글자 단위로 꺾이지 않게 줄바꿈을 막았고, 390px 에서 표와 상세가 두 열로 눌리던 것을 한 열로 풀었다 (#1700).
 - 대시보드 탭을 7개로 확정한다. 순서는 상태, 검토 대기열, 배치 작업, 기억 찾기, 앵커 맵, 기억 그래프, 설정이다. 모바일 그룹 칩은 「운영」, 「공간」 두 개이고 설정은 그룹 밖 마지막에 둔다 (#1700).
 - 상태 탭 요청이 실패하면 구역 영역의 실패 배너 한 곳에만 이유를 그린다. 같은 문구를 따로 그리던 `#ops-status-error` 를 지웠다 (#1699 후속).

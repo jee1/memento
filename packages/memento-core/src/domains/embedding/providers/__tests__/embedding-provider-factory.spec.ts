@@ -39,10 +39,10 @@ vi.mock('../../../../shared/config/index.js', () => ({
 }));
 
 // 제공자 서비스 모킹 — 경로는 factory 가 해석하는 모듈과 같아야 함 (__tests__ 기준)
-vi.mock('../../services/minilm-embedding-service.js', () => {
+vi.mock('../../services/local-embedding-service.js', () => {
   const mockModel = vi.fn().mockResolvedValue([0.1, 0.2, 0.3]);
   return {
-    MiniLMEmbeddingService: vi.fn().mockImplementation(function () {
+    LocalEmbeddingService: vi.fn().mockImplementation(function () {
       return {
         isAvailable: vi.fn(() => true),
         generateEmbedding: vi.fn(async () => ({

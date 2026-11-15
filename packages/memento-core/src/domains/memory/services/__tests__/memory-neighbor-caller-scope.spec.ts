@@ -4,7 +4,7 @@ import { mkdtempSync, rmSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { initializeDatabase } from '../../../../infrastructure/database/sqlite/init.js';
-import { MINILM_MODEL_NAME } from '../../../../shared/config/embedding-models.js';
+import { LOCAL_EMBEDDING_MODEL } from '../../../../shared/config/embedding-models.js';
 import { encodeFloat32Embedding } from '../../../../shared/utils/embedding-serialization.js';
 import { MemoryNeighborService, MemoryNotFoundError } from '../memory-neighbor-service.js';
 import { getVectorSearchEngine } from '../../../search/algorithms/vector-search-engine.js';
@@ -52,7 +52,7 @@ describe('memory neighbors honour the caller scope', () => {
         `INSERT INTO memory_embedding
            (memory_id, embedding_provider, projection_type, embedding, dim, model, dimensions, precision, normalized, version, created_by)
          VALUES (?, 'minilm', 'native', ?, 384, ?, 384, 32, 1, 1, 'test')`,
-      ).run(row.id, blob, MINILM_MODEL_NAME);
+      ).run(row.id, blob, LOCAL_EMBEDDING_MODEL.storedName);
     }
   });
 

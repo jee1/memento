@@ -1,5 +1,5 @@
 /**
- * MiniLM 윈도 임베딩 쓰기 (#1112)
+ * 로컬 임베딩 모델 창 임베딩 쓰기 (#1112)
  *
  * native 행(윈도 평균)은 그대로 두고, 윈도가 2개 이상인 문서만 윈도별 행을 추가한다.
  * 단일 윈도 문서는 meanPoolNormalize([v]) === v 라서 native 행이 곧 윈도 벡터다(추가 행 없음).
@@ -17,7 +17,7 @@ import { replaceMemoryEmbedding } from './memory-embedding-write.js';
 
 export const WINDOW_PROJECTION_PREFIX = 'window:';
 
-/** MiniLMEmbeddingService.MAX_WINDOWS 와 동기화된 값 */
+/** LocalEmbeddingService.MAX_WINDOWS 와 동기화된 값 */
 export const MAX_WINDOW_ROWS = 16;
 
 /**

@@ -1,5 +1,5 @@
 /**
- * Docker 이미지 안에서 네이티브 의존과 MiniLM 캐시가 실제로 동작하는지 검증한다 (#996).
+ * Docker 이미지 안에서 네이티브 의존과 로컬 임베딩 모델 캐시가 실제로 동작하는지 검증한다 (#996).
  *
  * 테스트와 type-check 로는 이 실패를 잡을 수 없다. sharp 0.35 에는 install script 가 없어
  * prebuilt optional dep 이 빠져도 빌드가 조용히 성공하고 `docker run` 에서야 터진다 (#993).
@@ -32,18 +32,20 @@ try {
 }
 
 // allowRemoteModels=false 로 원격 다운로드를 막는다.
-// 이미지에 MiniLM 캐시가 구워져 있지 않으면 여기서 실패한다 — Dockerfile 의 warmup 이
+// 이미지에 로컬 임베딩 모델 캐시가 구워져 있지 않으면 여기서 실패한다 — Dockerfile 의 warmup 이
 // try/catch 로 실패를 삼키기 때문에 이 검증이 warmup 성공을 확인하는 유일한 지점이다.
+// 모델은 런타임과 같은 정의(LOCAL_EMBEDDING_MODEL)에서 읽는다 (#1729).
+const { LOCAL_EMBEDDING_MODEL: model } = await import(
+  '../packages/memento-core/dist/shared/config/embedding-models.js'
+);
 const { pipeline, env } = await import('@huggingface/transformers');
 env.allowRemoteModels = false;
-const embed = await pipeline(
-  'feature-extraction',
-  'Xenova/paraphrase-multilingual-MiniLM-L12-v2',
-  { dtype: 'q8' },
-);
+const embed = await pipeline('feature-extraction', model.source.repo, {
+  dtype: model.source.dtype,
+});
 const output = await embed('smoke');
 const dims = output.dims.join('x');
-if (output.dims.at(-1) !== 384) {
+if (output.dims.at(-1) !== model.dimensions) {
   throw new Error(`[smoke] unexpected embedding dims: ${dims}`);
 }
-console.log(`[smoke] MiniLM offline embed ok: dims=${dims}`);
+console.log(`[smoke] ${model.storedName} offline embed ok: dims=${dims}`);
