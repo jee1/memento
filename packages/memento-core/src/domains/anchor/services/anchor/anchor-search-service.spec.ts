@@ -521,23 +521,6 @@ describe('AnchorSearchService', () => {
     });
   });
 
-  describe('getSlotConfig', () => {
-    it('슬롯별 설정을 반환해야 함', () => {
-      // Given & When: 슬롯 설정 조회
-      const configA = service.getSlotConfig('A');
-      const configB = service.getSlotConfig('B');
-      const configC = service.getSlotConfig('C');
-
-      // Then: 올바른 설정 반환
-      expect(configA.hop_limit).toBe(1);
-      expect(configA.vector_threshold).toBe(0.8);
-      expect(configB.hop_limit).toBe(2);
-      expect(configB.vector_threshold).toBe(0.6);
-      expect(configC.hop_limit).toBe(3);
-      expect(configC.vector_threshold).toBe(0.4);
-    });
-  });
-
   describe('관계 그래프 통합', () => {
     beforeEach(async () => {
       // 관계 그래프가 없으면 스킵

@@ -10,6 +10,7 @@ import type Database from 'better-sqlite3';
 import { getRankingWeights } from '../../../shared/config/ranking-weights-loader.js';
 import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 import { clamp01 } from '../../../shared/utils/clamp.js';
+import { mapQueryScore } from '../../../shared/config/embedding-models.js';
 import { loadCurrentNativeVectors, type CurrentNativeVector } from '../../../shared/utils/current-native-embedding.js';
 import { cosineSimilarity } from '../../../shared/utils/vector-math.js';
 import type { VectorSearchResult } from '../../embedding/index.js';
@@ -83,7 +84,7 @@ export function backfillTextOnlyVectorResults(
     }
     for (const [memoryId, vector] of stored) {
       if (vector.embedding.length !== embedding.length) continue;
-      const similarity = clamp01(cosineSimilarity(embedding, vector.embedding));
+      const similarity = mapQueryScore(provider, clamp01(cosineSimilarity(embedding, vector.embedding)));
       const previous = best.get(memoryId);
       if (previous === undefined || similarity > previous) {
         best.set(memoryId, similarity);

@@ -5,11 +5,12 @@
  * Given/When/Then 형식의 테스트 작성
  */
 
-import { describe, it, expect, beforeEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { QueryFilterService } from './query-filter-service.js';
 import { AnchorCacheService } from './anchor-cache-service.js';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
+import { LOCAL_EMBEDDING_MODEL } from '../../../../shared/config/embedding-models.js';
 
 describe('QueryFilterService', () => {
   let service: QueryFilterService;
@@ -269,5 +270,41 @@ describe('QueryFilterService', () => {
       }
     });
   });
-});
 
+  describe('질의 점수 사상 (#1729)', () => {
+    type MutableMapping = { queryScoreMapping: { a: number; b: number } };
+    const originalMapping = LOCAL_EMBEDDING_MODEL.queryScoreMapping;
+
+    afterEach(() => {
+      (LOCAL_EMBEDDING_MODEL as unknown as MutableMapping).queryScoreMapping = originalMapping;
+    });
+
+    async function querySimilarityFor(provider: string): Promise<number | undefined> {
+      const stored = new Array(384).fill(0);
+      stored[0] = 0.6;
+      stored[1] = 0.8;
+      const query = new Array(384).fill(0);
+      query[0] = 1;
+      vi.spyOn(cacheService, 'getAnchorEmbedding').mockResolvedValue({ embedding: stored } as never);
+      const { UnifiedEmbeddingService } = await import('../../../embedding/services/unified-embedding-service.js');
+      vi.spyOn(UnifiedEmbeddingService.prototype, 'embedQuery').mockResolvedValue({
+        embedding: query,
+        provider: provider as never,
+        model: 'm',
+      });
+      const [first] = await service.filterByQuery(
+        'q',
+        [{ memory_id: 'm1', content: 'c', type: 'episodic', similarity: 0.9, hop_distance: 1, importance: 0.5, created_at: '2024-01-01T00:00:00Z' }],
+        provider
+      );
+      return (first as { query_similarity?: number } | undefined)?.query_similarity;
+    }
+
+    it('로컬 임베딩 모델의 질의 코사인만 사상한다', async () => {
+      (LOCAL_EMBEDDING_MODEL as unknown as MutableMapping).queryScoreMapping = { a: 2, b: -0.5 };
+
+      expect(await querySimilarityFor('minilm')).toBeCloseTo(0.7, 5);
+      expect(await querySimilarityFor('openai')).toBeCloseTo(0.6, 5);
+    });
+  });
+});

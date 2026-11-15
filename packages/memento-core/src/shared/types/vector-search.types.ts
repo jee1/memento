@@ -1,4 +1,3 @@
-import type { EmbeddingProvider } from './embedding.types.js';
 import type { MemorySearchFilters } from './search.types.js';
 
 /**
@@ -68,40 +67,4 @@ export interface VectorSearchConfig {
   defaultLimit: number;
   tableNames: Record<string, string>;
   providerDimensions: Record<string, number>;
-}
-
-export interface ProviderHybridQuery {
-  query: VectorSearchQuery;
-  text?: string;
-  useHybrid?: boolean;
-  useAvailableProviders?: boolean;
-  overrideProviders?: EmbeddingProvider[];
-  vectorLimit?: number;
-}
-
-export interface ProviderHybridResult {
-  provider: EmbeddingProvider;
-  vectorResults: VectorSearchResult[];
-  hybridResults: VectorSearchResult[];
-  vectorLatencyMs: number;
-  hybridLatencyMs?: number;
-}
-
-export interface UnifiedSearchHit {
-  memoryId: string;
-  provider: EmbeddingProvider;
-  normalizedScore: number;
-  vectorSimilarity: number;
-  hybridSimilarity?: number;
-  content: string;
-  type: string;
-  importance: number;
-  createdAt: string;
-  tags?: string[];
-  source: 'vector' | 'hybrid';
-}
-
-export interface UnifiedSearchResponse {
-  providers: ProviderHybridResult[];
-  unified: UnifiedSearchHit[];
 }

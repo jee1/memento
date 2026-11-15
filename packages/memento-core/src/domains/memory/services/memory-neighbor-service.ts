@@ -11,6 +11,7 @@ import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { loadCurrentNativeVector, type CurrentNativeVector } from '../../../shared/utils/current-native-embedding.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
+import { LOCAL_EMBEDDING_MODEL } from '../../../shared/config/embedding-models.js';
 import { selectCurrentIdsInScope, callerMemoryScopeSql, type CallerMemoryScope } from '../../../shared/utils/owned-ids.js';
 
 /**
@@ -129,7 +130,7 @@ export class MemoryNeighborService {
       const scope = callerMemoryScopeSql(options.scope);
       // 기본값 설정
       const limit = options.limit ?? 5;
-      const similarityThreshold = options.similarity_threshold ?? 0.8;
+      const similarityThreshold = options.similarity_threshold ?? LOCAL_EMBEDDING_MODEL.memorySimilarity.neighbor;
 
       // 데이터베이스 확인
       if (!this.db) {
@@ -292,12 +293,12 @@ export class MemoryNeighborService {
    * PRD 3.1-3.3 요구사항: 새 기억 저장 시 기존 기억들과의 유사도 계산 및 인접 기억 식별
    * 
    * @param newMemoryId - 새로 저장된 기억의 ID
-   * @param similarityThreshold - 유사도 임계값 (기본값: 0.8)
+   * @param similarityThreshold - 유사도 임계값 (기본값: LOCAL_EMBEDDING_MODEL.memorySimilarity.neighbor)
    * @returns 인접 기억 ID 목록 (유사도가 임계값 이상인 기억들)
    */
   async updateNeighborsForNewMemory(
     newMemoryId: string,
-    similarityThreshold: number = 0.8
+    similarityThreshold: number = LOCAL_EMBEDDING_MODEL.memorySimilarity.neighbor
   ): Promise<string[]> {
     if (!this.db) {
       logger.warn('데이터베이스가 설정되지 않아 인접 기억 갱신을 건너뜁니다');

@@ -186,7 +186,7 @@ DB 부가 테이블의 보존 기간과 정리 잡은 [db-retention-policy.md](.
 
 | 변수 | 기본값 | 설명 |
 |------|--------|------|
-| `MEMENTO_REMEMBER_DEDUP_THRESHOLD` | `0.85` | 유사도 임계값 `(0, 1]`; invalid → `0.85` + stderr |
+| `MEMENTO_REMEMBER_DEDUP_THRESHOLD` | `0.85` | 유사도 임계값 `(0, 1]`; invalid → 기본값 + stderr. 기본값은 `LOCAL_EMBEDDING_MODEL.memorySimilarity.rememberDedup`(raw 코사인, 질의 점수 사상 없음, #1729) |
 | `MEMENTO_REMEMBER_DEDUP_MODE` | `warn` | `warn`(저장+경고) \| `strict`(거절) \| `off`(검색 스킵) |
 | `MEMENTO_REMEMBER_DEDUP_LEXICAL_FLOOR` | `0.3` | 어휘 겹침 후보 필터 `[0, 1]`; `0`이면 게이트 비활성 |
 | `MEMENTO_REMEMBER_DEDUP_MERGE_LEXICAL_FLOOR` | `0.7` | `incremental` 자동 병합 어휘 바닥 `[0, 1]` |

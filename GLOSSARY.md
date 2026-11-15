@@ -80,6 +80,10 @@ _Avoid_: embedding model(값을 가리킬 때)
 같은 모델이 역할 접두를 달리 붙여 만든 벡터. 검색어는 질의 벡터(`embedQuery`), 저장하는 글은 기억 벡터(`generateEmbedding`)다. 저장하는 것은 기억 벡터뿐이고 기억끼리 비교도 기억 벡터를 쓴다.
 _Avoid_: search embedding, document embedding
 
+**Query score mapping (질의 점수 사상)**:
+질의-기억 코사인을 검색 상수가 맞춰진 척도로 옮기는 1차 변환 `clamp01(a × s + b)`. 계수는 로컬 임베딩 모델 정의에 있고 그 모델의 질의 점수에만 건다. 기억끼리 비교(중복 판정, 군집, 이웃, supersede 후보)는 raw 코사인이다.
+_Avoid_: calibration, score normalization
+
 **Native vector, window vector (native 벡터, 창 벡터)**:
 `projection_type` 이 `native` 인 기억 대표 벡터와 `window:N` 인 510토큰 조각 벡터. 저장 벡터를 직접 읽는 기능은 native 만 쓴다.
 _Avoid_: chunk embedding

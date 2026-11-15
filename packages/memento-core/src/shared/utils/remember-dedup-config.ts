@@ -2,15 +2,17 @@
  * remember write-path near-duplicate policy (Issue #730)
  */
 
+import { LOCAL_EMBEDDING_MODEL } from '../config/embedding-models.js';
+
 type RememberDedupMode = 'warn' | 'strict' | 'off';
 
-const DEFAULT_THRESHOLD = 0.85;
+const DEFAULT_THRESHOLD = LOCAL_EMBEDDING_MODEL.memorySimilarity.rememberDedup;
 const DEFAULT_LEXICAL_FLOOR = 0.3;
 const DEFAULT_MERGE_LEXICAL_FLOOR = 0.7;
 
 /**
  * @param envValue - MEMENTO_REMEMBER_DEDUP_THRESHOLD
- * @returns valid threshold in (0, 1] or default 0.85
+ * @returns valid threshold in (0, 1] or the model default (LOCAL_EMBEDDING_MODEL.memorySimilarity.rememberDedup)
  */
 export function parseRememberDedupThreshold(envValue: string | undefined): number {
   if (!envValue) {
