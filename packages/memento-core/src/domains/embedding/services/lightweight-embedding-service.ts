@@ -8,7 +8,7 @@ import { getStopWords } from '../../../shared/utils/stopwords.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 
 import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
-import { estimateEmbeddingTokens, rankSimilarEmbeddings } from './embedding-helpers.js';
+import { estimateEmbeddingTokens } from './embedding-helpers.js';
 
 interface LightweightEmbeddingResult {
   embedding: number[];
@@ -18,13 +18,6 @@ interface LightweightEmbeddingResult {
     prompt_tokens: number;
     total_tokens: number;
   };
-}
-
-interface LightweightSimilarityResult {
-  id: string;
-  content: string;
-  similarity: number;
-  score: number;
 }
 
 export class LightweightEmbeddingService {
@@ -76,26 +69,6 @@ export class LightweightEmbeddingService {
       // eslint-disable-next-line preserve-caught-error -- the message is masked; a raw cause would expose unmasked PII
       throw new Error(`경량 임베딩 생성 실패: ${maskedError.message}`);
     }
-  }
-
-  /**
-   * 쿼리와 유사한 임베딩 검색
-   */
-  async searchSimilar(
-    query: string,
-    embeddings: Array<{ id: string; content: string; embedding: number[] }>,
-    limit: number = 10,
-    threshold: number = 0.7
-  ): Promise<LightweightSimilarityResult[]> {
-    // 쿼리 임베딩 생성
-    const queryEmbedding = await this.generateEmbedding(query);
-    if (!queryEmbedding) {
-      return [];
-    }
-
-    return rankSimilarEmbeddings(queryEmbedding.embedding, embeddings, limit, threshold, {
-      nanAsZero: true,
-    });
   }
 
   /**

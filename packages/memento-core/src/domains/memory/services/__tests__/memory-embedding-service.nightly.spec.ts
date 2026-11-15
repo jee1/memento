@@ -27,10 +27,6 @@ vi.mock('../../../embedding/services/unified-embedding-service.js', () => {
       };
     }
 
-    async searchSimilar() {
-      return [];
-    }
-
     getModelInfo(): { model: string; dimensions: number; maxTokens: number } {
       return {
         model: `${currentProvider}-model`,

@@ -10,9 +10,7 @@ import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { logger } from '../../../shared/utils/logger.js';
 import type {
   EmbeddingServiceInterface,
-  EmbeddingResult,
-  SimilarityResult,
-  EmbeddingData
+  EmbeddingResult
 } from '../../../shared/types/embedding.types.js';
 import { LightweightEmbeddingService } from './lightweight-embedding-service.js';
 import { RetryManager } from '../../../shared/utils/retry-manager.js';
@@ -22,7 +20,6 @@ import {
   cleanupEmbeddingCache,
   estimateEmbeddingTokens,
   generateEmbeddingCacheKey,
-  rankSimilarEmbeddings,
   truncateEmbeddingText,
 } from './embedding-helpers.js';
 
@@ -111,24 +108,6 @@ export class OpenAIEmbeddingService implements EmbeddingServiceInterface {
       process.stderr.write(`⚠️ OpenAI 임베딩 생성 실패, 경량 서비스로 fallback: ${maskedError.message}\n`);
       return this.generateFallbackEmbedding(text, cacheKey);
     }
-  }
-
-  async searchSimilar(
-    query: string,
-    embeddings: EmbeddingData[],
-    limit: number = 10,
-    threshold: number = 0.7
-  ): Promise<SimilarityResult[]> {
-    if (embeddings.length === 0) {
-      return [];
-    }
-
-    const queryEmbedding = await this.generateEmbedding(query);
-    if (!queryEmbedding) {
-      return [];
-    }
-
-    return rankSimilarEmbeddings(queryEmbedding.embedding, embeddings, limit, threshold);
   }
 
   private async generateOpenAIEmbedding(text: string): Promise<EmbeddingResult | null> {

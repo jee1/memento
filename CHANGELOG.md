@@ -35,7 +35,7 @@
 
 ### Fixed
 
-- **기억끼리 비교가 창 벡터와 옛 모델 벡터를 쓰던 문제** (#1731, #1732): 이웃 기억, 앵커(지역 검색의 앵커와 n-hop, 질의 필터), Sleep consolidation 군집, 검색의 텍스트 전용 backfill, fallback 벡터 검색이 저장 벡터를 직접 읽을 때 벡터 검색(#889)과 같은 규칙을 따릅니다. 기억 전체를 대표하는 native 행만 읽고, `minilm` 은 지금 모델로 만든 행만 씁니다. 이전에는 이웃 기억과 앵커가 기억의 아무 행이나 가장 최근 것을 골라, 긴 기억(창 행이 있는 기억)은 본문 일부의 창 벡터로 이웃을 찾았습니다 (운영 사본에서 창 행이 있는 기억 530건 중 111건). 모델을 바꾼 뒤 재색인이 끝나기 전에는 옛 모델 벡터를 새 모델 벡터와 한 군집, 한 점수에서 비교했습니다. 이제 재색인 전의 기억은 이 기능들에서 「임베딩 없음」으로 다뤄지고, 재색인되면 다시 들어옵니다. 읽기는 `shared/utils/current-native-embedding.ts` 한 곳입니다.
+- **기억끼리 비교가 창 벡터와 옛 모델 벡터를 쓰던 문제** (#1731, #1732): 이웃 기억, 앵커(지역 검색의 앵커와 n-hop, 질의 필터), Sleep consolidation 군집, 검색의 텍스트 전용 backfill 이 저장 벡터를 직접 읽을 때 벡터 검색(#889)과 같은 규칙을 따릅니다. 기억 전체를 대표하는 native 행만 읽고, `minilm` 은 지금 모델로 만든 행만 씁니다. fallback 벡터 검색은 벡터 검색처럼 native 와 창 행을 함께 비교하고 지금 모델 행만 보도록 model 조건을 더했습니다. 이전에는 이웃 기억과 앵커가 기억의 아무 행이나 가장 최근 것을 골라, 긴 기억(창 행이 있는 기억)은 본문 일부의 창 벡터로 이웃을 찾았습니다 (운영 사본에서 창 행이 있는 기억 530건 중 111건). 모델을 바꾼 뒤 재색인이 끝나기 전에는 옛 모델 벡터를 새 모델 벡터와 한 군집, 한 점수에서 비교했습니다. 이제 재색인 전의 기억은 이 기능들에서 「임베딩 없음」으로 다뤄지고, 재색인되면 다시 들어옵니다. 읽기는 `shared/utils/current-native-embedding.ts` 한 곳입니다.
 - 상태 탭(`.ops-status-layout`)과 같은 구조의 배치 작업·기억 찾기 레이아웃에 `flex:1` / `min-height:0` / `overflow-y:auto` 를 넣어, `.tab-panel` 의 `overflow:hidden` 아래에서도 휠·End 로 끝까지 내릴 수 있게 한다. e2e는 1280x720·390x844 에서 마지막 `.ops-row` 가 뷰포트 안에 들어오는지와 형제 탭 레이아웃 스크롤을 검사한다 (#1725).
 - 남은 대시보드 탭(배치 작업, 기억 찾기, 앵커 맵, 검토 대기열 갱신 시각, 상태 임베딩 진단 시각)에서 영어 내부 키·원시 ms·ISO 시각·글자 단위 꺾임을 정리한다. 작업 이름은 한국어+키 병기, 간격은 「매일」「5분마다」, 큐/트리거는 한국어, 설명은 사람 문장(`batch-scheduler-job-descriptions`). 라벨 누락 테스트는 `REGISTERED_MANUAL_BATCH_JOB_TYPES`를 읽고, e2e는 390/1280 잘림과 간격 포맷터 되돌림 반증을 넣는다 (#1724).
 - 리뷰 후속(#1726): 실행 이력 표에 `colgroup` 폭을 두고 표 칸 시각은 「11. 14. 오후 4:23」 짧은 형식, 설정 표도 `colgroup`+말줄임, 검토 헬스 `sampled_at`·앵커 상세 라벨을 한국어/한국 시각으로 맞춘다. 배치 탭 스크롤은 #1725/#1727. e2e는 colgroup/CSS 되돌림 반증을 포함한다.
@@ -51,6 +51,11 @@
 
 ### Removed
 
+- **쓰이지 않던 임베딩 경로 정리** (#1729 PR 2): 운영 호출처가 없던 코드를 지웁니다. 동작은 같습니다.
+  - 앵커 다시 걸기 서비스(`anchor-reanchor-service.ts`)와 `AnchorSearchService` 의 감싸는 메서드 넷(`calculateReanchorScore`, `analyzeAnchorUsage`, `autoReanchor`, `checkAndAutoReanchor`), 이것만 쓰던 `SearchOptions.autoMoveEnabled`, `VectorDimensionMismatchError`. 저장소 안에서 이 메서드를 부르는 곳은 테스트뿐이었습니다.
+  - 임베딩 서비스 인터페이스와 여섯 구현의 `searchSimilar`, 이것만 쓰던 `SimilarityResult`. 유일한 호출처였던 관계 후보 재정렬은 이미 만든 새 기억 벡터로 바로 순위를 매깁니다. 같은 글을 한 번 더 임베딩하던 호출이 사라지고 고르는 후보는 같습니다.
+  - 관련성 계산(`calculateRelevance`)의 임베딩 분기. 값을 넘기는 호출처가 없어 늘 0 이던 0.60 항만 지웠고, 다른 항의 가중치는 그대로라 점수가 같습니다.
+  - npm 스크립트 `backup:embeddings`(`scripts/backup-embeddings.js`). provider 와 projection_type 없이 벡터를 JSON 으로 덤프하고 복원 경로가 없어 되돌리기에 쓸 수 없었습니다. DB 백업은 `npm run db:backup` 을 씁니다.
 - 대시보드 「운영 개요」 탭과 전용 스크립트, 스타일을 지웠다. 카드가 모두 다른 탭으로 가는 링크뿐이라 새 정보가 없었고 「상태」 탭의 세 구역이 대신한다. `GET /admin/stats/forgetting` 은 문서에 적힌 관리자 API 라서 그대로 둔다 (#1700).
 - 대시보드 「에이전트 세션」 탭을 지웠다. 운영에서 세션/관찰이 0행이고 어떤 결정에도 쓰이지 않는 화면이었다. 화면 전용 `--color-agent-*` 토큰도 함께 지웠다. `/api/v1/agent` 라우트, `agent_session`/`agent_observation` 테이블, `memento hook`/`connect` CLI, 지침 주입 훅은 그대로다. 되살리려면 이 변경을 되돌린다 (#1688).
 - 대시보드 「랭킹 가중치」 탭과 가중치 변경 제안 API(`GET /admin/ranking/weights`, `GET/POST /admin/ranking/proposals`, `.../:id/patch`, `.../:id/preview`)를 지웠다. 운영에서 제안이 한 번도 저장되지 않았다. 서버 미리보기 설정 `RANKING_PREVIEW_ENABLED`, `RANKING_PREVIEW_TIMEOUT_MS`, `RANKING_PREVIEW_MAX_OLD_SPACE_MB` 도 함께 지웠다(남아 있어도 무시된다). 가중치 변경은 `config/ranking-weights.toml` PR 과 `npm run ranking:preview` 로 한다. `ranking_weight_proposal` 테이블(migration 064)은 그대로 둔다. 되살리려면 마지막 머지면 이 변경을 되돌리고, 아니면 태그 `pre-dashboard-b` 에서 해당 파일을 복원한다 (#1702).

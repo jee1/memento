@@ -14,15 +14,12 @@ import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { isCliQuiet } from '../../../shared/utils/logger.js';
 import type { 
   EmbeddingServiceInterface, 
-  EmbeddingResult, 
-  SimilarityResult, 
-  EmbeddingData 
+  EmbeddingResult
 } from '../../../shared/types/embedding.types.js';
 import {
   estimateEmbeddingTokens,
   generateEmbeddingCacheKey,
   meanPoolNormalize,
-  rankSimilarEmbeddings,
 } from './embedding-helpers.js';
 
 interface FeatureExtractionTokenizer {
@@ -140,28 +137,6 @@ export class MiniLMEmbeddingService implements EmbeddingServiceInterface {
       // eslint-disable-next-line preserve-caught-error -- the message is masked; a raw cause would expose unmasked PII
       throw new Error(`MiniLM 임베딩 생성 실패: ${maskedError.message}`);
     }
-  }
-
-  /**
-   * 쿼리와 유사한 임베딩 검색
-   * TDD: 빈 배열 처리, 임계값 적용, 개수 제한
-   */
-  async searchSimilar(
-    query: string,
-    embeddings: EmbeddingData[],
-    limit: number = 10,
-    threshold: number = 0.7
-  ): Promise<SimilarityResult[]> {
-    if (embeddings.length === 0) {
-      return [];
-    }
-
-    const queryEmbedding = await this.generateEmbedding(query);
-    if (!queryEmbedding) {
-      return [];
-    }
-
-    return rankSimilarEmbeddings(queryEmbedding.embedding, embeddings, limit, threshold);
   }
 
   /**

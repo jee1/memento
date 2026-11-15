@@ -7,8 +7,6 @@
 import type {
   EmbeddingResult,
   EmbeddingServiceInterface,
-  SimilarityResult,
-  EmbeddingData,
 } from '../../../shared/types/embedding.types.js';
 
 const MOCK_EMBEDDING_DIMENSIONS = 64;
@@ -47,21 +45,6 @@ export class MockEmbeddingService implements EmbeddingServiceInterface {
       provider: 'mock',
       usage: { prompt_tokens: 0, total_tokens: 0 },
     };
-  }
-
-  async searchSimilar(
-    query: string,
-    embeddings: EmbeddingData[],
-    _limit?: number,
-    _threshold?: number
-  ): Promise<SimilarityResult[]> {
-    const qVec = generateMockEmbedding(query);
-    return embeddings
-      .map(e => {
-        const dot = e.embedding.reduce((s, v, i) => s + v * (qVec[i] ?? 0), 0);
-        return { id: e.id, content: e.content, similarity: dot, score: dot };
-      })
-      .sort((a, b) => b.score - a.score);
   }
 
   isAvailable(): boolean {

@@ -31,7 +31,6 @@ export interface SearchOptions {
   min_results?: number;
   vector_weight?: number;
   text_weight?: number;
-  autoMoveEnabled?: boolean;
   use_relations?: boolean; // 관계 그래프 사용 여부 (기본값: true)
   vector_threshold?: number; // 슬롯 기본값 대신 사용할 벡터 유사도 임계값 (시각화 등 특수 목적용)
   owner_id?: string; // 이 owner 의 기억만 — limit 자르기·fallback 전에 적용 (#1342)
@@ -208,15 +207,5 @@ export class ServiceNotInitializedError extends Error {
   constructor(serviceName: string, operation: string) {
     super(`${serviceName} is not initialized. Call ${operation} first.`);
     this.name = 'ServiceNotInitializedError';
-  }
-}
-
-/**
- * 벡터 차원 불일치 에러 (Phase 8.4)
- */
-export class VectorDimensionMismatchError extends Error {
-  constructor(vectorA_length: number, vectorB_length: number) {
-    super(`벡터 차원이 일치하지 않습니다 (${vectorA_length} vs ${vectorB_length})`);
-    this.name = 'VectorDimensionMismatchError';
   }
 }

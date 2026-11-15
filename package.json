@@ -86,7 +86,6 @@
     "prepublishOnly": "npm run build && npm run verify-bin && npm run verify-pack-bundle",
     "verify-bin": "node scripts/verify-bin.js",
     "quick-start": "npm install && npm run setup && npm run dev",
-    "backup:embeddings": "node scripts/backup-embeddings.js",
     "regenerate:embeddings": "node scripts/regenerate-embeddings.js",
     "reindex-embeddings": "tsx scripts/reindex-embeddings.ts",
     "debug:embeddings": "node scripts/debug-embeddings.js",

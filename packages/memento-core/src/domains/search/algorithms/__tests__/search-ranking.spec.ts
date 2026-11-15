@@ -92,26 +92,6 @@ describe('SearchRanking', () => {
       expect(relevance).toBeLessThanOrEqual(1);
     });
 
-    it('임베딩 유사도 포함 관련성 계산', () => {
-      const queryEmbedding = [0.1, 0.2, 0.3, 0.4];
-      const docEmbedding = [0.1, 0.2, 0.3, 0.4]; // 동일한 벡터
-      
-      const input: RelevanceInput = {
-        query: 'test',
-        content: 'test content',
-        tags: ['test'],
-        embeddingSimilarity: {
-          queryEmbedding,
-          docEmbedding
-        }
-      };
-
-      const relevance = ranking.calculateRelevance(input);
-      
-      // 임베딩 유사도가 높으므로 관련성이 높아야 함
-      expect(relevance).toBeGreaterThan(0.5);
-    });
-
     it('BM25 결과 포함 관련성 계산', () => {
       const input: RelevanceInput = {
         query: 'test query',
@@ -279,54 +259,6 @@ describe('SearchRanking', () => {
       expect(relevance).toBeGreaterThan(0);
     });
 
-    it('매우 큰 벡터 차원', () => {
-      const largeVector = new Array(10000).fill(0.1);
-      const input: RelevanceInput = {
-        query: 'test',
-        content: 'test content',
-        tags: [],
-        embeddingSimilarity: {
-          queryEmbedding: largeVector,
-          docEmbedding: largeVector
-        }
-      };
-
-      const relevance = ranking.calculateRelevance(input);
-      
-      expect(relevance).toBeGreaterThanOrEqual(0);
-      expect(relevance).toBeLessThanOrEqual(1);
-    });
-
-    it('벡터 차원 불일치', () => {
-      const input: RelevanceInput = {
-        query: 'test',
-        content: 'test content',
-        tags: [],
-        embeddingSimilarity: {
-          queryEmbedding: [0.1, 0.2],
-          docEmbedding: [0.1, 0.2, 0.3] // 차원 불일치
-        }
-      };
-
-      const relevance = ranking.calculateRelevance(input);
-      
-      // 차원 불일치 시 임베딩 점수는 0이어야 함
-      expect(relevance).toBeGreaterThanOrEqual(0);
-    });
-
-    it('preserves NaN vector elements as an invalid relevance score', () => {
-      const relevance = ranking.calculateRelevance({
-        query: 'test',
-        content: 'test content',
-        tags: [],
-        embeddingSimilarity: {
-          queryEmbedding: [Number.NaN, 1],
-          docEmbedding: [1, 1],
-        },
-      });
-
-      expect(relevance).toBeNaN();
-    });
   });
 
   describe('성능 테스트', () => {

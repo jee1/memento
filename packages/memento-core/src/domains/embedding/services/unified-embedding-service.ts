@@ -13,8 +13,6 @@ import { isCliQuiet } from '../../../shared/utils/logger.js';
 import type { 
   EmbeddingServiceInterface, 
   EmbeddingResult, 
-  SimilarityResult, 
-  EmbeddingData,
   EmbeddingProvider 
 } from '../../../shared/types/embedding.types.js';
 import { EmbeddingProviderFactory } from '../providers/embedding-provider-factory.js';
@@ -74,52 +72,6 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
       } catch (fallbackError) {
         // eslint-disable-next-line preserve-caught-error -- the message is masked; a raw cause would expose unmasked PII
         throw new Error(`모든 임베딩 제공자 실패: ${maskedError.message}`);
-      }
-    }
-  }
-
-  /**
-   * 쿼리와 유사한 임베딩 검색
-   * TDD: 제공자 선택, 폴백 처리
-   */
-  async searchSimilar(
-    query: string,
-    embeddings: EmbeddingData[],
-    limit: number = 10,
-    threshold: number = 0.7,
-    preferredProvider?: EmbeddingProvider
-  ): Promise<SimilarityResult[]> {
-    this.validateInput(query);
-
-    try {
-      const provider = await this.selectProvider(preferredProvider);
-      if (!provider) {
-        throw new Error('사용 가능한 임베딩 제공자가 없습니다');
-      }
-
-      this.currentProvider = provider.service;
-      this.currentProviderName = provider.provider;
-      const results = await provider.service.searchSimilar(query, embeddings, limit, threshold);
-      
-      if (results.length > 0) {
-        // 로그는 디버그 모드에서만 출력 (MCP 프로토콜 준수)
-        return results;
-      }
-
-      // 폴백 시도
-      return await this.tryFallbackSearch(query, embeddings, limit, threshold);
-
-    } catch (error) {
-      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      if (!isCliQuiet()) process.stderr.write(`❌ 유사도 검색 실패: ${maskedError.message}\n`);
-      this.handleProviderFailure(this.currentProviderName);
-      
-      // 폴백 시도
-      try {
-        return await this.tryFallbackSearch(query, embeddings, limit, threshold);
-      } catch (fallbackError) {
-        if (!isCliQuiet()) process.stderr.write('⚠️ 모든 제공자 실패, 빈 결과 반환\n');
-        return [];
       }
     }
   }
@@ -263,29 +215,6 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
       return result;
     }
     throw new Error('모든 폴백 제공자 실패');
-  }
-
-  /**
-   * 폴백 검색 시도
-   */
-  private async tryFallbackSearch(
-    query: string,
-    embeddings: EmbeddingData[],
-    limit: number,
-    threshold: number
-  ): Promise<SimilarityResult[]> {
-    const { service, decision } = await this.factory.selectProviderWithHealthCheck();
-    if (!service) {
-      return [];
-    }
-    // 로그는 디버그 모드에서만 출력 (MCP 프로토콜 준수)
-    const results = await service.searchSimilar(query, embeddings, limit, threshold);
-    if (results.length > 0) {
-      this.currentProvider = service;
-      this.currentProviderName = decision.selectedProvider;
-      return results;
-    }
-    return [];
   }
 
   private handleProviderFailure(provider: EmbeddingProvider | null): void {

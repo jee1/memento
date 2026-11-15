@@ -32,13 +32,29 @@ describe('compressRelationMemories', () => {
 });
 
 describe('filterRelationCandidatesByEmbedding (#1473)', () => {
+  it('embedding이 있으면 새 기억과 가장 비슷한 limit개를 원래 순서대로 고른다', async () => {
+    const near = [1, 0, 0];
+    const far = [0, 1, 0];
+    const generateEmbedding = vi.fn(async () => ({
+      embedding: near,
+      model: 'test-model',
+      usage: { prompt_tokens: 1, total_tokens: 1 },
+    }));
+    const embeddingService = { generateEmbedding } as unknown as UnifiedEmbeddingService;
+    const existing = Array.from({ length: 40 }, (_, i) => ({
+      ...memory(`existing-${i}`, `content ${i}`),
+      embedding: i % 4 === 0 ? near : far,
+    }));
+
+    const filtered = await filterRelationCandidatesByEmbedding(embeddingService, memory('new', 'source'), existing, 10);
+
+    expect(filtered.map((m) => m.id)).toEqual(existing.filter((_, i) => i % 4 === 0).map((m) => m.id));
+    expect(generateEmbedding).toHaveBeenCalledTimes(1);
+  });
+
   it('existingMemories에 embedding이 없으면 generateEmbedding을 호출하지 않고 즉시 상위 limit개를 반환한다', async () => {
     const generateEmbedding = vi.fn();
-    const searchSimilar = vi.fn();
-    const embeddingService = {
-      generateEmbedding,
-      searchSimilar,
-    } as unknown as UnifiedEmbeddingService;
+    const embeddingService = { generateEmbedding } as unknown as UnifiedEmbeddingService;
 
     const source = memory('new', 'source memory content');
     const existing = Array.from({ length: 100 }, (_, i) => memory(`existing-${i}`, `content ${i}`));
@@ -47,7 +63,6 @@ describe('filterRelationCandidatesByEmbedding (#1473)', () => {
     expect(filtered).toHaveLength(30);
     expect(filtered[0]?.id).toBe('existing-0');
     expect(generateEmbedding).not.toHaveBeenCalled();
-    expect(searchSimilar).not.toHaveBeenCalled();
 
     const pool = await prepareRelationCandidatePool(embeddingService, source, existing, 30);
     expect(pool).toHaveLength(10);

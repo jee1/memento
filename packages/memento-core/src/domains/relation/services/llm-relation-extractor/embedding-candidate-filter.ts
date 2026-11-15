@@ -2,7 +2,7 @@ import type { EmbeddingData } from '../../../../shared/types/embedding.types.js'
 import type { MemoryItem } from '../../../../shared/types/memory.types.js';
 import { LIMITS } from '../../../../shared/constants/relation-constants.js';
 import { logger } from '../../../../shared/utils/logger.js';
-import type { UnifiedEmbeddingService } from '../../../embedding/index.js';
+import { rankSimilarEmbeddings, type UnifiedEmbeddingService } from '../../../embedding/index.js';
 
 export async function filterRelationCandidatesByEmbedding(
   embeddingService: UnifiedEmbeddingService,
@@ -35,12 +35,7 @@ export async function filterRelationCandidatesByEmbedding(
       return existingMemories.slice(0, limit);
     }
 
-    const similarMemories = await embeddingService.searchSimilar(
-      newMemory.content,
-      embeddingData,
-      limit,
-      0.0
-    );
+    const similarMemories = rankSimilarEmbeddings(newEmbedding.embedding, embeddingData, limit, 0.0);
 
     const similarIds = new Set(similarMemories.map((r) => r.id));
 

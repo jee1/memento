@@ -10,6 +10,7 @@ import ts from 'typescript';
  * 새 파일이 `memory_item` SQL 을 쓰면 이 spec 이 실패한다. 늘리려면 PR 리뷰로
  * 허용 목록과 FROZEN 상수를 같이 올려야 하고, 줄이면 둘을 같이 내린다.
  * 2026-10-30 HEAD 측정: 80파일 → server 8파일 이관 후 72파일.
+ * 2026-11-15 앵커 다시 걸기 서비스 삭제로 71파일 (#1729).
  * 방식은 #749 `dependency-boundaries.spec.ts` 를 따른다.
  */
 const repoRoot = path.resolve(import.meta.dirname, '..');
@@ -29,10 +30,6 @@ const MEMORY_ITEM_SQL_ALLOWLIST: readonly AllowlistEntry[] = [
   {
     path: 'packages/memento-core/src/domains/anchor/services/anchor/anchor-manager.ts',
     rationale: '앵커 설정·캐시 재조회에 current-state 공용 조건 적용 (#1552)',
-  },
-  {
-    path: 'packages/memento-core/src/domains/anchor/services/anchor/anchor-reanchor-service.ts',
-    rationale: '재앵커 점수 계산의 current-state 읽기 (#1552)',
   },
   {
     path: 'packages/memento-core/src/domains/anchor/services/anchor/n-hop-linked-memory-service.ts',
@@ -309,7 +306,7 @@ const MEMORY_ITEM_SQL_ALLOWLIST: readonly AllowlistEntry[] = [
 ] as const;
 
 /** 허용 목록 증가 방지 가드 — 리뷰 없이 올리지 않는다 (#1531). */
-const FROZEN_MEMORY_ITEM_SQL_FILE_COUNT = 72;
+const FROZEN_MEMORY_ITEM_SQL_FILE_COUNT = 71;
 
 /**
  * 문자열 리터럴 안의 `memory_item` 테이블 참조.

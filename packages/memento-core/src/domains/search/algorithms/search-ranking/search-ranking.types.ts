@@ -16,11 +16,6 @@ export interface SearchFeatures {
   feedback_score?: number;
 }
 
-export interface EmbeddingSimilarity {
-  queryEmbedding: number[];
-  docEmbedding: number[];
-}
-
 export interface BM25Result {
   score: number;
   normalizedScore: number;
@@ -31,7 +26,6 @@ export interface RelevanceInput {
   content: string;
   title?: string;
   tags: string[];
-  embeddingSimilarity?: EmbeddingSimilarity | undefined;
   bm25Result?: BM25Result | undefined;
 }
 

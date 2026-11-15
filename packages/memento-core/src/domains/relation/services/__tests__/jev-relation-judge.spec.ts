@@ -30,7 +30,6 @@ function failed(reason: SystemOneFailureReason) {
 
 const embedding = {
   generateEmbedding: () => Promise.reject(new Error('pool should not embed under the limit')),
-  searchSimilar: () => Promise.reject(new Error('pool should not search under the limit')),
 } as unknown as UnifiedEmbeddingService;
 
 describe('selectWinningType', () => {

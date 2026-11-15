@@ -85,7 +85,7 @@ if (process.argv[1] && resolve(process.argv[1]) === fileURLToPath(import.meta.ur
     } };
     const unexpectedEmbedding = () => { throw new Error('Single pair must not embed'); };
     const judge = new JevRelationJudge(recordingClient, {
-      generateEmbedding: unexpectedEmbedding, searchSimilar: unexpectedEmbedding,
+      generateEmbedding: unexpectedEmbedding,
     });
     const snapshot = await runEvaluation(bytes, {
       judgePair: async (source, target) => {

@@ -3,22 +3,16 @@
  */
 
 import type { RelevanceInput } from './search-ranking.types.js';
-import { cosineSimilarity } from '../../../../shared/utils/vector-math.js';
 
 /**
  * 단일 지표만으로는 검색 관련성을 정확히 평가할 수 없으므로, 다양한 관련성 지표를 가중 평균하여 종합적인 관련성 점수를 계산합니다.
- * 임베딩 유사도, BM25, 태그 매칭, 타이틀 히트를 결합하여 검색 정확도를 향상시킵니다.
+ * BM25, 태그 매칭, 타이틀 히트를 결합합니다. 임베딩 유사도는 융합 레인이 따로 다룹니다.
  */
 export function calculateRelevance(input: RelevanceInput): number {
-  const { query, content, title, tags, embeddingSimilarity, bm25Result } = input;
+  const { query, content, title, tags, bm25Result } = input;
 
   // 잘못된 입력으로 인한 오류를 방지하고 안정적인 점수 계산을 보장합니다.
   if (!query || !content) return 0;
-
-  // 의미적 유사성을 가장 중요하게 평가하여 사용자의 의도와 가장 가까운 결과를 찾습니다.
-  const embeddingScore = embeddingSimilarity
-    ? calculateEmbeddingSimilarity(embeddingSimilarity.queryEmbedding, embeddingSimilarity.docEmbedding)
-    : 0;
 
   // 키워드 빈도 기반의 전통적인 검색 알고리즘을 활용하여 정확한 키워드 매칭을 보장합니다.
   const bm25Score = bm25Result
@@ -32,8 +26,7 @@ export function calculateRelevance(input: RelevanceInput): number {
   const titleScore = title ? calculateTitleHit(query, title) : 0;
 
   // 각 지표의 중요도에 따라 가중 평균을 적용하여 종합적인 관련성 점수를 계산합니다.
-  return 0.60 * embeddingScore +
-         0.30 * bm25Score +
+  return 0.30 * bm25Score +
          0.05 * tagScore +
          0.05 * titleScore;
 }
@@ -47,20 +40,8 @@ export function calculateRelevanceSimple(query: string, content: string, tags: s
     query,
     content,
     tags,
-    embeddingSimilarity: undefined,
     bm25Result: undefined
   });
-}
-
-/**
- * 벡터 공간에서의 의미적 유사성을 정량화하여 검색 정확도를 향상시킵니다.
- * 코사인 유사도를 사용하여 벡터의 방향성을 비교하고 크기 차이의 영향을 제거합니다.
- */
-function calculateEmbeddingSimilarity(queryEmbedding: number[], docEmbedding: number[]): number {
-  if (queryEmbedding.length !== docEmbedding.length) return 0;
-
-  const cosine = cosineSimilarity(queryEmbedding, docEmbedding);
-  return Math.max(0, cosine); // 음수 유사도를 0으로 제한하여 점수 범위의 일관성을 유지합니다.
 }
 
 /**
