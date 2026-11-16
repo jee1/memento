@@ -8,9 +8,11 @@ describe('068 backfill deleted_at', () => {
     db.exec(`
       INSERT INTO memory_item (id, type, content, is_deleted, deleted_at) VALUES
         ('missing', 'semantic', 'a', 1, NULL),
+        ('pinned-deleted', 'semantic', 'd', 1, '2026-01-02T00:00:00.000Z'),
         ('kept', 'semantic', 'b', 1, '2026-01-01T00:00:00.000Z'),
         ('alive', 'semantic', 'c', 0, NULL);
     `);
+    db.prepare("UPDATE memory_item SET pinned = 1 WHERE id = 'pinned-deleted'").run();
     const migration = new BackfillDeletedAtMigration();
 
     await migration.up(db);
@@ -20,6 +22,7 @@ describe('068 backfill deleted_at', () => {
     expect(rows.find((r) => r.id === 'missing')?.deleted_at).toMatch(/^\d{4}-\d{2}-\d{2}T/);
     expect(rows.find((r) => r.id === 'kept')?.deleted_at).toBe('2026-01-01T00:00:00.000Z');
     expect(rows.find((r) => r.id === 'alive')?.deleted_at).toBeNull();
+    expect(db.prepare("SELECT pinned FROM memory_item WHERE id = 'pinned-deleted'").get()).toEqual({ pinned: 0 });
     cleanupTestDatabase(db);
   });
 });

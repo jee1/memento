@@ -109,9 +109,10 @@ export class ForgettingPolicyService {
       // 3. 소프트 삭제 실행
       for (const { candidate, memory } of candidates) {
         const ttlDays = this.config.ttlSoft[memory.type as keyof typeof this.config.ttlSoft];
-        const deleted = await this.softDeleteMemory(db, candidate.memory_id, {
-          forgetScore: candidate.forget_score,
+        const deleted = softDeleteMemoryItem(db, candidate.memory_id, {
           reason: memory.type === 'working' ? WORKING_TTL_REASON : candidate.reason,
+          policy: DEFAULT_FORGETTING_POLICY_NAME,
+          forgetScore: candidate.forget_score,
           ttlDays,
         });
         if (!deleted) continue;
@@ -210,7 +211,7 @@ export class ForgettingPolicyService {
   }
 
   /**
-   * 소프트 삭제 실행
+   * 소프트 삭제 뒤 영구 삭제까지의 유예 일수
    */
   private getSoftDeleteGracePeriodDays(): number {
     const raw = process.env.SOFT_DELETE_GRACE_PERIOD_DAYS;
@@ -233,43 +234,15 @@ export class ForgettingPolicyService {
     `, [days, USER_DIRECTIVE_TAG])) as Array<{ id: string }>;
     const deleted: string[] = [];
     for (const r of rows) {
-      const removed = await this.hardDeleteMemory(db, r.id, {
-        forgetScore: null,
+      // 소프트 삭제된 행만 지워, 고른 뒤 되살린 행은 남는다
+      const removed = hardDeleteMemoryItem(db, r.id, {
         reason: 'soft_delete_grace_period_expired',
+        policy: DEFAULT_FORGETTING_POLICY_NAME,
         ttlDays: days,
       });
       if (removed) deleted.push(r.id);
     }
     return deleted;
-  }
-
-  private async softDeleteMemory(
-    db: Database.Database,
-    memoryId: string,
-    event: { forgetScore: number; reason: string; ttlDays: number },
-  ): Promise<boolean> {
-    return softDeleteMemoryItem(db, memoryId, {
-      reason: event.reason,
-      policy: DEFAULT_FORGETTING_POLICY_NAME,
-      forgetScore: event.forgetScore,
-      ttlDays: event.ttlDays,
-    });
-  }
-
-  /**
-   * 하드 삭제 실행. 소프트 삭제된 행만 지워, sweep 이 고른 뒤 되살린 행은 남는다.
-   */
-  private async hardDeleteMemory(
-    db: Database.Database,
-    memoryId: string,
-    event: { forgetScore: number | null; reason: string; ttlDays: number },
-  ): Promise<boolean> {
-    return hardDeleteMemoryItem(db, memoryId, {
-      reason: event.reason,
-      policy: DEFAULT_FORGETTING_POLICY_NAME,
-      forgetScore: event.forgetScore,
-      ttlDays: event.ttlDays,
-    });
   }
 
   /**

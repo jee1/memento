@@ -6,7 +6,7 @@
 import type Database from 'better-sqlite3';
 import { callerMemoryScopeSql, type CallerMemoryScope } from '../../../shared/utils/owned-ids.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { buildMemoryFilterSql, supersedeByActiveTargetSql } from '../../../shared/utils/memory-filter-sql.js';
+import { buildMemoryFilterSql, supersedeByActiveTargetSql, tagMatchSql } from '../../../shared/utils/memory-filter-sql.js';
 import { embeddingColumnToNumbers } from '../../../shared/utils/embedding-serialization.js';
 import { softDeleteMemoryItem } from '../../forgetting/index.js';
 
@@ -459,9 +459,10 @@ export function listProjectMemoryCleanupCandidates(
        WHERE project_id = ? AND type IN (${placeholders})
          AND created_at < datetime('now', '-${olderThanDays} days')
          AND COALESCE(is_deleted, 0) = 0
-         AND COALESCE(pinned, 0) = 0`,
+         AND COALESCE(pinned, 0) = 0
+         AND NOT ${tagMatchSql()}`,
     )
-    .all(projectId, ...types) as ProjectMemoryCleanupCandidateRow[];
+    .all(projectId, ...types, 'user-directive') as ProjectMemoryCleanupCandidateRow[];
 }
 
 /**
@@ -475,12 +476,14 @@ export function deleteProjectMemoriesOlderThan(
   olderThanDays: number,
 ): number {
   const candidates = listProjectMemoryCleanupCandidates(db, projectId, types, olderThanDays);
-  return candidates.filter((row) =>
-    softDeleteMemoryItem(db, row.id, {
-      reason: `project_cleanup_older_than_${olderThanDays}d`,
-      policy: 'project-cleanup',
-    }),
-  ).length;
+  return db.transaction(() =>
+    candidates.filter((row) =>
+      softDeleteMemoryItem(db, row.id, {
+        reason: `project_cleanup_older_than_${olderThanDays}d`,
+        policy: 'project-cleanup',
+      }),
+    ).length,
+  )();
 }
 
 export function queryMemoryForgettingStatsByType(

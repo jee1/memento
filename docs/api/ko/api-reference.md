@@ -241,7 +241,7 @@ result.neighbors.forEach(neighbor => {
 
 ### pin / unpin
 
-`pin`은 망각 정책에서 제외하고 검색 우선순위를 올립니다. `unpin`은 고정을 해제합니다. 둘 다 `memory_id` 하나면 됩니다.
+`pin`은 망각 정책에서 제외하고 검색 우선순위를 올립니다. `unpin`은 고정을 해제합니다. 둘 다 `memory_id` 하나면 됩니다. 이미 삭제된 기억에는 `pin` 이 실패합니다.
 
 #### pin 파라미터
 
@@ -285,7 +285,7 @@ const result = await client.callTool('unpin', {
 
 ### forget
 
-기억을 삭제합니다. 기본은 소프트 삭제(`hard: false`)이며, `hard: true`면 복구가 어려운 물리 삭제에 가깝게 동작합니다.
+기억을 삭제합니다. 기본은 소프트 삭제(`hard: false`)이며, `hard: true`면 복구가 어려운 물리 삭제에 가깝게 동작합니다. 소프트 삭제된 기억은 30일 유예 뒤 망각 정리가 영구 삭제합니다(`user-directive` 기억은 예외라 지침을 완전히 지우려면 `hard: true`). 이미 소프트 삭제된 기억을 다시 소프트 삭제하면 아무것도 바꾸지 않고 `already_deleted: true` 와 원래 `deleted_at` 을 돌려줍니다(유예가 다시 시작되지 않음).
 
 #### 파라미터
 
@@ -303,6 +303,7 @@ interface ForgetResult {
   success: boolean;                 // 성공 여부
   memory_id: string;               // 삭제된 기억 ID
   deleted_at: string;              // 삭제 시간
+  already_deleted?: boolean;       // 이미 소프트 삭제된 기억이었으면 true
 }
 ```
 

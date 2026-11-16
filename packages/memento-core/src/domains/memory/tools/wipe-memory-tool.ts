@@ -110,6 +110,7 @@ export class WipeMemoryTool extends BaseTool {
     hmac.update(candidateIds.slice().sort().join(','));
     const auditHash = hmac.digest('hex');
 
+    const eradicated: string[] = [];
     await DatabaseUtils.runTransaction(context.db, async () => {
       for (const memId of candidateIds) {
         if (zero_fill) {
@@ -153,12 +154,13 @@ export class WipeMemoryTool extends BaseTool {
         }
 
         // #1752: 테이블 CHECK 가 받는 action 은 soft, hard, review 뿐이라 wipe 도 hard 로 남긴다
-        hardDeleteMemoryItem(
+        const removed = hardDeleteMemoryItem(
           context.db,
           memId,
           { reason: 'retention_wipe', policy: 'compliant-retention-wipe', metadata: { audit_hash: auditHash, zero_fill } },
           { force: true },
         );
+        if (removed) eradicated.push(memId);
       }
     });
 
@@ -189,10 +191,10 @@ export class WipeMemoryTool extends BaseTool {
     return this.createSuccessResult({
       success: true,
       dry_run: false,
-      purged_count: candidateIds.length,
+      purged_count: eradicated.length,
       audit_hash: auditHash,
-      eradicated_ids: candidateIds,
-      message: `Successfully wiped ${candidateIds.length} memories with zero-fill verification`,
+      eradicated_ids: eradicated,
+      message: `Successfully wiped ${eradicated.length} memories with zero-fill verification`,
     });
   }
 }

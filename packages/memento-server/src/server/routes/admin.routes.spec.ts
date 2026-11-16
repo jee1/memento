@@ -1245,7 +1245,8 @@ describe('Project memory admin routes', () => {
         created_at TEXT DEFAULT (datetime('now')),
         is_deleted INTEGER DEFAULT 0,
           deleted_at TEXT,
-        pinned INTEGER DEFAULT 0
+        pinned INTEGER DEFAULT 0,
+        tags TEXT
       );
       CREATE TABLE IF NOT EXISTS memory_forgetting_event (
         id TEXT PRIMARY KEY, memory_id TEXT NOT NULL, action TEXT NOT NULL, reason TEXT NOT NULL, policy TEXT NOT NULL,

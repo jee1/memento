@@ -241,7 +241,7 @@ result.neighbors.forEach(neighbor => {
 
 ### pin / unpin
 
-`pin` exempts a memory from forgetting and boosts search rank. `unpin` clears the pin. Both take a single `memory_id`.
+`pin` exempts a memory from forgetting and boosts search rank. `unpin` clears the pin. Both take a single `memory_id`. `pin` fails for a memory that is already deleted.
 
 #### pin Parameters
 
@@ -285,7 +285,7 @@ const result = await client.callTool('unpin', {
 
 ### forget
 
-Deletes a memory. Default is soft delete (`hard: false`); `hard: true` removes data in a way that is difficult to recover.
+Deletes a memory. Default is soft delete (`hard: false`); `hard: true` removes data in a way that is difficult to recover. A soft-deleted memory is permanently deleted by the forgetting cleanup after a 30-day grace period (`user-directive` memories are exempt, so use `hard: true` to remove a directive completely). Soft-deleting a memory that is already soft-deleted changes nothing and returns `already_deleted: true` with the original `deleted_at` (the grace period does not restart).
 
 #### Parameters
 
@@ -303,6 +303,7 @@ interface ForgetResult {
   success: boolean;                 // Success status
   memory_id: string;               // Deleted memory ID
   deleted_at: string;              // Deletion time
+  already_deleted?: boolean;       // true when the memory was already soft-deleted
 }
 ```
 

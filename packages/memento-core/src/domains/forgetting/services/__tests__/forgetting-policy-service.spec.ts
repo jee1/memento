@@ -6,6 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { ForgettingPolicyService, type MemoryCleanupResult } from '../forgetting-policy-service.js';
+import { softDeleteMemoryItem } from '../../repositories/memory-delete-transitions.js';
 import { setupTestDatabase, createTestMemory, cleanupTestDatabase, startRecallStatsAt } from '../../../../test/helpers/test-database.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { DAY_MS } from '../../../../shared/utils/date.js';
@@ -837,10 +838,10 @@ describe('ForgettingPolicyService', () => {
 
     it('같은 기억을 두 번 소프트 삭제해도 망각 이벤트는 하나다', async () => {
       const { id } = seedOld('episodic');
-      const event = { forgetScore: 0.7, reason: 'test', ttlDays: 30 };
+      const event = { reason: 'test', policy: 'test', forgetScore: 0.7, ttlDays: 30 };
 
-      expect(await service['softDeleteMemory'](db, id, event)).toBe(true);
-      expect(await service['softDeleteMemory'](db, id, event)).toBe(false);
+      expect(softDeleteMemoryItem(db, id, event)).toBe(true);
+      expect(softDeleteMemoryItem(db, id, event)).toBe(false);
 
       const events = DatabaseUtils.all(db, "SELECT id FROM memory_forgetting_event WHERE memory_id = ? AND action = 'soft'", [id]);
       expect(events).toHaveLength(1);

@@ -231,4 +231,14 @@ describe('memory-item-repository query helpers (#1531)', () => {
     expect(row?.deleted_at).toBeTruthy();
     expect(db.prepare("SELECT action FROM memory_forgetting_event WHERE memory_id = 'old-ep'").all()).toEqual([{ action: 'soft' }]);
   });
+
+  it('프로젝트 정리는 user-directive 기억을 미리보기와 정리에서 뺀다 (#1752)', () => {
+    db.prepare(
+      `INSERT INTO memory_item (id, type, content, project_id, pinned, created_at, is_deleted, tags)
+       VALUES ('directive', 'episodic', 'rule', 'proj-d', 0, datetime('now', '-40 days'), 0, '["user-directive"]')`,
+    ).run();
+
+    expect(listProjectMemoryCleanupCandidates(db, 'proj-d', ['episodic'], 30)).toEqual([]);
+    expect(deleteProjectMemoriesOlderThan(db, 'proj-d', ['episodic'], 30)).toBe(0);
+  });
 });
