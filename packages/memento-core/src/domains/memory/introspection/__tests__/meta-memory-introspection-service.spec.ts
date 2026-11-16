@@ -93,6 +93,15 @@ describe('MetaMemoryIntrospectionService', () => {
     expect(result.summary.length).toBeGreaterThan(0);
   });
 
+  it('통계를 초기화한 행(recall_count 0)은 저신뢰, 고실패로 잡지 않는다 (#1744)', async () => {
+    db.exec(`UPDATE meta_memory_stats SET recall_count = 0, success_count = 0, failure_count = 5, avg_confidence = 0.0`);
+
+    const result = await MetaMemoryIntrospectionService.runScan(db);
+
+    expect(result.lowConfidenceTotal).toBe(0);
+    expect(result.highFailureTotal).toBe(0);
+  });
+
   it('given: meta_memory_stats가 비어 있을 때, when: runScan을 호출하면, then: 빈 배열과 빈 요약을 반환해야 함', async () => {
     const emptyDb = new Database(':memory:');
     createBaseSchema(emptyDb);
