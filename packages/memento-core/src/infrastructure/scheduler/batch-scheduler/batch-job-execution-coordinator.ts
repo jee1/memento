@@ -141,8 +141,8 @@ export class BatchJobExecutionCoordinator {
       retryCount
     });
 
+    const jobTimeoutMs = resolveBatchJobTimeout(name, this.deps.getConfig());
     try {
-      const jobTimeoutMs = resolveBatchJobTimeout(name, this.deps.getConfig());
       runningBody = job();
       outcome = await this.executeWithTimeout(runningBody, jobTimeoutMs, () => {
         timedOut = true;
@@ -273,9 +273,23 @@ export class BatchJobExecutionCoordinator {
         durationMs
       });
       this.appendScheduleJobRun(name, startTime, durationMs, jobOk, logBuffer, outcome, failureMessage);
-      const release = () => this.deps.jobQueue.markCompleted(name);
+      let released = false;
+      const release = () => {
+        if (released) return;
+        released = true;
+        this.deps.jobQueue.markCompleted(name);
+      };
       if (timedOut && runningBody) {
-        runningBody.then(release, release);
+        // 본문이 끝나면 푼다. 끝나지 않는 본문이 잠금과 동시 실행 자리를 영원히 쥐지 않게 한도를 한 번 더 기다린 뒤 푼다.
+        const hardCap = setTimeout(() => {
+          this.deps.log(`Job ${name} still running ${jobTimeoutMs}ms after timeout, releasing its lock`, undefined, 'error');
+          release();
+        }, jobTimeoutMs);
+        const settle = () => {
+          clearTimeout(hardCap);
+          release();
+        };
+        runningBody.then(settle, settle);
       } else {
         release();
       }

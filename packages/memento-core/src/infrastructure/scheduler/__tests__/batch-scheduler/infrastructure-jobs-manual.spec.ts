@@ -117,4 +117,13 @@ describe('BatchScheduler infrastructure jobs manual control', () => {
     expect(intervals.has('cleanup')).toBe(false);
     expect(scheduler.isJobPaused('cleanup')).toBe(true);
   });
+
+  it('수동 runJob 이 실패를 돌려주면 오류 수를 올린다 (#1753)', async () => {
+    const { scheduler } = await startSchedulerWithWal(vi.fn().mockResolvedValue({ success: false, errors: ['busy'] }));
+    const retryManager = (scheduler as unknown as { retryManager: { getErrorCount(n: string): number } }).retryManager;
+
+    await scheduler.runJob('wal_checkpoint');
+
+    expect(retryManager.getErrorCount('wal_checkpoint')).toBe(1);
+  });
 });

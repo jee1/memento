@@ -490,4 +490,21 @@ describe('BatchJobExecutionCoordinator 결과 상태 (#1753)', () => {
       vi.useRealTimers();
     }
   });
+
+  it('끝나지 않는 본문은 한도를 한 번 더 기다린 뒤 잠금을 푼다', async () => {
+    vi.useFakeTimers();
+    try {
+      const { coordinator, jobQueue } = createCoordinator({ jobTimeout: 100 });
+
+      const runPromise = coordinator.executeJobWithRetry('hung_job', () => new Promise(() => {}), 5, 0);
+      await vi.advanceTimersByTimeAsync(150);
+      await runPromise;
+      expect(jobQueue.isRunning('hung_job')).toBe(true);
+
+      await vi.advanceTimersByTimeAsync(100);
+      expect(jobQueue.isRunning('hung_job')).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
 });
