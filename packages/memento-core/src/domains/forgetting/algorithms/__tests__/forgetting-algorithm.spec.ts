@@ -408,4 +408,26 @@ describe('ForgettingAlgorithm', () => {
       expect(features.usage).toBeLessThanOrEqual(1);
     });
   });
+
+  describe('#1749 다른 유형 수와 무관한 점수', () => {
+    const memoryOf = (id: string, type: string) => ({
+      id,
+      created_at: new Date(Date.now() - 400 * DAY_MS).toISOString(),
+      importance: 0.5,
+      pinned: false,
+      type,
+    });
+    const semanticScores = (results: ForgettingResult[]) =>
+      results.filter((r) => r.memory_id.startsWith('s')).map((r) => r.forget_score);
+
+    it.fails('episodic 이 지워져도 semantic 망각 점수는 그대로다', () => {
+      const semantic = [memoryOf('s1', 'semantic'), memoryOf('s2', 'semantic')];
+      const episodic = Array.from({ length: 10 }, (_, i) => memoryOf(`e${i}`, 'episodic'));
+
+      const withEpisodic = algorithm.analyzeForgetCandidates([...semantic, ...episodic]);
+      const afterEpisodicDeleted = algorithm.analyzeForgetCandidates(semantic);
+
+      expect(semanticScores(afterEpisodicDeleted)).toEqual(semanticScores(withEpisodic));
+    });
+  });
 });
