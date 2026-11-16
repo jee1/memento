@@ -284,7 +284,7 @@ describe('PinTool', () => {
     expect(row.last_accessed).toBe(lastAccessed);
   });
 
-  it.fails('소프트 삭제된 기억에는 핀을 걸지 않는다 (#1752)', async () => {
+  it('소프트 삭제된 기억에는 핀을 걸지 않는다 (#1752)', async () => {
     const memoryId = createTestMemory(db, { content: 'deleted pin', type: 'episodic', pinned: false });
     DatabaseUtils.run(db, 'UPDATE memory_item SET is_deleted = 1, deleted_at = ? WHERE id = ?', [new Date().toISOString(), memoryId]);
 

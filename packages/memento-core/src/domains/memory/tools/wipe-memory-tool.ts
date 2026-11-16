@@ -10,7 +10,7 @@ import type { ToolContext, ToolResult } from '../../../tools/types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { AuditHashChainService } from '../../telemetry/index.js';
-import { ForgettingEventRepository } from '../../forgetting/index.js';
+import { hardDeleteMemoryItem } from '../../forgetting/index.js';
 import { MemoryItemRepository } from '../repositories/memory-item-repository.js';
 
 const WipeMemorySchema = z.object({
@@ -24,7 +24,6 @@ const WipeMemorySchema = z.object({
 
 export class WipeMemoryTool extends BaseTool {
   private readonly memoryRepo = new MemoryItemRepository();
-  private readonly forgettingEventRepo = new ForgettingEventRepository();
 
   constructor() {
     super(
@@ -153,19 +152,13 @@ export class WipeMemoryTool extends BaseTool {
           // ignore
         }
 
-        context.db.prepare('DELETE FROM memory_item WHERE id = ?').run(memId);
-
-        try {
-          this.forgettingEventRepo.insert(context.db, {
-            memory_id: memId,
-            action: 'wipe',
-            reason: 'retention_wipe',
-            policy: 'compliant-retention-wipe',
-            metadata_json: JSON.stringify({ audit_hash: auditHash, zero_fill }),
-          });
-        } catch {
-          // ignore
-        }
+        // #1752: 테이블 CHECK 가 받는 action 은 soft, hard, review 뿐이라 wipe 도 hard 로 남긴다
+        hardDeleteMemoryItem(
+          context.db,
+          memId,
+          { reason: 'retention_wipe', policy: 'compliant-retention-wipe', metadata: { audit_hash: auditHash, zero_fill } },
+          { force: true },
+        );
       }
     });
 

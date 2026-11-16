@@ -740,7 +740,7 @@ describe('ForgetTool', () => {
     });
   });
 
-  it.fails('이미 소프트 삭제된 기억을 다시 지우면 「이미 삭제됨」을 돌려주고 유예를 늘리지 않는다 (#1752)', async () => {
+  it('이미 소프트 삭제된 기억을 다시 지우면 「이미 삭제됨」을 돌려주고 유예를 늘리지 않는다 (#1752)', async () => {
     const memoryId = createTestMemory(db, { content: 'delete twice', type: 'episodic' });
     await tool.handle({ id: memoryId, hard: false }, context);
     const first = DatabaseUtils.get(db, 'SELECT deleted_at FROM memory_item WHERE id = ?', [memoryId]) as { deleted_at: string };

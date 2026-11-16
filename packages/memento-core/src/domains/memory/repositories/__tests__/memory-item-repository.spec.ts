@@ -212,10 +212,11 @@ describe('memory-item-repository query helpers (#1531)', () => {
       pinned_memories: 1,
     });
 
-    expect(deleteProjectMemoriesOlderThan(db, 'proj-a', ['episodic'], 30)).toBe(1);
+    // p2 는 핀 고정이라 정리하지 않는다 (#1752)
+    expect(deleteProjectMemoriesOlderThan(db, 'proj-a', ['episodic'], 30)).toBe(0);
   });
 
-  it.fails('프로젝트 정리는 소프트 삭제하고 망각 이벤트를 남긴다 (#1752)', () => {
+  it('프로젝트 정리는 소프트 삭제하고 망각 이벤트를 남긴다 (#1752)', () => {
     db.prepare(
       `INSERT INTO memory_item (id, type, content, project_id, pinned, created_at, is_deleted)
        VALUES ('old-ep', 'episodic', 'old', 'proj-x', 0, datetime('now', '-40 days'), 0)`,

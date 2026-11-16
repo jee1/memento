@@ -9,11 +9,9 @@ import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
 import { tagMatchSql } from '../../../shared/utils/memory-filter-sql.js';
-import {
-  DEFAULT_FORGETTING_POLICY_NAME,
-  ForgettingEventRepository,
-} from '../repositories/forgetting-event-repository.js';
+import { DEFAULT_FORGETTING_POLICY_NAME } from '../repositories/forgetting-event-repository.js';
 import { ForgettingAlgorithm, type ForgettingResult } from '../algorithms/forgetting-algorithm.js';
+import { hardDeleteMemoryItem, softDeleteMemoryItem } from '../repositories/memory-delete-transitions.js';
 
 interface ForgettingPolicyConfig {
   softDeleteThreshold: number;    // 소프트 삭제 임계값 (기본: 0.6)
@@ -67,11 +65,9 @@ export interface MemoryCleanupResult {
 export class ForgettingPolicyService {
   private forgettingAlgorithm: ForgettingAlgorithm;
   private config: ForgettingPolicyConfig;
-  private forgettingEventRepository: ForgettingEventRepository;
 
   constructor(config?: Partial<ForgettingPolicyConfig>) {
     this.forgettingAlgorithm = new ForgettingAlgorithm();
-    this.forgettingEventRepository = new ForgettingEventRepository();
     
     this.config = {
       softDeleteThreshold: 0.6,
@@ -252,56 +248,28 @@ export class ForgettingPolicyService {
     memoryId: string,
     event: { forgetScore: number; reason: string; ttlDays: number },
   ): Promise<boolean> {
-    const now = new Date().toISOString();
-    const { changes } = DatabaseUtils.run(
-      db,
-      `
-      UPDATE memory_item
-      SET is_deleted = 1,
-          deleted_at = ?,
-          pinned = 0
-      WHERE id = ?
-        AND COALESCE(pinned, 0) = 0
-        AND COALESCE(is_deleted, 0) = 0
-    `,
-      [now, memoryId]
-    );
-    if (changes === 0) return false;
-    this.forgettingEventRepository.insert(db, {
-      memory_id: memoryId,
-      action: 'soft',
+    return softDeleteMemoryItem(db, memoryId, {
       reason: event.reason,
       policy: DEFAULT_FORGETTING_POLICY_NAME,
-      forget_score: event.forgetScore,
-      ttl_days: event.ttlDays,
-      metadata_json: JSON.stringify({ deleted_at: now }),
+      forgetScore: event.forgetScore,
+      ttlDays: event.ttlDays,
     });
-    return true;
   }
 
   /**
-   * 하드 삭제 실행
+   * 하드 삭제 실행. 소프트 삭제된 행만 지워, sweep 이 고른 뒤 되살린 행은 남는다.
    */
   private async hardDeleteMemory(
     db: Database.Database,
     memoryId: string,
     event: { forgetScore: number | null; reason: string; ttlDays: number },
   ): Promise<boolean> {
-    const { changes } = DatabaseUtils.run(
-      db,
-      'DELETE FROM memory_item WHERE id = ? AND COALESCE(pinned, 0) = 0',
-      [memoryId]
-    );
-    if (changes === 0) return false;
-    this.forgettingEventRepository.insert(db, {
-      memory_id: memoryId,
-      action: 'hard',
+    return hardDeleteMemoryItem(db, memoryId, {
       reason: event.reason,
       policy: DEFAULT_FORGETTING_POLICY_NAME,
-      forget_score: event.forgetScore,
-      ttl_days: event.ttlDays,
+      forgetScore: event.forgetScore,
+      ttlDays: event.ttlDays,
     });
-    return true;
   }
 
   /**
