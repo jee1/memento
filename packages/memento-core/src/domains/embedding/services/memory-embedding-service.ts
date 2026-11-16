@@ -264,7 +264,7 @@ export class MemoryEmbeddingService {
       '  m.type, ' +
       '  m.importance, ' +
       '  m.created_at, ' +
-      '  m.last_accessed, ' +
+      '  COALESCE(m.last_accessed_at, m.last_accessed) AS last_accessed, ' +
       '  m.pinned, ' +
       '  m.tags, ' +
       '  m.project_id, ' +

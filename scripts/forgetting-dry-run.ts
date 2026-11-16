@@ -1,6 +1,6 @@
 /**
  * 망각 정리를 DB 사본에서 미리 돌려 유형별 소프트 삭제 수를 센다 (#1743, #1749).
- * 접근 없이 N 일이 흐른 상태(기억의 created_at, last_accessed, deleted_at 과 recall 통계의 created_at, last_recalled_at 을 N 일 당김)를 만든 뒤 실제 ForgettingPolicyService 를 돌린다.
+ * 접근 없이 N 일이 흐른 상태(기억의 created_at, last_accessed, deleted_at, recall 통계의 created_at, last_recalled_at, 마이그레이션 067 적용 시각을 N 일 당김)를 만든 뒤 실제 ForgettingPolicyService 를 돌린다.
  *
  * usage: npx tsx scripts/forgetting-dry-run.ts <db 사본> [일수,...] [--step=<일>]
  * 기본은 일수마다 새 사본에 정리를 한 번 돌린다.
@@ -31,11 +31,16 @@ if (step !== undefined && days.some((d) => d % step !== 0)) throw new Error(`일
 
 const shift = (column: string, n: number) =>
   `${column} = CASE WHEN ${column} IS NULL THEN NULL ELSE strftime('%Y-%m-%dT%H:%M:%fZ', ${column}, '-${n} days') END`;
-const passDays = (db: Database.Database, n: number) =>
+const passDays = (db: Database.Database, n: number) => {
   db.exec(`
     UPDATE memory_item SET ${shift('created_at', n)}, ${shift('last_accessed', n)}, ${shift('deleted_at', n)};
     UPDATE meta_memory_stats SET ${shift('created_at', n)}, ${shift('last_recalled_at', n)};
   `);
+  // 067 적용 시각도 쓰임 기록 시작 시각이라 같이 당긴다 (#1751)
+  if (db.prepare(`SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'memento_schema_version'`).get()) {
+    db.exec(`UPDATE memento_schema_version SET ${shift('applied_at', n)} WHERE migration_name = 'recall-use-recording-start'`);
+  }
+};
 const CATEGORY = `CASE WHEN type = 'semantic' AND ${tagMatchSql()} THEN 'semantic:user-directive' ELSE type END`;
 const aliveByCategory = (db: Database.Database) =>
   new Map(
