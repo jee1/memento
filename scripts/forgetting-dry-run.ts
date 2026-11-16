@@ -1,6 +1,6 @@
 /**
  * 망각 정리를 DB 사본에서 미리 돌려 유형별 소프트 삭제 수를 센다 (#1743).
- * 접근 없이 N 일이 흐른 상태(created_at, last_accessed 를 N 일 당김)를 만든 뒤 실제 ForgettingPolicyService 를 돌린다.
+ * 접근 없이 N 일이 흐른 상태(created_at, last_accessed, deleted_at 을 N 일 당김)를 만든 뒤 실제 ForgettingPolicyService 를 돌린다.
  *
  * usage: npx tsx scripts/forgetting-dry-run.ts <db 사본> [일수,...]
  * 원본은 읽기 전용으로 열어 SQLite backup 으로 임시 사본을 만든다(WAL 내용 포함).
@@ -31,7 +31,7 @@ try {
     src.close();
     const db = new Database(copy);
     await configureSqliteSession(db);
-    db.exec(`UPDATE memory_item SET ${shift('created_at', days)}, ${shift('last_accessed', days)}`);
+    db.exec(`UPDATE memory_item SET ${shift('created_at', days)}, ${shift('last_accessed', days)}, ${shift('deleted_at', days)}`);
     const readAccess = () =>
       new Map(
         (db.prepare('SELECT id, last_accessed FROM memory_item').all() as { id: string; last_accessed: string | null }[])

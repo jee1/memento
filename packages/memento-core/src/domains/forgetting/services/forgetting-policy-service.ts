@@ -188,7 +188,7 @@ export class ForgettingPolicyService {
    * 소프트 삭제 후보 확인
    *
    * working 은 ttlSoft 가 지나면 점수와 관계없이 지운다 (#1743).
-   * 망각 점수 상한(0.35 + 0.25 + 0.20·유형 비중 − 0.15·중요도)이 working 에서는 0.6 에 닿지 않는다.
+   * 망각 점수 상한(0.35 + 0.25 + 0.20 x 유형 비중 - 0.15 x 중요도)이 working 에서는 중요도가 거의 0 이 아니면 0.6 에 닿지 않는다.
    */
   private isSoftDeleteCandidate(memory: PolicyMemoryRow, candidate: ForgettingResult): boolean {
     const ageDays = daysBetween(new Date(), new Date(memory.created_at));
