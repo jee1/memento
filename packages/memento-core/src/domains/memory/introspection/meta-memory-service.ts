@@ -37,6 +37,17 @@ interface MetaMemoryStatsRow {
 }
 
 /**
+ * 1위 점수에 대한 비율이 이 값 이상이면 recall 성공으로 본다 (#1744).
+ * 융합 점수의 절대 축척은 랭킹 가중치와 임베딩 모델마다 달라(#1180, #1694, #1729) 고정 하한이 맞지 않는다.
+ * 1위 대비 비율 분포(p10 0.75, p50 0.88)는 두 임베딩 모델에서 같았다.
+ */
+const RECALL_SUCCESS_RATIO_TO_TOP = 0.8;
+
+function finalScoreOf(item: RecallResultItem): number {
+  return Number.isFinite(item.final_score) ? Math.max(0, item.final_score) : 0;
+}
+
+/**
  * Meta Memory Service
  * 
  * recall 통계를 수집하고 관리하는 서비스입니다.
@@ -77,6 +88,7 @@ export class MetaMemoryService {
       )
     );
     const persistedStatsById = this.readPersistedStatsByIds(uniqueMemoryIds);
+    const topScore = Math.max(0, ...items.filter((item) => item.memory_id || item.id).map(finalScoreOf));
 
     // 각 항목별로 통계 업데이트
     for (const item of items) {
@@ -90,11 +102,8 @@ export class MetaMemoryService {
           continue;
         }
 
-        // 성공/실패 판정
-        const isSuccess = this.isItemSuccess(item);
-
-        // Confidence 점수 계산
-        const confidence = this.calculateConfidence(item);
+        const confidence = topScore > 0 ? finalScoreOf(item) / topScore : 0;
+        const isSuccess = confidence >= RECALL_SUCCESS_RATIO_TO_TOP;
 
         // 현재 통계 조회
         // 같은 호출 내에서 같은 memory_id가 여러 번 나타나는 경우를 처리하기 위해
@@ -194,41 +203,9 @@ export class MetaMemoryService {
   }
 
   /**
-   * 항목 성공/실패 판정
-   * 
-   * @param item 검색 결과 항목
-   * @returns 성공 여부 (final_score >= 0.5 - 0.10·ln2/10)
-   */
-  isItemSuccess(item: RecallResultItem): boolean {
-    const raw = item.final_score ?? (item as Record<string, unknown>).finalScore;
-    const finalScore = typeof raw === 'number' ? raw : Number(raw ?? 0);
-    // #1694: 융합 점수에서 usage 상수항(0.10·ln2/10)이 빠진 만큼 하한을 내려 같은 후보가 같은 판정을 받게 한다.
-    return finalScore >= 0.5 - (0.1 * Math.LN2) / 10;
-  }
-
-  /**
-   * Confidence 점수 계산
-   *
-   * consolidation 가중(0.3)이 빠진 뒤에도 합이 1이 되도록 final 에 흡수한다
-   * (`0.9·final + 0.1·vector`). 예전 `0.6·final + 0.1·vector` 는 상한 0.7 이라
-   * 임계 0.5 와 맞물려 recall 된 기억의 거의 전부가 저신뢰로 잡혔다 (#1651).
-   *
-   * @param item 검색 결과 항목
-   * @returns confidence 점수 (0.0 ~ 1.0)
-   */
-  calculateConfidence(item: RecallResultItem): number {
-    const rawFinal = item.final_score ?? (item as Record<string, unknown>).finalScore;
-    const finalScore = typeof rawFinal === 'number' ? rawFinal : Number(rawFinal ?? 0);
-
-    const rawVector = (item as Record<string, unknown>).vectorScore;
-    const vectorScore = typeof rawVector === 'number' ? rawVector : Number(rawVector ?? 0);
-
-    return 0.9 * finalScore + 0.1 * vectorScore;
-  }
-
-  /**
    * 평균 confidence 점수 업데이트 (누적 평균).
-   * `(avg·n + c)/(n+1)` 이라 calculateConfidence 식을 바꿔도 저장된 avg_confidence 는
+   * confidence 는 같은 recall 결과의 1위 점수에 대한 비율이다(#1744).
+   * `(avg·n + c)/(n+1)` 이라 confidence 식을 바꿔도 저장된 avg_confidence 는
    * 한 번의 recall 로 새 값에 덮이지 않는다. 옛 낮은 값이 섞인 채 여러 번 재recall 되어야
    * hint 의 저신뢰 건수가 내려간다. 운영 DB 일괄 수정은 하지 말고, 필요하면 재측정
    * 스크립트나 recall_count 리셋 후 재수집을 별도 이슈로 다룬다 (#1661).

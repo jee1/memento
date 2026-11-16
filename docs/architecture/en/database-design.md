@@ -74,7 +74,9 @@ Persistent context anchors. Slots A/B/C per agent (`owner_id`). Restored automat
 
 Per-memory recall statistics: `recall_count`, `success_count`, `failure_count`, `avg_confidence`. Fed by `MetaMemoryService` and read by `MetaMemoryIntrospectionService`.
 
-`avg_confidence` is a **cumulative mean** updated as `(avg·n + new)/(n+1)` on each recall (`MetaMemoryService.updateAvgConfidence`). Changing `calculateConfidence` (for example the #1651 weight fix) does **not** rewrite stored rows. After a formula change, old low values stay mixed in, so `introspection_hint` low-confidence counts fall only after many re-recalls. Do not patch production DB rows by hand. If a reset is needed, treat it as a separate remeasure or `recall_count` reset script (#1661).
+Each recall gives every result a confidence equal to its `final_score` divided by the top result's `final_score` in the same recall. A ratio of 0.8 or more counts as success, below that as failure (#1744).
+
+`avg_confidence` is a **cumulative mean** updated as `(avg·n + new)/(n+1)` on each recall (`MetaMemoryService.updateAvgConfidence`). Changing the confidence formula (the #1651 weight fix, or the #1744 switch to the ratio to the top result) does **not** rewrite stored rows. After a formula change, old low values stay mixed in, so `introspection_hint` low-confidence counts fall only after many re-recalls. Do not patch production DB rows by hand. If a reset is needed, treat it as a separate remeasure or `recall_count` reset script (#1661).
 
 ### `kg_triple`
 

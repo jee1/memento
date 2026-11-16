@@ -62,7 +62,7 @@ scaled = clamp(0.5 + (raw − 0.5) × scale, 0, 1)
 
 예전 공식은 `δ·usage − ε·duplication_penalty` 두 항을 더 가졌습니다. 둘 다 순위를 바꾸지 못했습니다. `usage` 는 모든 후보에 같은 상수 `min(1, ln2/10)`(≈ 0.069)였고(#1181 이전에는 마지막 접근 시각을 읽어 질의와 무관한 배치 시각이거나 반환된 기억이 다음 질의에서 더 가산받는 자기강화 루프였습니다), `duplication_penalty` 는 융합 레인에서 0 고정이었습니다. 사용 빈도 컬럼 `view_count`·`cite_count`·`edit_count` 도 쓰는 코드가 없습니다.
 
-#1694 에서 두 항, `[ranking_weights].delta`·`.epsilon`, 두 knob, `calculateUsage`·`calculateDuplicationPenalty` 와 `score_breakdown` 의 `usage`·`duplication_penalty` 필드를 지웠습니다. 순서는 그대로이고 절대 점수는 기본 `delta = 0.10` 기준으로 모든 후보에서 0.00693(= 0.10·ln2/10) 내려갑니다. 절대값 0.5 와 비교하는 두 곳(지침 주입 훅 `directives/select.ts` 의 `minFinalScore`, 메타 기억 `meta-memory-service.ts` 의 `isItemSuccess`)은 같은 식으로 하한을 내렸습니다.
+#1694 에서 두 항, `[ranking_weights].delta`·`.epsilon`, 두 knob, `calculateUsage`·`calculateDuplicationPenalty` 와 `score_breakdown` 의 `usage`·`duplication_penalty` 필드를 지웠습니다. 순서는 그대로이고 절대 점수는 기본 `delta = 0.10` 기준으로 모든 후보에서 0.00693(= 0.10·ln2/10) 내려갑니다. 절대값 0.5 와 비교하는 두 곳(지침 주입 훅 `directives/select.ts` 의 `minFinalScore`, 메타 기억 `meta-memory-service.ts` 의 `isItemSuccess`)은 같은 식으로 하한을 내렸습니다. 메타 기억 쪽은 #1744 에서 `isItemSuccess` 를 지우고 같은 결과의 1위 점수 대비 비율로 판정합니다.
 
 실제 사용 빈도나 중복 감점을 되살릴 때는 `delta`·`epsilon` 이름을 다시 쓰지 말고 새 이름으로 추가하십시오. 옛 TOML 에 남은 `delta = 0.10` 이 조용히 되살아납니다. 되살릴 때는 두 레인이 같은 신호를 쓰게 하십시오.
 
