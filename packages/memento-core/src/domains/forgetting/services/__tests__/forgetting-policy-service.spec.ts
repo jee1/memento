@@ -37,7 +37,6 @@ describe('ForgettingPolicyService', () => {
 
       expect(result).toHaveProperty('softDeleted');
       expect(result).toHaveProperty('hardDeleted');
-      expect(result).toHaveProperty('reviewed');
       expect(result).toHaveProperty('totalProcessed');
       expect(result).toHaveProperty('summary');
     });
@@ -166,15 +165,6 @@ describe('ForgettingPolicyService', () => {
           },
         },
       ]);
-      vi.spyOn(service['spacedRepetition'], 'createReviewSchedule').mockReturnValue({
-        memory_id: memoryId,
-        current_interval: 7,
-        next_review: new Date(),
-        recall_probability: 0.4,
-        needs_review: false,
-        multiplier: 1,
-      });
-
       const first = await service.executeMemoryCleanup(db);
       expect(first.softDeleted).toContain(memoryId);
       expect(first.hardDeleted).not.toContain(memoryId);
@@ -215,19 +205,6 @@ describe('ForgettingPolicyService', () => {
       vi.unstubAllEnvs();
     });
 
-    it('리뷰 후보를 처리해야 함', async () => {
-      createTestMemory(db, {
-        content: 'Review candidate',
-        type: 'semantic',
-        importance: 0.8,
-        pinned: false
-      });
-
-      const result = await service.executeMemoryCleanup(db);
-
-      expect(result.summary.actualReviews).toBeGreaterThanOrEqual(0);
-    });
-
     it('여러 타입의 메모리를 처리해야 함', async () => {
       createTestMemory(db, { content: 'Working memory', type: 'working', pinned: false });
       createTestMemory(db, { content: 'Episodic memory', type: 'episodic', pinned: false });
@@ -250,7 +227,6 @@ describe('ForgettingPolicyService', () => {
 
       expect(stats).toHaveProperty('totalMemories');
       expect(stats).toHaveProperty('forgetCandidates');
-      expect(stats).toHaveProperty('reviewCandidates');
       expect(stats).toHaveProperty('averageForgetScore');
       expect(stats).toHaveProperty('memoryDistribution');
 
@@ -772,6 +748,75 @@ describe('ForgettingPolicyService', () => {
       });
 
       expect(customService).toBeDefined();
+    });
+  });
+
+  describe('#1743 매일 도는 정리', () => {
+    const shiftOneDayBack = (column: string) =>
+      `${column} = CASE WHEN ${column} IS NULL THEN NULL ELSE strftime('%Y-%m-%dT%H:%M:%fZ', ${column}, '-1 day') END`;
+
+    function passOneDay(): void {
+      DatabaseUtils.run(db, `UPDATE memory_item SET ${shiftOneDayBack('created_at')}, ${shiftOneDayBack('last_accessed')}`);
+    }
+
+    function seedRecentEpisodic(count: number): void {
+      const createdAt = new Date(Date.now() - DAY_MS).toISOString();
+      const lastAccessed = new Date().toISOString();
+      for (let i = 0; i < count; i++) {
+        const id = createTestMemory(db, { content: `filler ${i}`, type: 'episodic', importance: 0.9 });
+        DatabaseUtils.run(db, 'UPDATE memory_item SET created_at = ?, last_accessed = ? WHERE id = ?', [createdAt, lastAccessed, id]);
+      }
+    }
+
+    function isSoftDeleted(id: string): boolean {
+      const row = DatabaseUtils.get(db, 'SELECT is_deleted FROM memory_item WHERE id = ?', [id]) as { is_deleted: number } | undefined;
+      return Number(row?.is_deleted) === 1;
+    }
+
+    it('정리는 last_accessed 를 지금으로 바꾸지 않는다', async () => {
+      seedRecentEpisodic(20);
+      const lastAccessed = new Date(Date.now() - 5 * DAY_MS).toISOString();
+      const id = createTestMemory(db, { content: 'target', type: 'episodic', importance: 0.5 });
+      DatabaseUtils.run(db, 'UPDATE memory_item SET created_at = ?, last_accessed = ? WHERE id = ?', [
+        new Date(Date.now() - 200 * DAY_MS).toISOString(),
+        lastAccessed,
+        id,
+      ]);
+
+      await service.executeMemoryCleanup(db);
+
+      const row = DatabaseUtils.get(db, 'SELECT last_accessed FROM memory_item WHERE id = ?', [id]) as { last_accessed: string };
+      expect(row.last_accessed).toBe(lastAccessed);
+    });
+
+    it('접근이 끊긴 기억은 매일 정리를 60일 돌리면 소프트 삭제된다', async () => {
+      seedRecentEpisodic(20);
+      const id = createTestMemory(db, { content: 'target', type: 'episodic', importance: 0.1 });
+      DatabaseUtils.run(db, 'UPDATE memory_item SET created_at = ?, last_accessed = ? WHERE id = ?', [
+        new Date(Date.now() - 200 * DAY_MS).toISOString(),
+        new Date(Date.now() - 5 * DAY_MS).toISOString(),
+        id,
+      ]);
+
+      for (let day = 0; day < 60 && !isSoftDeleted(id); day++) {
+        await service.executeMemoryCleanup(db);
+        passOneDay();
+      }
+
+      expect(isSoftDeleted(id)).toBe(true);
+    });
+
+    it('48시간이 지난 working 기억은 중요도가 운영 평균(0.6)이어도 소프트 삭제된다', async () => {
+      seedRecentEpisodic(20);
+      const id = createTestMemory(db, { content: 'scratch', type: 'working', importance: 0.6 });
+      DatabaseUtils.run(db, 'UPDATE memory_item SET created_at = ? WHERE id = ?', [
+        new Date(Date.now() - 3 * DAY_MS).toISOString(),
+        id,
+      ]);
+
+      const result = await service.executeMemoryCleanup(db);
+
+      expect(result.softDeleted).toContain(id);
     });
   });
 });

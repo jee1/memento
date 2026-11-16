@@ -117,10 +117,10 @@ executeTool(name, params, context)
 
 | 타입 | TTL | 용도 |
 |------|-----|------|
-| `working` | 48시간 | 현재 작업 맥락 |
-| `episodic` | 90일 | 과거 대화·사건 |
-| `semantic` | 무제한 | 지식·사실·규칙 |
-| `procedural` | 무제한 | 반복 절차·워크플로우 |
+| `working` | 48시간 뒤 소프트 삭제 | 현재 작업 맥락 |
+| `episodic` | 30일 뒤 망각 점수로 판정 | 과거 대화·사건 |
+| `semantic` | 180일 뒤 망각 점수로 판정 | 지식·사실·규칙 |
+| `procedural` | 90일 뒤 망각 점수로 판정 | 반복 절차·워크플로우 |
 
 `remember` (episodic) 흐름: `memory_item` INSERT → **즉시 응답** → `BatchScheduler.addJob(triple_extraction)`.
 

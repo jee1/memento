@@ -126,13 +126,13 @@ For full CLI documentation, see the [Memento CLI for AI Guide](./memento-cli-for
 
 Memento distinguishes four memory types that govern storage purpose and automatic expiry.
 
-**Working memory** holds temporary context for the current session. It expires automatically after 48 hours, making it suitable for in-progress bug fixes, scratch notes, or ephemeral task state.
+**Working memory** holds temporary context for the current session. After 48 hours the daily cleanup soft-deletes it, and it is permanently deleted after a 30-day grace period. This suits in-progress bug fixes, scratch notes, or ephemeral task state.
 
-**Episodic memory** records events and experiences — meeting outcomes, task completion notes, project milestones. Memories of this type are deleted after 90 days unless pinned.
+**Episodic memory** records events and experiences — meeting outcomes, task completion notes, project milestones. There is no fixed expiry. After 30 days, a memory with low importance that has not been used for a long time reaches a forget score of 0.6 and is soft-deleted, then permanently deleted after a 30-day grace period. Pinned memories stay.
 
-**Semantic memory** holds knowledge that should persist indefinitely: technical explanations, architectural guidelines, team conventions. It is never automatically deleted.
+**Semantic memory** holds knowledge that should last: technical explanations, architectural guidelines, team conventions. After 180 days it is soft-deleted only when its forget score reaches 0.6, which takes low importance and no use for a long time.
 
-**Procedural memory** captures repeatable processes such as deployment steps, configuration procedures, and troubleshooting runbooks. Like semantic memory, it has no automatic expiry.
+**Procedural memory** captures repeatable processes such as deployment steps, configuration procedures, and troubleshooting runbooks. After 90 days it follows the same forget-score rule.
 
 ```bash
 # Working memory — short-lived context
@@ -306,7 +306,7 @@ docker compose -f docker/docker-compose.dev.yml ps
 
 **Are memories automatically deleted?**
 
-It depends on the type. Working memory expires after 48 hours; episodic memory after 90 days. Semantic and procedural memories are never automatically deleted. Pinned memories are exempt from TTL-based deletion regardless of type.
+It depends on the type. Working memory is soft-deleted after 48 hours. Episodic memory after 30 days, procedural after 90 days, and semantic after 180 days are soft-deleted when their forget score (age, no use, low importance) reaches 0.6. In practice this is mostly low-importance episodic memory. Soft-deleted memories are permanently deleted after 30 days (`SOFT_DELETE_GRACE_PERIOD_DAYS`). Pinned memories are never deleted automatically, whatever their type.
 
 **How do I keep a memory permanently?**
 

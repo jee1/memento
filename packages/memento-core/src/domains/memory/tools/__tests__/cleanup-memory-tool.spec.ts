@@ -50,7 +50,6 @@ describe('CleanupMemoryTool', () => {
       expect(resultData).toHaveProperty('stats');
       expect(resultData.stats).toHaveProperty('totalMemories');
       expect(resultData.stats).toHaveProperty('forgetCandidates');
-      expect(resultData.stats).toHaveProperty('reviewCandidates');
       expect(resultData.stats).toHaveProperty('averageForgetScore');
       expect(resultData.stats).toHaveProperty('memoryDistribution');
     });
@@ -99,7 +98,6 @@ describe('CleanupMemoryTool', () => {
       expect(resultData).toHaveProperty('result');
       expect(resultData.result).toHaveProperty('softDeleted');
       expect(resultData.result).toHaveProperty('hardDeleted');
-      expect(resultData.result).toHaveProperty('reviewed');
       expect(resultData.result).toHaveProperty('totalProcessed');
       expect(resultData.result).toHaveProperty('summary');
     });
@@ -120,7 +118,6 @@ describe('CleanupMemoryTool', () => {
       const resultData = JSON.parse(result.content[0].text);
       expect(resultData.result.summary).toHaveProperty('actualSoftDeletes');
       expect(resultData.result.summary).toHaveProperty('actualHardDeletes');
-      expect(resultData.result.summary).toHaveProperty('actualReviews');
     });
   });
 

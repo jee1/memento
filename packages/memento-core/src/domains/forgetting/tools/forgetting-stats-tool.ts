@@ -31,7 +31,6 @@ export class ForgettingStatsTool extends BaseTool {
         stats: {
           totalMemories: stats.totalMemories,
           forgetCandidates: stats.forgetCandidates,
-          reviewCandidates: stats.reviewCandidates,
           averageForgetScore: stats.averageForgetScore,
           memoryDistribution: stats.memoryDistribution
         },

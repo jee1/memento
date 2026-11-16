@@ -1,6 +1,6 @@
 /**
  * 망각 정책 서비스
- * 망각 알고리즘과 간격 반복을 통합하여 메모리 관리
+ * 망각 점수와 유형별 TTL 로 기억을 소프트 삭제하고, 유예가 지난 행을 영구 삭제한다
  */
 
 import type Database from 'better-sqlite3';
@@ -12,8 +12,7 @@ import {
   DEFAULT_FORGETTING_POLICY_NAME,
   ForgettingEventRepository,
 } from '../repositories/forgetting-event-repository.js';
-import { ForgettingAlgorithm } from '../algorithms/forgetting-algorithm.js';
-import { SpacedRepetitionAlgorithm,type ReviewSchedule } from '../algorithms/spaced-repetition.js';
+import { ForgettingAlgorithm, type ForgettingResult } from '../algorithms/forgetting-algorithm.js';
 
 interface ForgettingPolicyConfig {
   // 망각 정책 설정
@@ -36,10 +35,6 @@ interface ForgettingPolicyConfig {
     procedural: number;
   };
   
-  // 간격 반복 설정
-  reviewThreshold: number;        // 리뷰 임계값 (기본: 0.7)
-  maxInterval: number;           // 최대 간격 (일, 기본: 365)
-  minInterval: number;           // 최소 간격 (일, 기본: 1)
 }
 
 /** 망각 분석용 메모리 행 (getAllMemories) */
@@ -55,29 +50,26 @@ interface PolicyMemoryRow {
   edit_count?: number;
 }
 
+const WORKING_TTL_REASON = 'working TTL 만료';
+
 export interface MemoryCleanupResult {
   softDeleted: string[];
   hardDeleted: string[];
-  reviewed: string[];
   totalProcessed: number;
   summary: {
     forgetCandidates: number;
-    reviewCandidates: number;
     actualSoftDeletes: number;
     actualHardDeletes: number;
-    actualReviews: number;
   };
 }
 
 export class ForgettingPolicyService {
   private forgettingAlgorithm: ForgettingAlgorithm;
-  private spacedRepetition: SpacedRepetitionAlgorithm;
   private config: ForgettingPolicyConfig;
   private forgettingEventRepository: ForgettingEventRepository;
 
   constructor(config?: Partial<ForgettingPolicyConfig>) {
     this.forgettingAlgorithm = new ForgettingAlgorithm();
-    this.spacedRepetition = new SpacedRepetitionAlgorithm();
     this.forgettingEventRepository = new ForgettingEventRepository();
     
     this.config = {
@@ -96,28 +88,22 @@ export class ForgettingPolicyService {
         semantic: 365,
         procedural: 180
       },
-      reviewThreshold: 0.7,
-      maxInterval: 365,
-      minInterval: 1,
       ...config
     };
   }
 
   /**
-   * 메모리 정리 실행 (망각 + 간격 반복)
+   * 메모리 정리 실행
    */
   async executeMemoryCleanup(db: Database.Database): Promise<MemoryCleanupResult> {
     const result: MemoryCleanupResult = {
       softDeleted: [],
       hardDeleted: [],
-      reviewed: [],
       totalProcessed: 0,
       summary: {
         forgetCandidates: 0,
-        reviewCandidates: 0,
         actualSoftDeletes: 0,
-        actualHardDeletes: 0,
-        actualReviews: 0
+        actualHardDeletes: 0
       }
     };
 
@@ -128,41 +114,20 @@ export class ForgettingPolicyService {
 
       // 2. 망각 후보 분석
       const forgetResults = this.forgettingAlgorithm.analyzeForgetCandidates(memories);
-      result.summary.forgetCandidates = forgetResults.filter(r => r.should_forget).length;
+      const candidates = this.selectSoftDeleteCandidates(memories, forgetResults);
+      result.summary.forgetCandidates = candidates.length;
 
-      // 3. 간격 반복 후보 분석
-      const reviewSchedules = await this.analyzeReviewCandidates(db, memories);
-      result.summary.reviewCandidates = reviewSchedules.filter(s => s.needs_review).length;
-
-      const memoryById = new Map(memories.map(m => [m.id, m]));
-
-      // 4. 소프트 삭제 실행
-      const softDeleteCandidates = forgetResults.filter(r =>
-        r.should_forget &&
-        r.forget_score >= this.config.softDeleteThreshold &&
-        !r.features.pinned
-      );
-
-      for (const candidate of softDeleteCandidates) {
-        const memory = memoryById.get(candidate.memory_id);
-        if (memory && this.isSoftDeleteCandidate(memory, candidate.forget_score)) {
-          const ttlDays = this.config.ttlSoft[memory.type as keyof typeof this.config.ttlSoft];
-          await this.softDeleteMemory(db, candidate.memory_id, {
-            forgetScore: candidate.forget_score,
-            reason: candidate.reason,
-            ttlDays,
-          });
-          result.softDeleted.push(candidate.memory_id);
-          result.summary.actualSoftDeletes++;
-        }
+      // 3. 소프트 삭제 실행
+      for (const { candidate, memory } of candidates) {
+        const ttlDays = this.config.ttlSoft[memory.type as keyof typeof this.config.ttlSoft];
+        await this.softDeleteMemory(db, candidate.memory_id, {
+          forgetScore: candidate.forget_score,
+          reason: memory.type === 'working' ? WORKING_TTL_REASON : candidate.reason,
+          ttlDays,
+        });
+        result.softDeleted.push(candidate.memory_id);
+        result.summary.actualSoftDeletes++;
       }
-
-      const reviewCandidates = reviewSchedules.filter(s => s.needs_review);
-      await Promise.all(reviewCandidates.map(async (schedule) => {
-        await this.updateReviewSchedule(db, schedule);
-        result.reviewed.push(schedule.memory_id);
-        result.summary.actualReviews++;
-      }));
 
       const swept = await this.sweepExpiredSoftDeletes(db);
       result.hardDeleted.push(...swept);
@@ -208,59 +173,29 @@ export class ForgettingPolicyService {
     }));
   }
 
-  /**
-   * 리뷰 후보 분석
-   *
-   * @remarks 피드백 가중치는 feedback_event 연동 전까지 보수적 기본값을 사용한다(스케줄 생성만 수행).
-   */
-  private async analyzeReviewCandidates(_db: Database.Database, memories: PolicyMemoryRow[]): Promise<ReviewSchedule[]> {
-    const schedules: ReviewSchedule[] = [];
-
-    for (const memory of memories) {
-      const features = {
-        importance: memory.importance,
-        usage: this.calculateUsageScore(memory),
-        helpful_feedback: 0.5, // 기본값
-        bad_feedback: 0.1      // 기본값
-      };
-
-      const currentInterval = 7; // 기본 간격
-      const lastReview = memory.last_accessed ? new Date(memory.last_accessed) : new Date(memory.created_at);
-
-      const schedule = this.spacedRepetition.createReviewSchedule(
-        memory.id,
-        currentInterval,
-        lastReview,
-        features
-      );
-
-      schedules.push(schedule);
-    }
-
-    return schedules;
-  }
-
-  /**
-   * 사용성 점수 계산
-   */
-  private calculateUsageScore(memory: PolicyMemoryRow): number {
-    const viewScore = Math.log(1 + (memory.view_count || 0));
-    const citeScore = 2 * Math.log(1 + (memory.cite_count || 0));
-    const editScore = 0.5 * Math.log(1 + (memory.edit_count || 0));
-    
-    return Math.min(1, (viewScore + citeScore + editScore) / 10);
+  private selectSoftDeleteCandidates(
+    memories: PolicyMemoryRow[],
+    forgetResults: ForgettingResult[],
+  ): Array<{ candidate: ForgettingResult; memory: PolicyMemoryRow }> {
+    const memoryById = new Map(memories.map(m => [m.id, m]));
+    return forgetResults.flatMap((candidate) => {
+      const memory = memoryById.get(candidate.memory_id);
+      return memory && this.isSoftDeleteCandidate(memory, candidate) ? [{ candidate, memory }] : [];
+    });
   }
 
   /**
    * 소프트 삭제 후보 확인
+   *
+   * working 은 ttlSoft 가 지나면 점수와 관계없이 지운다 (#1743).
+   * 망각 점수 상한(0.35 + 0.25 + 0.20·유형 비중 − 0.15·중요도)이 working 에서는 0.6 에 닿지 않는다.
    */
-  private isSoftDeleteCandidate(memory: PolicyMemoryRow, forgetScore: number): boolean {
+  private isSoftDeleteCandidate(memory: PolicyMemoryRow, candidate: ForgettingResult): boolean {
     const ageDays = daysBetween(new Date(), new Date(memory.created_at));
     const ttl = this.config.ttlSoft[memory.type as keyof typeof this.config.ttlSoft];
-    
-    return forgetScore >= this.config.softDeleteThreshold && 
-           ageDays >= ttl && 
-           !memory.pinned;
+    if (memory.pinned || ageDays < ttl) return false;
+    if (memory.type === 'working') return true;
+    return candidate.should_forget && candidate.forget_score >= this.config.softDeleteThreshold;
   }
 
   /**
@@ -350,30 +285,18 @@ export class ForgettingPolicyService {
   }
 
   /**
-   * 리뷰 스케줄 업데이트
-   */
-  private async updateReviewSchedule(db: Database.Database, schedule: ReviewSchedule): Promise<void> {
-    await DatabaseUtils.run(db, `
-      UPDATE memory_item 
-      SET last_accessed = CURRENT_TIMESTAMP
-      WHERE id = ?
-    `, [schedule.memory_id]);
-  }
-
-  /**
    * 망각 통계 생성
    */
   async generateForgettingStats(db: Database.Database): Promise<{
     totalMemories: number;
     forgetCandidates: number;
-    reviewCandidates: number;
     averageForgetScore: number;
     memoryDistribution: Record<string, number>;
   }> {
     const memories = await this.getAllMemories(db);
     const forgetResults = this.forgettingAlgorithm.analyzeForgetCandidates(memories);
     
-    const forgetCandidates = forgetResults.filter(r => r.should_forget).length;
+    const forgetCandidates = this.selectSoftDeleteCandidates(memories, forgetResults).length;
     const averageForgetScore = forgetResults.reduce((sum, r) => sum + r.forget_score, 0) / forgetResults.length;
     
     const memoryDistribution = memories.reduce((acc, memory) => {
@@ -384,7 +307,6 @@ export class ForgettingPolicyService {
     return {
       totalMemories: memories.length,
       forgetCandidates,
-      reviewCandidates: 0, // 실제로는 리뷰 후보 계산
       averageForgetScore,
       memoryDistribution
     };

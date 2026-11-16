@@ -48,7 +48,6 @@ export class CleanupMemoryTool extends BaseTool {
           stats: {
             totalMemories: stats.totalMemories,
             forgetCandidates: stats.forgetCandidates,
-            reviewCandidates: stats.reviewCandidates,
             averageForgetScore: stats.averageForgetScore,
             memoryDistribution: stats.memoryDistribution
           },
@@ -63,11 +62,10 @@ export class CleanupMemoryTool extends BaseTool {
           result: {
             softDeleted: result.softDeleted,
             hardDeleted: result.hardDeleted,
-            reviewed: result.reviewed,
             totalProcessed: result.totalProcessed,
             summary: result.summary
           },
-          message: `메모리 정리 완료: 소프트 삭제 ${result.summary.actualSoftDeletes}개, 하드 삭제 ${result.summary.actualHardDeletes}개, 리뷰 ${result.summary.actualReviews}개`
+          message: `메모리 정리 완료: 소프트 삭제 ${result.summary.actualSoftDeletes}개, 하드 삭제 ${result.summary.actualHardDeletes}개`
         });
       }
     } catch (error) {

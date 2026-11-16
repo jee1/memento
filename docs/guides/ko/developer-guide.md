@@ -60,7 +60,7 @@ Memento의 아키텍처는 "Functional Core, Structured Shell" 원칙을 따릅�
 | memory/ | 저장(remember), 검색(recall), 고정(pin), 망각(forget), 절차 기억 |
 | search/ | 하이브리드 검색 (FTS5 + 벡터) |
 | embedding/ | 다중 임베딩 프로바이더 (tfidf, minilm, openai, gemini) |
-| forgetting/ | TTL 정책 + 스페이스드 리피티션 |
+| forgetting/ | TTL 과 망각 점수 정책 |
 | anchor/ | A/B/C 슬롯 앵커 기반 컨텍스트 검색 |
 | relation/ | 관계 추출 (LLM + 규칙 기반) + 트리플 추출 |
 | consolidation/ | sleep consolidation (episodic → semantic 증류) |
