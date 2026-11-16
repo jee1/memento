@@ -18,7 +18,7 @@
 
 ## 1. 프로젝트 개요
 
-Memento는 AI 에이전트가 **대화가 끝난 뒤에도 맥락을 잃지 않도록** 돕는 MCP 메모리 서버입니다. 기억은 working(48h 뒤 소프트 삭제), episodic, semantic, procedural(각 30일, 180일, 90일 뒤 망각 점수로 정리) 네 층으로 나뉘고, FTS5와 벡터를 함께 쓰는 하이브리드 검색·망각 정책·다중 임베딩으로 운영됩니다. 스택은 Node.js ≥24, TypeScript, SQLite, Vitest입니다.
+Memento는 AI 에이전트가 **대화가 끝난 뒤에도 맥락을 잃지 않도록** 돕는 MCP 메모리 서버입니다. 기억은 working(48h 뒤 소프트 삭제), episodic, semantic, procedural(각 30일, 180일, 90일 동안 안 쓰이면 망각 점수로 정리) 네 층으로 나뉘고, FTS5와 벡터를 함께 쓰는 하이브리드 검색, 망각 정책, 다중 임베딩으로 운영됩니다. 스택은 Node.js ≥24, TypeScript, SQLite, Vitest입니다.
 
 ## 2. 빠른 시작
 

@@ -60,6 +60,7 @@
 
 ### Fixed
 
+- **망각이 실제로 쓰인 기억을 「안 쓰임」으로 보던 문제** (#1751): 망각 점수의 쓰임 항이 쓰는 코드가 없는 `view_count`, `cite_count`, `edit_count`(운영 전부 0)와, 핀과 리뷰 처리가 고치는 `last_accessed` 만 읽었다. 이제 `meta_memory_stats` 의 `last_recalled_at` 과 `recall_count` 를 읽는다. working 이 아닌 기억은 보존 기간(episodic 30일, procedural 90일, semantic 180일) 동안 쓰이지 않아야 정리 후보가 된다. `memory_injection` 과 개인 지식 에이전트가 프롬프트에 넣은 기억은 마지막 쓰인 시각을 남긴다(recall 횟수, 성공, 실패는 안 바꾼다. 섞으면 1위보다 낮은 주입 항목이 실패로 쌓여 자가 치유가 지운다). 쓰임 기록을 모으기 전 기간은 쓰이지 않은 기간으로 세지 않는다. 시작 시각은 `meta_memory_stats` 의 가장 이른 행과, 새 마이그레이션 067(`recall-use-recording-start`, 테이블 변경 없는 표식) 적용 시각 중 늦은 쪽이다. 그래서 배포 뒤 보존 기간이 지나기 전에는 working 말고 지우지 않는다. 핀, 핀 해제, 자가 치유, 리뷰 처리는 `last_accessed` 를 고치지 않는다. recall 응답의 `last_accessed` 는 검색 경로와 관계없이 `COALESCE(last_accessed_at, last_accessed)` 다(텍스트 경로가 `last_accessed` 만 넣던 것을 벡터 경로에 맞췄다). 마지막으로 쓰인 시각은 응답 메타 통계의 `last_recalled_at` 에 있다.
 - **망각 정리가 기억을 하나도 지우지 못하던 문제** (#1743): 매일 도는 정리가 리뷰 후보의 `last_accessed` 를 지금으로 바꿔 망각 점수가 소프트 삭제 기준(0.6)에 닿지 못했다. 그 간격 반복 리뷰 단계는 접근 시각만 바꾸고 다른 일을 하지 않아 통째로 지웠다(`SpacedRepetitionAlgorithm`, 정리 결과의 `reviewed`, `summary.reviewCandidates`, `summary.actualReviews`). working 기억은 이제 점수와 관계없이 48시간(`ttlSoft.working`)이 지나면 소프트 삭제한다. 점수 식 상한 때문에 working 은 중요도가 거의 0 이 아니면 지워지지 않았다. 소프트 삭제, 30일 유예, 영구 삭제 순서(#1389)는 그대로다. 운영 사본 dry-run: 첫 정리에서 working 81건, 접근 없이 30일이 지나면 episodic 1,125건, 60일 4,329건이 소프트 삭제 대상이다(대부분 중요도 0.1). 사용자 매뉴얼과 아키텍처 문서의 유형별 기간(episodic 90일, semantic/procedural 무기한)을 코드에 맞게 고쳤다. 배포 전에 `scripts/forgetting-dry-run.ts <DB 사본>` 으로 다시 센다. 되살리는 도구는 없다. 유예 30일 안이면 DB 에서 `UPDATE memory_item SET is_deleted = 0, deleted_at = NULL WHERE id = ?` 로 되살린다.
 - **소프트 삭제 임계값을 0.6 아래로 낮춰도 0.6 으로 묶이던 문제** (#1747 후속): 정리가 알고리즘의 기본 판정(`should_forget`, 0.6 고정)과 `softDeleteThreshold` 를 함께 요구했다. 이제 `softDeleteThreshold` 하나로 정한다. 운영은 기본값 0.6 이라 결과가 같다.
 - **episodic 이 지워질수록 semantic 기억이 연쇄로 지워지던 문제** (#1749): 망각 점수의 중복 항(`duplication_ratio`)이 정리 때마다 다시 센 유형 비중이었다. episodic 이 지워지면 semantic 비중이 올라 지식 기억이 0.6 선을 넘었다. 이제 유형별 고정값(episodic 0.57, semantic 0.39, procedural 0.04, working 0.01, 2026-11 운영 DB 의 비중)을 쓴다. 운영 사본 누적 시뮬레이션(30일마다 정리, 접근 없음)에서 360일 semantic 삭제가 1,609건에서 9건으로 줄고, episodic 은 4,993건에서 6,795건으로 는다. `scripts/forgetting-dry-run.ts <DB 사본> 30,60,90,180,360 --step=30` 으로 다시 센다.
@@ -85,6 +86,7 @@
 
 ### Removed
 
+- **stdio 서버의 안 읽는 상태 플래그** (#1751): `ServerState` 의 `mcpServerInitialized`, 콘솔 덮어쓰기 플래그 둘과 스냅샷 메서드. 전송 연결 여부만 남겼다.
 - **망각 정책의 안 읽는 설정과 필드** (#1749): `ForgettingPolicyConfig` 의 `forgetThreshold`, `hardDeleteThreshold`, `ttlHard`, `ForgettingResult.should_forget`, `ForgettingAlgorithm.shouldForget`. `@memento/core` 의 `deleteExpiredWorkingMemories` export 도 지웠다(관리 API 가 망각 정리를 쓴다).
 - **쓰이지 않던 provider 병렬 검색** (#1729 PR 5): `VectorSearchService.providerHybridSearch`, `unifiedSearch`, `VectorSearchResultNormalizer` 와 타입 `ProviderHybridQuery`, `ProviderHybridResult`, `UnifiedSearchHit`, `UnifiedSearchResponse`. 운영 호출처가 없었습니다.
 - **쓰이지 않던 임베딩 경로 정리** (#1729 PR 2): 운영 호출처가 없던 코드를 지웁니다. 동작은 같습니다.

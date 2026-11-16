@@ -105,13 +105,15 @@ $$\text{ForgetScore} = u_1 \cdot (1 - \text{recency}) + u_2 \cdot (1 - \text{usa
 
 **Default coefficients (M1)**: $u_1=0.35$, $u_2=0.25$, $u_3=0.20$, $u_4=0.15$, $u_5=0.30$
 
+$\text{usage}$: $\max(e^{-d/30}, \min(1, \ln(1 + \text{recall\_count}) / 10))$. $d$ is the number of days since the memory was last used, and $\text{recall\_count}$ is how many times it appeared in recall (`meta_memory_stats`). `memory_injection` records no verdict and only updates the last-used time. The last-used time is $\max(\text{last\_recalled\_at}, \text{created\_at}, \text{recording start})$. The recording start is the later of the earliest `created_at` in `meta_memory_stats` and the time migration 067 (`recall-use-recording-start`) was applied, or now when neither exists. Time before stats collection began is not counted as unused (#1751). The `view_cnt`, `cite_cnt` and `edit_cnt` of section 5 had no writer and were removed from the forget score.
+
 $\text{dup\_ratio}$: a fixed value per type. episodic 0.57, semantic 0.39, procedural 0.04, working 0.01 (each type's share of the production DB in 2026-11). Recounting the share on every cleanup made semantic scores rise as episodic rows were deleted, so knowledge memories were deleted in a cascade (#1749).
 
 **Interpretation**: Easier to delete when old ($1-\text{recency}↑$), unused ($1-\text{usage}↑$), and of a type that piles up ($\text{dup\_ratio}↑$). Protect important or pinned items.
 
 ### Deletion Policy (Example)
 
-- **Soft deletion candidates**: $\text{age\_days} \geq \text{TTL}_{\text{soft}}(\text{type})$ AND ($\text{type} = \text{working}$ OR $\text{ForgetScore} \geq \theta_{\text{soft}}$). Working memory is deleted by TTL alone, whatever its score (#1743). Pinned memories and memories tagged `user-directive` are never candidates (#1749).
+- **Soft deletion candidates**: working memory is deleted once $\text{age\_days} \geq \text{TTL}_{\text{soft}}$, whatever its score (#1743). Other types need $\text{idle\_days} \geq \text{TTL}_{\text{soft}}(\text{type})$ AND $\text{ForgetScore} \geq \theta_{\text{soft}}$, where $\text{idle\_days}$ is the number of days since the memory was last used (#1751). Pinned memories and memories tagged `user-directive` are never candidates (#1749).
 - **Hard deletion**: not score-based. Only rows soft-deleted longer than `SOFT_DELETE_GRACE_PERIOD_DAYS` (default 30 days) are permanently deleted (#1389).
 
 **Current values**:

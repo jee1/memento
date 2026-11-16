@@ -210,6 +210,7 @@ export class MemoryInjectionPrompt extends BaseTool {
         {
           db: context.db,
           hybridSearchEngine: context.services.hybridSearchEngine,
+          metaMemoryService: context.services.metaMemoryService,
         },
         {
           query,

@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { ForgettingPolicyService, type MemoryCleanupResult } from '../forgetting-policy-service.js';
-import { setupTestDatabase, createTestMemory, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
+import { setupTestDatabase, createTestMemory, cleanupTestDatabase, startRecallStatsAt } from '../../../../test/helpers/test-database.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { DAY_MS } from '../../../../shared/utils/date.js';
 
@@ -17,6 +17,7 @@ describe('ForgettingPolicyService', () => {
   beforeEach(async () => {
     service = new ForgettingPolicyService();
     db = await setupTestDatabase();
+    startRecallStatsAt(db, new Date('2000-01-01T00:00:00Z'));
   });
 
   afterEach(async () => {
@@ -843,6 +844,59 @@ describe('ForgettingPolicyService', () => {
 
       const events = DatabaseUtils.all(db, "SELECT id FROM memory_forgetting_event WHERE memory_id = ? AND action = 'soft'", [id]);
       expect(events).toHaveLength(1);
+    });
+  });
+
+  describe('#1751 쓰임은 recall 기록에서', () => {
+    const daysAgo = (n: number) => new Date(Date.now() - n * DAY_MS).toISOString();
+
+    function seedOldEpisodic(): string {
+      const id = createTestMemory(db, { content: 'old', type: 'episodic', importance: 0 });
+      DatabaseUtils.run(db, 'UPDATE memory_item SET created_at = ?, last_accessed = ? WHERE id = ?', [daysAgo(400), daysAgo(400), id]);
+      return id;
+    }
+
+    function seedRecallStats(memoryId: string, stats: { createdAt: string; lastRecalledAt?: string; recallCount?: number }): void {
+      DatabaseUtils.run(
+        db,
+        'INSERT INTO meta_memory_stats (memory_id, recall_count, last_recalled_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+        [memoryId, stats.recallCount ?? 0, stats.lastRecalledAt ?? null, stats.createdAt, stats.createdAt],
+      );
+    }
+
+    it('최근 recall 된 기억은 오래되었어도 소프트 삭제하지 않는다', async () => {
+      const recalled = seedOldEpisodic();
+      const unused = seedOldEpisodic();
+      seedRecallStats(recalled, { createdAt: daysAgo(400), lastRecalledAt: daysAgo(1), recallCount: 5 });
+
+      const result = await new ForgettingPolicyService({ softDeleteThreshold: 0.3 }).executeMemoryCleanup(db);
+
+      expect(result.softDeleted).toContain(unused);
+      expect(result.softDeleted).not.toContain(recalled);
+    });
+
+    it('통계 수집 시작 전 기간은 안 쓰임으로 세지 않는다', async () => {
+      const id = seedOldEpisodic();
+      DatabaseUtils.run(db, 'DELETE FROM meta_memory_stats');
+      startRecallStatsAt(db, new Date(Date.now() - 5 * DAY_MS));
+
+      const result = await new ForgettingPolicyService({ softDeleteThreshold: 0.3 }).executeMemoryCleanup(db);
+
+      expect(result.softDeleted).not.toContain(id);
+    });
+
+    it('주입 쓰임 기록을 켜기 전 기간도 안 쓰임으로 세지 않는다', async () => {
+      const id = seedOldEpisodic();
+      db.exec('CREATE TABLE IF NOT EXISTS memento_schema_version (version TEXT PRIMARY KEY, applied_at TIMESTAMP, migration_name TEXT NOT NULL)');
+      DatabaseUtils.run(
+        db,
+        "INSERT INTO memento_schema_version (version, applied_at, migration_name) VALUES ('67.0', ?, 'recall-use-recording-start')",
+        [daysAgo(5).replace('T', ' ').slice(0, 19)],
+      );
+
+      const result = await new ForgettingPolicyService({ softDeleteThreshold: 0.3 }).executeMemoryCleanup(db);
+
+      expect(result.softDeleted).not.toContain(id);
     });
   });
 });

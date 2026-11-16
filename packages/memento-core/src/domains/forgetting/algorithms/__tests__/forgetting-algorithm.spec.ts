@@ -167,13 +167,11 @@ describe('ForgettingAlgorithm', () => {
     it('정상적인 특징 계산', () => {
       const memory = {
         created_at: new Date(Date.now() - 7 * DAY_MS).toISOString(), // 7일 전
-        last_accessed: new Date(Date.now() - 2 * DAY_MS).toISOString(), // 2일 전
+        last_used_at: new Date(Date.now() - 2 * DAY_MS).toISOString(), // 2일 전
         importance: 0.7,
         pinned: false,
         type: 'episodic',
-        view_count: 5,
-        cite_count: 2,
-        edit_count: 1
+        recall_count: 5
       };
 
       const features = algorithm.calculateFeatures(memory);
@@ -187,7 +185,7 @@ describe('ForgettingAlgorithm', () => {
       expect(features.pinned).toBe(false);
     });
 
-    it('last_accessed가 없는 경우', () => {
+    it('last_used_at 이 없는 경우', () => {
       const memory = {
         created_at: new Date(Date.now() - 7 * DAY_MS).toISOString(),
         importance: 0.5,
@@ -236,9 +234,7 @@ describe('ForgettingAlgorithm', () => {
           importance: 0.2,
           pinned: false,
           type: 'episodic',
-          view_count: 1,
-          cite_count: 0,
-          edit_count: 0
+          recall_count: 1
         },
         {
           id: 'mem2',
@@ -246,9 +242,7 @@ describe('ForgettingAlgorithm', () => {
           importance: 0.8,
           pinned: true,
           type: 'semantic',
-          view_count: 10,
-          cite_count: 5,
-          edit_count: 2
+          recall_count: 10
         }
       ];
 
@@ -349,9 +343,7 @@ describe('ForgettingAlgorithm', () => {
         importance: -0.1,
         pinned: false,
         type: 'episodic',
-        view_count: -1,
-        cite_count: -1,
-        edit_count: -1
+        recall_count: -1
       };
 
       const features = algorithm.calculateFeatures(memory);
@@ -367,9 +359,7 @@ describe('ForgettingAlgorithm', () => {
         importance: 10.0,
         pinned: false,
         type: 'episodic',
-        view_count: 1000000,
-        cite_count: 1000000,
-        edit_count: 1000000
+        recall_count: 1000000
       };
 
       const features = algorithm.calculateFeatures(memory);

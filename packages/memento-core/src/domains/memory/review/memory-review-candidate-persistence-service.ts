@@ -215,7 +215,7 @@ export function markMemoryReviewCandidateReviewed(
       .get(candidateId);
     if (!mem) throw MemoryReviewCandidateError.notFound(candidateId);
     db.prepare<[string, string]>(
-      `UPDATE memory_item SET last_accessed = CURRENT_TIMESTAMP, last_accessed_at = ? WHERE id = ?`,
+      `UPDATE memory_item SET last_accessed_at = ? WHERE id = ?`,
     ).run(now, mem.memory_id);
   });
   run();

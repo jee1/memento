@@ -191,7 +191,7 @@ export class IntrospectionHealingService {
       try {
         const updated = DatabaseUtils.run(
           this.db,
-          `UPDATE memory_item SET is_deleted = 1, deleted_at = ?, last_accessed = CURRENT_TIMESTAMP
+          `UPDATE memory_item SET is_deleted = 1, deleted_at = ?
            WHERE id = ? AND COALESCE(pinned, 0) = 0`,
           [now, id],
         );

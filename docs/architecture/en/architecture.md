@@ -43,9 +43,9 @@ Four memory types, with different TTLs:
 | Type | TTL | Purpose |
 |------|-----|---------|
 | `working` | Soft-deleted after 48 hours | Current task context, transient info |
-| `episodic` | Forget score decides after 30 days | Past conversations and events |
-| `semantic` | Forget score decides after 180 days | Knowledge, facts, rules |
-| `procedural` | Forget score decides after 90 days | Repeatable workflows |
+| `episodic` | Forget score decides after 30 days unused | Past conversations and events |
+| `semantic` | Forget score decides after 180 days unused | Knowledge, facts, rules |
+| `procedural` | Forget score decides after 90 days unused | Repeatable workflows |
 
 As episodic memories accumulate, triple extraction and sleep consolidation distill them into semantic memories. Deletion follows a soft-delete (`is_deleted = true`) then hard-delete cycle.
 

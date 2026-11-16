@@ -125,7 +125,7 @@ export class PinTool extends BaseTool {
       await DatabaseUtils.runTransaction(context.db, async () => {
         const result = await DatabaseUtils.run(
           context.db, 
-          'UPDATE memory_item SET pinned = TRUE, last_accessed = CURRENT_TIMESTAMP WHERE id = ?', 
+          'UPDATE memory_item SET pinned = TRUE WHERE id = ?', 
           [id]
         );
         

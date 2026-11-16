@@ -413,13 +413,12 @@ describe('MCP 서버 진입점', () => {
     });
 
     /**
-     * Given: 초기화 전 상태 (__mcp_server_initialized = false)
+     * Given: 초기화 전 상태
      * When: console.error 호출
      * Then: stderr에 직접 출력되어야 함 (fallback logger 사용)
      */
     it('초기화 전에는 console.error가 stderr에 직접 출력해야 함', () => {
       // Given: 초기화 전 상태
-      ServerState.getInstance().setMcpServerInitialized(false);
       
       // console.error 오버라이드 (초기화 전 로직)
       console.error = (...args: any[]) => {
@@ -444,13 +443,12 @@ describe('MCP 서버 진입점', () => {
     });
 
     /**
-     * Given: 초기화 후 상태 (__mcp_server_initialized = true)
+     * Given: 초기화 후 상태
      * When: console.error 호출
      * Then: MCP Logger를 사용해야 함 (mcpLogger.logServer 호출)
      */
     it('초기화 후에는 console.error가 MCP Logger를 사용해야 함', () => {
       // Given: 초기화 후 상태
-      ServerState.getInstance().setMcpServerInitialized(true);
       
       // console.error 오버라이드 (초기화 후 로직)
       console.error = (...args: any[]) => {

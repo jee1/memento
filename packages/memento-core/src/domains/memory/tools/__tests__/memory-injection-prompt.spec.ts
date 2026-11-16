@@ -6,13 +6,14 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { MemoryInjectionPrompt } from '../memory-injection-prompt.js';
 import Database from 'better-sqlite3';
-import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
+import { setupTestDatabase, cleanupTestDatabase, createTestMemory } from '../../../../test/helpers/test-database.js';
 import { createHybridSearchEngine } from '../../../search/algorithms/hybrid-search-engine.js';
 import { ErrorLoggingService } from '../../../monitoring/services/error-logging-service.js';
 import type { ToolContext } from '../../../tools/types.js';
 import { MemoryEmbeddingService } from '../../../embedding/services/memory-embedding-service.js';
 import { mementoConfig } from '../../../../shared/config/index.js';
 import { sqliteRepositoryProvider } from '../../../../infrastructure/database/factories/sqlite-repository-provider.js';
+import { MetaMemoryService } from '../../introspection/meta-memory-service.js';
 
 describe('MemoryInjectionPrompt', () => {
   let db: Database.Database;
@@ -778,5 +779,42 @@ describe('MemoryInjectionPrompt', () => {
       expect(definition.inputSchema.properties.owner_id).toBeDefined();
     });
   });
-});
 
+  it('주입한 기억은 쓰인 시각만 남기고 recall 판정은 쌓지 않는다 (#1751)', async () => {
+    const ids = [
+      createTestMemory(db, { content: 'injected a', type: 'semantic' }),
+      createTestMemory(db, { content: 'injected b', type: 'semantic' }),
+    ];
+    const hit = (id: string, finalScore: number) => ({
+      id, content: `injected ${id}`, type: 'semantic', importance: 0.5, created_at: new Date().toISOString(),
+      pinned: false, textScore: finalScore, vectorScore: finalScore, finalScore, recall_reason: 'test',
+    });
+    const metaMemoryService = new MetaMemoryService(db);
+    const injectionContext = {
+      ...context,
+      services: {
+        ...context.services,
+        hybridSearchEngine: { search: vi.fn().mockResolvedValue({ items: [hit(ids[0], 0.9), hit(ids[1], 0.1)] }) },
+        metaMemoryService,
+      },
+    } as unknown as ToolContext;
+    const scoreMin = mementoConfig.memoryInjectionItemScoreMin;
+    (mementoConfig as { memoryInjectionItemScoreMin: number }).memoryInjectionItemScoreMin = 0;
+    try {
+      await tool.handle({ query: 'injected' }, injectionContext);
+    } finally {
+      (mementoConfig as { memoryInjectionItemScoreMin: number }).memoryInjectionItemScoreMin = scoreMin;
+      await metaMemoryService.destroy();
+    }
+
+    const rows = db
+      .prepare('SELECT memory_id, recall_count, failure_count, last_recalled_at FROM meta_memory_stats ORDER BY memory_id')
+      .all() as Array<{ memory_id: string; recall_count: number; failure_count: number; last_recalled_at: string | null }>;
+    expect(rows.map((r) => r.memory_id)).toEqual([...ids].sort());
+    for (const row of rows) {
+      expect(row.last_recalled_at).not.toBeNull();
+      expect(row.recall_count).toBe(0);
+      expect(row.failure_count).toBe(0);
+    }
+  });
+});

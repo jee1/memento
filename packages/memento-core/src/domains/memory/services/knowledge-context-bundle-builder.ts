@@ -14,6 +14,7 @@ import type {
   RelevanceGateOutcome,
 } from '../../search/index.js';
 import { overlayWorkRecordDisplay } from '../remember/work-record.js';
+import type { MetaMemoryService } from '../introspection/meta-memory-service.js';
 import {
   buildItemFilterMeta,
   type GateItemScore,
@@ -25,6 +26,8 @@ export type { ItemFilterMeta } from './injection-item-filter.js';
 export interface KnowledgeContextBundleBuilderDeps {
   db: Database.Database;
   hybridSearchEngine: HybridSearchEngine;
+  /** 있으면 프롬프트에 넣은 기억의 쓰인 시각을 남긴다 (#1751) */
+  metaMemoryService?: Pick<MetaMemoryService, 'recordUse'>;
 }
 
 export interface KnowledgeContextBundleParams {
@@ -374,6 +377,16 @@ export async function buildKnowledgeContextBundle(
     .map(([t, n]) => `${t} ${n}`)
     .join(', ');
   const contextSummary = `관련 기억 ${summary.length}건 (${breakdown}), 추정 토큰 ${tokenEstimate}`;
+
+  if (deps.metaMemoryService) {
+    try {
+      deps.metaMemoryService.recordUse(summary.map((row) => row.id));
+    } catch (error) {
+      logger.warn('[knowledge-context-bundle] 쓰인 시각 기록 실패', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
 
   logger.info('[knowledge-context-bundle] 완료', {
     memoryCount: summary.length,
