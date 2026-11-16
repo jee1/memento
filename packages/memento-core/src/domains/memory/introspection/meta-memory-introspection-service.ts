@@ -74,11 +74,12 @@ export class MetaMemoryIntrospectionService {
     const highFailureMemoryIds: string[] = [];
 
     try {
+      // recall_count 0 인 행(통계 초기화 뒤)은 판정할 근거가 없어 두 목록에서 뺀다 (#1744).
       // 저신뢰: avg_confidence < 임계값
       const lowStmt = db.prepare(`
         SELECT memory_id
         FROM meta_memory_stats
-        WHERE avg_confidence < ?
+        WHERE recall_count > 0 AND avg_confidence < ?
         ORDER BY avg_confidence ASC
         LIMIT ?
       `);
@@ -89,7 +90,7 @@ export class MetaMemoryIntrospectionService {
       const highFailStmt = db.prepare(`
         SELECT memory_id
         FROM meta_memory_stats
-        WHERE failure_count >= ?
+        WHERE recall_count > 0 AND failure_count >= ?
         ORDER BY failure_count DESC
         LIMIT ?
       `);
@@ -101,12 +102,12 @@ export class MetaMemoryIntrospectionService {
 
       const lowTotal = (
         db.prepare(
-          `SELECT count(*) AS c FROM meta_memory_stats WHERE avg_confidence < ?`
+          `SELECT count(*) AS c FROM meta_memory_stats WHERE recall_count > 0 AND avg_confidence < ?`
         ).get(lowConfidenceThreshold) as { c: number }
       ).c;
       const highFailTotal = (
         db.prepare(
-          `SELECT count(*) AS c FROM meta_memory_stats WHERE failure_count >= ?`
+          `SELECT count(*) AS c FROM meta_memory_stats WHERE recall_count > 0 AND failure_count >= ?`
         ).get(highFailureCountThreshold) as { c: number }
       ).c;
 
