@@ -65,13 +65,16 @@ function pushIfDefined(out: FilterSql, clause: string, value: SqlParam | undefin
   }
 }
 
+/** `tags` JSON 배열에 태그 하나(바인딩 ?)가 있는지. 깨진 JSON 은 빈 배열로 본다. */
+export function tagMatchSql(column: string = 'tags'): string {
+  return `EXISTS (SELECT 1 FROM json_each(CASE WHEN ${column} IS NOT NULL AND json_valid(${column}) THEN ${column} ELSE '[]' END) WHERE value = ?)`;
+}
+
 function appendIdentityClauses(out: FilterSql, filters: MemorySearchFilters, a: string): void {
   pushIn(out, `${a}.id`, filters.id);
   pushIn(out, `${a}.type`, filters.type);
   for (const tag of filters.tags ?? []) {
-    out.clauses.push(
-      `EXISTS (SELECT 1 FROM json_each(CASE WHEN ${a}.tags IS NOT NULL AND json_valid(${a}.tags) THEN ${a}.tags ELSE '[]' END) WHERE value = ?)`
-    );
+    out.clauses.push(tagMatchSql(`${a}.tags`));
     out.params.push(tag);
   }
   pushIn(out, `${a}.privacy_scope`, filters.privacy_scope);

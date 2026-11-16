@@ -80,19 +80,6 @@ describe('ForgettingAlgorithm', () => {
     });
   });
 
-  describe('shouldForget', () => {
-    it('기본 임계값으로 망각 판단', () => {
-      expect(algorithm.shouldForget(0.7)).toBe(true);
-      expect(algorithm.shouldForget(0.5)).toBe(false);
-      expect(algorithm.shouldForget(0.6)).toBe(true);
-    });
-
-    it('사용자 정의 임계값으로 망각 판단', () => {
-      expect(algorithm.shouldForget(0.8, 0.9)).toBe(false);
-      expect(algorithm.shouldForget(0.9, 0.8)).toBe(true);
-    });
-  });
-
   describe('generateForgetReason', () => {
     it('오래된 기억 이유 생성', () => {
       const features: ForgettingFeatures = {
@@ -118,19 +105,6 @@ describe('ForgettingAlgorithm', () => {
 
       const reason = algorithm.generateForgetReason(features, 0.7);
       expect(reason).toContain('사용되지 않음');
-    });
-
-    it('중복도 높은 기억 이유 생성', () => {
-      const features: ForgettingFeatures = {
-        recency: 0.8,
-        usage: 0.8,
-        duplication_ratio: 0.8,
-        importance: 0.7,
-        pinned: true
-      };
-
-      const reason = algorithm.generateForgetReason(features, 0.7);
-      expect(reason).toContain('중복도 높음');
     });
 
     it('중요도 낮은 기억 이유 생성', () => {
@@ -171,7 +145,6 @@ describe('ForgettingAlgorithm', () => {
       const reason = algorithm.generateForgetReason(features, 0.9);
       expect(reason).toContain('오래된 기억');
       expect(reason).toContain('사용되지 않음');
-      expect(reason).toContain('중복도 높음');
       expect(reason).toContain('중요도 낮음');
       expect(reason).toContain('고정되지 않음');
     });
@@ -203,13 +176,13 @@ describe('ForgettingAlgorithm', () => {
         edit_count: 1
       };
 
-      const features = algorithm.calculateFeatures(memory, 2, 10);
+      const features = algorithm.calculateFeatures(memory);
       
       expect(features.recency).toBeGreaterThan(0);
       expect(features.recency).toBeLessThan(1);
       expect(features.usage).toBeGreaterThan(0);
       expect(features.usage).toBeLessThan(1);
-      expect(features.duplication_ratio).toBe(0.2); // 2/10
+      expect(features.duplication_ratio).toBe(0.57);
       expect(features.importance).toBe(0.7);
       expect(features.pinned).toBe(false);
     });
@@ -222,10 +195,10 @@ describe('ForgettingAlgorithm', () => {
         type: 'semantic'
       };
 
-      const features = algorithm.calculateFeatures(memory, 0, 5);
+      const features = algorithm.calculateFeatures(memory);
       
       expect(features.usage).toBeGreaterThanOrEqual(0);
-      expect(features.duplication_ratio).toBe(0);
+      expect(features.duplication_ratio).toBe(0.39);
       expect(features.pinned).toBe(true);
     });
 
@@ -246,8 +219,8 @@ describe('ForgettingAlgorithm', () => {
         type: 'episodic'
       };
 
-      const workingFeatures = algorithm.calculateFeatures(workingMemory, 0, 1);
-      const episodicFeatures = algorithm.calculateFeatures(episodicMemory, 0, 1);
+      const workingFeatures = algorithm.calculateFeatures(workingMemory);
+      const episodicFeatures = algorithm.calculateFeatures(episodicMemory);
       
       // working 메모리는 더 빠르게 감쇠
       expect(workingFeatures.recency).toBeLessThan(episodicFeatures.recency);
@@ -284,8 +257,6 @@ describe('ForgettingAlgorithm', () => {
       expect(results).toHaveLength(2);
       expect(results[0].memory_id).toBe('mem1'); // 망각 점수가 높은 것부터
       expect(results[0].forget_score).toBeGreaterThan(results[1].forget_score);
-      expect(results[0].should_forget).toBe(false);
-      expect(results[1].should_forget).toBe(false);
     });
 
     it('빈 메모리 배열 처리', () => {
@@ -306,7 +277,7 @@ describe('ForgettingAlgorithm', () => {
       
       expect(results).toHaveLength(1);
       expect(results[0].memory_id).toBe('mem1');
-      expect(results[0].features.duplication_ratio).toBe(0); // 중복 없음
+      expect(results[0].features.duplication_ratio).toBe(0.57);
     });
 
     it('정렬 확인 (망각 점수 내림차순)', () => {
@@ -368,7 +339,7 @@ describe('ForgettingAlgorithm', () => {
       };
 
       // 잘못된 날짜는 기본값으로 처리됨
-      const features = algorithm.calculateFeatures(memory, 0, 1);
+      const features = algorithm.calculateFeatures(memory);
       expect(features).toBeDefined();
     });
 
@@ -383,7 +354,7 @@ describe('ForgettingAlgorithm', () => {
         edit_count: -1
       };
 
-      const features = algorithm.calculateFeatures(memory, 0, 1);
+      const features = algorithm.calculateFeatures(memory);
       
       // 음수 값들이 그대로 사용됨 (정규화되지 않음)
       expect(features.importance).toBe(-0.1);
@@ -401,11 +372,33 @@ describe('ForgettingAlgorithm', () => {
         edit_count: 1000000
       };
 
-      const features = algorithm.calculateFeatures(memory, 0, 1);
+      const features = algorithm.calculateFeatures(memory);
       
       // 값들이 그대로 사용됨 (정규화되지 않음)
       expect(features.importance).toBe(10.0);
       expect(features.usage).toBeLessThanOrEqual(1);
+    });
+  });
+
+  describe('#1749 다른 유형 수와 무관한 점수', () => {
+    const memoryOf = (id: string, type: string) => ({
+      id,
+      created_at: new Date(Date.now() - 400 * DAY_MS).toISOString(),
+      importance: 0.5,
+      pinned: false,
+      type,
+    });
+    const semanticScores = (results: ForgettingResult[]) =>
+      results.filter((r) => r.memory_id.startsWith('s')).map((r) => r.forget_score);
+
+    it('episodic 이 지워져도 semantic 망각 점수는 그대로다', () => {
+      const semantic = [memoryOf('s1', 'semantic'), memoryOf('s2', 'semantic')];
+      const episodic = Array.from({ length: 10 }, (_, i) => memoryOf(`e${i}`, 'episodic'));
+
+      const withEpisodic = algorithm.analyzeForgetCandidates([...semantic, ...episodic]);
+      const afterEpisodicDeleted = algorithm.analyzeForgetCandidates(semantic);
+
+      expect(semanticScores(afterEpisodicDeleted)).toEqual(semanticScores(withEpisodic));
     });
   });
 });

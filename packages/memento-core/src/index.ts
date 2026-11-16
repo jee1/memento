@@ -467,7 +467,6 @@ export {
   queryProjectMemoryStats,
   listProjectMemoryCleanupCandidates,
   deleteProjectMemoriesOlderThan,
-  deleteExpiredWorkingMemories,
   queryMemoryForgettingStatsByType,
   queryMemoryCountsByTypeStats,
   findMemoryProvenancePreviews,

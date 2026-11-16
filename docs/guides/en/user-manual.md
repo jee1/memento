@@ -134,6 +134,8 @@ Memento distinguishes four memory types that govern storage purpose and automati
 
 **Procedural memory** captures repeatable processes such as deployment steps, configuration procedures, and troubleshooting runbooks. After 90 days it follows the same forget-score rule.
 
+Memories tagged `user-directive` (the owner's standing instructions) are never removed by the automatic cleanup, whatever their type.
+
 ```bash
 # Working memory — short-lived context
 memento remember "Bug fix in progress: null check on auth middleware" --type working

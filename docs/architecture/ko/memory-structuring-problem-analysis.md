@@ -223,18 +223,18 @@ Sleep consolidation의 후보 episodic은 아래 쿼리로 결정된다:
 
 즉, lookback을 늘리면 **DB에 남아있는 더 오래된 episodic**이 후보로 들어와 클러스터링/요약될 기회가 늘어난다.
 
-#### 2) TTL이 현재 코드에서 ‘자동 상한’이 아닌 이유
+#### 2) TTL이 ‘자동 상한’이 아닌 이유
 
-TTL은 “시간이 지나면 무조건 삭제”가 아니라, **망각 점수(forget_score) + 임계값**을 만족할 때만 실행된다:
-- cleanup job은 BatchScheduler에서 1시간 주기로 실행됨 (`cleanupInterval=1h`) (`packages/memento-core/src/infrastructure/scheduler/batch-scheduler.ts`)
-- hard delete는 `DELETE FROM memory_item WHERE id=?`로 실제 행 삭제 (`packages/memento-core/src/domains/forgetting/services/forgetting-policy-service.ts`)
-- 하지만 hard delete 조건은:
-  - `forget_score >= hardDeleteThreshold(0.8)` AND `ageDays >= ttlHard.episodic(180)` AND `!pinned`
-- soft delete는 현재 “삭제 플래그”가 아니라 `pinned=false`/`last_accessed` 갱신뿐이라 사실상 no-op에 가깝다 (`softDeleteMemory()`).
+> 2026-04 분석 당시에는 점수 기반 하드 삭제(`forget_score >= 0.8` AND 180일)와 사실상 no-op 인 소프트 삭제가 있었다. 아래는 #1389, #1743, #1749 뒤의 동작이다.
 
-따라서 **lookback을 ttlHard(episodic=180)보다 크게 설정해도**, “180일 지난 episodic이 이미 하드 삭제됐는지”에 따라 효과가 달라진다:
-- (A) 하드 삭제가 충분히 일어나면: `lookback > 180`의 추가 효과가 거의 없다.
-- (B) 하드 삭제가 제한적이면(점수/임계값/운영상 cleanup 미실행 등): `lookback > 180`이 실제로 후보 풀을 넓혀 구조화 기회를 늘린다.
+TTL은 “시간이 지나면 무조건 삭제”가 아니라, **망각 점수(forget_score) + 임계값**을 만족할 때만 실행된다(working 만 예외):
+- cleanup job은 BatchScheduler에서 주기적으로 실행됨 (`packages/memento-core/src/infrastructure/scheduler/batch-scheduler.ts`)
+- 소프트 삭제 조건: `ageDays >= ttlSoft(type)` AND (`type = working` OR `forget_score >= softDeleteThreshold(0.6)`) AND `!pinned` AND `user-directive` 태그 아님. episodic 의 `ttlSoft` 는 30일 (`packages/memento-core/src/domains/forgetting/services/forgetting-policy-service.ts`)
+- 하드 삭제는 점수로 하지 않는다. 소프트 삭제 뒤 `SOFT_DELETE_GRACE_PERIOD_DAYS`(기본 30일)가 지난 행만 `DELETE FROM memory_item` 으로 지운다.
+
+따라서 **lookback 을 늘려도**, 오래된 episodic 이 이미 소프트 삭제됐는지에 따라 효과가 달라진다:
+- (A) 점수가 0.6 을 넘는 episodic(중요도 낮고 안 쓰임)은 30일 뒤 소프트 삭제되어 후보에서 빠진다.
+- (B) 중요도가 높거나 자주 쓰인 episodic 은 남아, 긴 lookback 이 실제로 후보 풀을 넓혀 구조화 기회를 늘린다.
 
 #### 3) 정리(효과/리스크)
 

@@ -28,9 +28,7 @@ describe('forgetting event log', () => {
     await new MemoryForgettingEventMigration().up(db);
     service = new ForgettingPolicyService({
       softDeleteThreshold: 0.1,
-      hardDeleteThreshold: 0.5,
       ttlSoft: { working: 1, episodic: 1, semantic: 999, procedural: 999 },
-      ttlHard: { working: 1, episodic: 1, semantic: 999, procedural: 999 },
     });
     eventRepo = new ForgettingEventRepository();
   });
@@ -78,7 +76,6 @@ describe('forgetting event log', () => {
       {
         memory_id: softId,
         forget_score: 0.35,
-        should_forget: true,
         reason: '오래된 기억',
         features: {
           recency: 0.1,
@@ -91,7 +88,6 @@ describe('forgetting event log', () => {
       {
         memory_id: hardId,
         forget_score: 0.95,
-        should_forget: true,
         reason: '사용되지 않음',
         features: {
           recency: 0.05,

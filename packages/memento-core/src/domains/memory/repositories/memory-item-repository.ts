@@ -480,16 +480,6 @@ export function deleteProjectMemoriesOlderThan(
   return result.changes;
 }
 
-export function deleteExpiredWorkingMemories(db: Database.Database): number {
-  const result = db
-    .prepare(
-      `DELETE FROM memory_item
-       WHERE pinned = FALSE AND type = 'working' AND created_at < datetime('now', '-2 days')`,
-    )
-    .run();
-  return result.changes;
-}
-
 export function queryMemoryForgettingStatsByType(
   db: Database.Database,
 ): MemoryForgettingStatsByTypeRow[] {

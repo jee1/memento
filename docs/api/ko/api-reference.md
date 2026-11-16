@@ -668,12 +668,14 @@ GET /memories/:id/neighbors?limit=5&similarity_threshold=0.8
 ```http
 POST /admin/memory/cleanup
 ```
-메모리를 정리합니다.
+매일 도는 망각 정리를 지금 한 번 돌립니다. 대상은 소프트 삭제하고, 30일 유예가 지난 행은 영구 삭제합니다. `deleted_count` 는 이번에 소프트 삭제한 수, `hard_deleted_count` 는 영구 삭제한 수입니다.
 
 **응답:**
 ```json
 {
-  "message": "메모리 정리 완료"
+  "message": "메모리 정리 완료",
+  "deleted_count": 81,
+  "hard_deleted_count": 0
 }
 ```
 

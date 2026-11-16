@@ -105,13 +105,13 @@ $$\text{ForgetScore} = u_1 \cdot (1 - \text{recency}) + u_2 \cdot (1 - \text{usa
 
 **Default coefficients (M1)**: $u_1=0.35$, $u_2=0.25$, $u_3=0.20$, $u_4=0.15$, $u_5=0.30$
 
-$\text{dup\_ratio}$: Proportion of similar items in cluster (if none, normalize duplication_penalty to 0~1 as substitute)
+$\text{dup\_ratio}$: a fixed value per type. episodic 0.57, semantic 0.39, procedural 0.04, working 0.01 (each type's share of the production DB in 2026-11). Recounting the share on every cleanup made semantic scores rise as episodic rows were deleted, so knowledge memories were deleted in a cascade (#1749).
 
-**Interpretation**: Easier to delete when old ($1-\text{recency}↑$), unused ($1-\text{usage}↑$), and many duplicates ($\text{dup\_ratio}↑$). Protect important or pinned items.
+**Interpretation**: Easier to delete when old ($1-\text{recency}↑$), unused ($1-\text{usage}↑$), and of a type that piles up ($\text{dup\_ratio}↑$). Protect important or pinned items.
 
 ### Deletion Policy (Example)
 
-- **Soft deletion candidates**: $\text{age\_days} \geq \text{TTL}_{\text{soft}}(\text{type})$ AND ($\text{type} = \text{working}$ OR $\text{ForgetScore} \geq \theta_{\text{soft}}$). Working memory is deleted by TTL alone, whatever its score (#1743).
+- **Soft deletion candidates**: $\text{age\_days} \geq \text{TTL}_{\text{soft}}(\text{type})$ AND ($\text{type} = \text{working}$ OR $\text{ForgetScore} \geq \theta_{\text{soft}}$). Working memory is deleted by TTL alone, whatever its score (#1743). Pinned memories and memories tagged `user-directive` are never candidates (#1749).
 - **Hard deletion**: not score-based. Only rows soft-deleted longer than `SOFT_DELETE_GRACE_PERIOD_DAYS` (default 30 days) are permanently deleted (#1389).
 
 **Current values**:
