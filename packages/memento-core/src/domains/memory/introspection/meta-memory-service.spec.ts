@@ -5,6 +5,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { MetaMemoryService } from './meta-memory-service.js';
+import { MetaMemoryIntrospectionService } from './meta-memory-introspection-service.js';
 import { MetaMemoryStatsSchemaMigration } from '../../../infrastructure/database/sqlite/migration/migrations/011-meta-memory-stats-schema.js';
 import type { RecallResultItem } from '../recall/recall-tool.js';
 
@@ -91,7 +92,7 @@ describe('MetaMemoryService', () => {
           type: 'episodic',
           importance: 0.8,
           created_at: '2024-01-01T00:00:00.000Z',
-          final_score: 0.95, // 성공 (>= 0.5)
+          final_score: 0.95, // 1위
           consolidation_score: 0.8,
           vectorScore: 0.9
         },
@@ -101,7 +102,7 @@ describe('MetaMemoryService', () => {
           type: 'semantic',
           importance: 0.7,
           created_at: '2024-01-01T00:00:00.000Z',
-          final_score: 0.3, // 실패 (< 0.5)
+          final_score: 0.3, // 1위의 0.8 배 미만이라 실패
           consolidation_score: 0.2,
           vectorScore: 0.4
         }
@@ -142,240 +143,24 @@ describe('MetaMemoryService', () => {
       // 빈 검색 결과이므로 통계 업데이트가 없어야 함
     });
 
-    it('given: final_score가 0.5 이상인 항목이 있을 때, when: recordRecall을 호출하면, then: success_count가 증가해야 함', async () => {
-      // Given: 성공한 검색 결과 (final_score >= 0.5)
-      const searchResults: RecallResultItem[] = [
+    it('결과가 하나뿐이면 그 결과는 성공이고 confidence 1 이다', async () => {
+      await service.recordRecall([
         {
           memory_id: 'mem_success',
           content: 'Success content',
           type: 'episodic',
           importance: 0.8,
           created_at: '2024-01-01T00:00:00.000Z',
-          final_score: 0.75, // 성공
-          consolidation_score: 0.7,
-          vectorScore: 0.8
-        }
-      ];
-
-      // When: recordRecall 호출
-      await service.recordRecall(searchResults);
-
-      // Then: success_count가 증가해야 함
-      await service.destroy(); // flush 확인
+          final_score: 0.3,
+        },
+      ]);
+      await service.destroy();
 
       const stats = await service.getStatsById('mem_success');
       expect(stats.recall_count).toBe(1);
       expect(stats.success_count).toBe(1);
       expect(stats.failure_count).toBe(0);
-    });
-
-    it('given: final_score가 0.5 미만인 항목이 있을 때, when: recordRecall을 호출하면, then: failure_count가 증가해야 함', async () => {
-      // Given: 실패한 검색 결과 (final_score < 0.5)
-      const searchResults: RecallResultItem[] = [
-        {
-          memory_id: 'mem_failure',
-          content: 'Failure content',
-          type: 'episodic',
-          importance: 0.8,
-          created_at: '2024-01-01T00:00:00.000Z',
-          final_score: 0.3, // 실패
-          consolidation_score: 0.2,
-          vectorScore: 0.4
-        }
-      ];
-
-      // When: recordRecall 호출
-      await service.recordRecall(searchResults);
-
-      // Then: failure_count가 증가해야 함
-      await service.destroy(); // flush 확인
-
-      const stats = await service.getStatsById('mem_failure');
-      expect(stats.recall_count).toBe(1);
-      expect(stats.success_count).toBe(0);
-      expect(stats.failure_count).toBe(1);
-    });
-
-    it('given: confidence 점수가 계산되어야 할 때, when: recordRecall을 호출하면, then: confidence 점수가 올바르게 계산되어야 함', async () => {
-      // Given: 검색 결과 (final_score, consolidation_score, vectorScore 포함)
-      const searchResults: RecallResultItem[] = [
-        {
-          memory_id: 'mem_confidence',
-          content: 'Confidence content',
-          type: 'episodic',
-          importance: 0.8,
-          created_at: '2024-01-01T00:00:00.000Z',
-          final_score: 0.8, // 0.9 * 0.8 = 0.72
-          consolidation_score: 0.7, // ignored
-          vectorScore: 0.9 // 0.1 * 0.9 = 0.09
-          // 예상 confidence: 0.72 + 0.09 = 0.81
-        }
-      ];
-
-      // When: recordRecall 호출
-      await service.recordRecall(searchResults);
-
-      // Then: confidence 점수가 올바르게 계산되어야 함
-      await service.destroy(); // flush 확인
-
-      const stats = await service.getStatsById('mem_confidence');
-      const expectedConfidence = 0.9 * 0.8 + 0.1 * 0.9;
-      expect(stats.avg_confidence).toBeCloseTo(expectedConfidence, 5);
-    });
-  });
-
-  describe('calculateConfidence', () => {
-    it('given: final_score, consolidation_score, vectorScore가 있을 때, when: calculateConfidence를 호출하면, then: consolidation_score는 무시하고 가중 평균이 계산되어야 함', () => {
-      const item: RecallResultItem = {
-        memory_id: 'mem_test',
-        content: 'Test content',
-        type: 'episodic',
-        importance: 0.8,
-        created_at: '2024-01-01T00:00:00.000Z',
-        final_score: 0.5,
-        consolidation_score: 1,
-        vectorScore: 0.2
-      } as any;
-
-      const confidence = service.calculateConfidence(item);
-
-      expect(confidence).toBeCloseTo(0.9 * 0.5 + 0.1 * 0.2, 5);
-    });
-
-    it('given: final_score와 vectorScore가 있을 때, when: calculateConfidence를 호출하면, then: 가중 평균이 올바르게 계산되어야 함', () => {
-      const item: RecallResultItem = {
-        memory_id: 'mem_test',
-        content: 'Test content',
-        type: 'episodic',
-        importance: 0.8,
-        created_at: '2024-01-01T00:00:00.000Z',
-        final_score: 0.8,
-        vectorScore: 0.9
-      } as any;
-
-      const confidence = service.calculateConfidence(item);
-
-      const expected = 0.9 * 0.8 + 0.1 * 0.9;
-      expect(confidence).toBeCloseTo(expected, 5);
-      expect(confidence).toBeCloseTo(0.81, 5);
-    });
-
-    it('given: final_score만 있을 때, when: calculateConfidence를 호출하면, then: final_score만 사용하여 계산되어야 함', () => {
-      // Given: final_score만 있는 검색 결과 항목
-      const item: RecallResultItem = {
-        memory_id: 'mem_test',
-        content: 'Test content',
-        type: 'episodic',
-        importance: 0.8,
-        created_at: '2024-01-01T00:00:00.000Z',
-        final_score: 0.5
-      } as any;
-
-      // When: calculateConfidence 호출
-      const confidence = service.calculateConfidence(item);
-
-      // Then: vector 없으면 0.9 * final_score
-      expect(confidence).toBeCloseTo(0.45, 5);
-    });
-
-    it('given: finalScore (camelCase)가 있을 때, when: calculateConfidence를 호출하면, then: finalScore를 사용하여 계산되어야 함', () => {
-      // Given: finalScore (camelCase)가 있는 검색 결과 항목
-      const item: RecallResultItem = {
-        memory_id: 'mem_test',
-        content: 'Test content',
-        type: 'episodic',
-        importance: 0.8,
-        created_at: '2024-01-01T00:00:00.000Z',
-        finalScore: 0.6 // camelCase
-      } as any;
-
-      // When: calculateConfidence 호출
-      const confidence = service.calculateConfidence(item);
-
-      // Then: finalScore를 사용하여 계산 (0.9 * 0.6 = 0.54)
-      expect(confidence).toBeCloseTo(0.54, 5);
-    });
-
-    it('given: 점수가 모두 0일 때, when: calculateConfidence를 호출하면, then: 0을 반환해야 함', () => {
-      // Given: 모든 점수가 0인 검색 결과 항목
-      const item: RecallResultItem = {
-        memory_id: 'mem_test',
-        content: 'Test content',
-        type: 'episodic',
-        importance: 0.8,
-        created_at: '2024-01-01T00:00:00.000Z',
-        final_score: 0,
-        consolidation_score: 0,
-        vectorScore: 0
-      } as any;
-
-      // When: calculateConfidence 호출
-      const confidence = service.calculateConfidence(item);
-
-      // Then: 0을 반환해야 함
-      expect(confidence).toBe(0);
-    });
-
-    it('given: 점수가 모두 1.0일 때, when: calculateConfidence를 호출하면, then: 1.0을 반환해야 함', () => {
-      // Given: 모든 점수가 1.0인 검색 결과 항목
-      const item: RecallResultItem = {
-        memory_id: 'mem_test',
-        content: 'Test content',
-        type: 'episodic',
-        importance: 0.8,
-        created_at: '2024-01-01T00:00:00.000Z',
-        final_score: 1.0,
-        consolidation_score: 1.0,
-        vectorScore: 1.0
-      } as any;
-
-      // When: calculateConfidence 호출
-      const confidence = service.calculateConfidence(item);
-
-      expect(confidence).toBeCloseTo(1.0, 5);
-    });
-
-    it('#1651: ops-like final_score band must not mark ~99% as low confidence', () => {
-      // Ops 2026-11-07: recalled final_score roughly 0.44–0.69; vector often absent.
-      // Old 0.6·f+0.1·v capped at 0.7 so every sample stayed under threshold 0.5.
-      const confidences: number[] = [];
-      for (let i = 0; i < 100; i++) {
-        const final_score = 0.44 + ((0.69 - 0.44) * i) / 99;
-        confidences.push(
-          service.calculateConfidence({
-            memory_id: `mem_ops_${i}`,
-            content: 'ops-like',
-            type: 'episodic',
-            importance: 0.5,
-            created_at: '2024-01-01T00:00:00.000Z',
-            final_score,
-            vectorScore: 0
-          } as RecallResultItem)
-        );
-      }
-      const lowRatio = confidences.filter((c) => c < 0.5).length / confidences.length;
-      expect(Math.max(...confidences)).toBeGreaterThan(0.5);
-      // Uniform final 0.44–0.69, vector 0 → ~46% below 0.5. Cap 0.55 catches 0.6·f+0.1·v regression (#1661).
-      expect(lowRatio).toBeLessThan(0.55);
-    });
-
-    it('given: consolidation_score와 vectorScore가 없을 때, when: calculateConfidence를 호출하면, then: final_score만 사용하여 계산되어야 함', () => {
-      // Given: final_score만 있는 검색 결과 항목
-      const item: RecallResultItem = {
-        memory_id: 'mem_test',
-        content: 'Test content',
-        type: 'episodic',
-        importance: 0.8,
-        created_at: '2024-01-01T00:00:00.000Z',
-        final_score: 0.75
-        // consolidation_score와 vectorScore 없음
-      } as any;
-
-      // When: calculateConfidence 호출
-      const confidence = service.calculateConfidence(item);
-
-      // Then: final_score만 사용하여 계산 (0.9 * 0.75 = 0.675)
-      expect(confidence).toBeCloseTo(0.675, 5);
+      expect(stats.avg_confidence).toBeCloseTo(1, 5);
     });
   });
 
@@ -471,127 +256,66 @@ describe('MetaMemoryService', () => {
     });
   });
 
-  describe('isItemSuccess', () => {
-    it('given: final_score가 0.5 이상일 때, when: isItemSuccess를 호출하면, then: true를 반환해야 함', () => {
-      // Given: final_score가 0.5 이상인 검색 결과 항목
-      const item: RecallResultItem = {
-        memory_id: 'mem_test',
-        content: 'Test content',
+  describe('#1744 결과 안 1위 대비 판정', () => {
+    const ids = Array.from({ length: 10 }, (_, i) => `mem_rank_${i}`);
+    const resultOf = (scores: number[]): RecallResultItem[] =>
+      scores.map((final_score, i) => ({
+        memory_id: ids[i],
+        content: `rank ${i}`,
         type: 'episodic',
-        importance: 0.8,
-        created_at: '2024-01-01T00:00:00.000Z',
-        final_score: 0.75 // 0.5 이상
-      };
-
-      // When: isItemSuccess 호출
-      const result = service.isItemSuccess(item);
-
-      // Then: true를 반환해야 함
-      expect(result).toBe(true);
-    });
-
-    it('given: final_score가 0.5 미만일 때, when: isItemSuccess를 호출하면, then: false를 반환해야 함', () => {
-      // Given: final_score가 0.5 미만인 검색 결과 항목
-      const item: RecallResultItem = {
-        memory_id: 'mem_test',
-        content: 'Test content',
-        type: 'episodic',
-        importance: 0.8,
-        created_at: '2024-01-01T00:00:00.000Z',
-        final_score: 0.3 // 0.5 미만
-      };
-
-      // When: isItemSuccess 호출
-      const result = service.isItemSuccess(item);
-
-      // Then: false를 반환해야 함
-      expect(result).toBe(false);
-    });
-
-    it('given: final_score가 정확히 0.5일 때, when: isItemSuccess를 호출하면, then: true를 반환해야 함', () => {
-      // Given: final_score가 정확히 0.5인 검색 결과 항목
-      const item: RecallResultItem = {
-        memory_id: 'mem_test',
-        content: 'Test content',
-        type: 'episodic',
-        importance: 0.8,
-        created_at: '2024-01-01T00:00:00.000Z',
-        final_score: 0.5 // 정확히 0.5
-      };
-
-      // When: isItemSuccess 호출
-      const result = service.isItemSuccess(item);
-
-      // Then: true를 반환해야 함 (>= 0.5)
-      expect(result).toBe(true);
-    });
-
-    it('하한은 usage 항 제거 만큼 내려가 있다 (#1694): 0.4931 은 성공, 0.4930 은 실패', () => {
-      const item = (final_score: number): RecallResultItem => ({
-        memory_id: 'mem_test',
-        content: 'Test content',
-        type: 'episodic',
-        importance: 0.8,
+        importance: 0.5,
         created_at: '2024-01-01T00:00:00.000Z',
         final_score,
-      });
+      }));
 
-      expect(service.isItemSuccess(item(0.4931))).toBe(true);
-      expect(service.isItemSuccess(item(0.493))).toBe(false);
+    beforeEach(() => {
+      const insert = db.prepare(
+        `INSERT INTO memory_item (id, type, content, importance, privacy_scope, pinned) VALUES (?, 'episodic', 'rank', 0.5, 'private', 0)`,
+      );
+      for (const id of ids) insert.run(id);
     });
 
-    it('given: final_score가 없을 때, when: isItemSuccess를 호출하면, then: false를 반환해야 함', () => {
-      // Given: final_score가 없는 검색 결과 항목
-      const item: RecallResultItem = {
-        memory_id: 'mem_test',
-        content: 'Test content',
-        type: 'episodic',
-        importance: 0.8,
-        created_at: '2024-01-01T00:00:00.000Z'
-        // final_score 없음 (기본값 0)
-      };
+    async function recordAndScan(scores: number[]) {
+      await service.recordRecall(resultOf(scores));
+      await service.destroy();
+      return MetaMemoryIntrospectionService.runScan(db);
+    }
 
-      // When: isItemSuccess 호출
-      const result = service.isItemSuccess(item);
+    it('운영 사본 중앙값 질의(1위 0.66, 10위 0.50)는 저신뢰로 잡히지 않는다', async () => {
+      const scan = await recordAndScan([0.66, 0.63, 0.58, 0.56, 0.56, 0.55, 0.53, 0.53, 0.52, 0.50]);
 
-      // Then: false를 반환해야 함 (0 < 0.5)
-      expect(result).toBe(false);
+      expect(scan.lowConfidenceTotal).toBe(0);
     });
 
-    it('given: finalScore (camelCase)가 있을 때, when: isItemSuccess를 호출하면, then: finalScore를 사용하여 판정해야 함', () => {
-      // Given: finalScore (camelCase)가 있는 검색 결과 항목
-      const item: RecallResultItem = {
-        memory_id: 'mem_test',
-        content: 'Test content',
-        type: 'episodic',
-        importance: 0.8,
-        created_at: '2024-01-01T00:00:00.000Z',
-        finalScore: 0.8 // camelCase, 0.5 이상
-      } as any;
+    it('1위 점수가 0.3 인 설치에서도 1위와 가까운 결과는 성공이다', async () => {
+      await recordAndScan([0.32, 0.31, 0.3, 0.2]);
 
-      // When: isItemSuccess 호출
-      const result = service.isItemSuccess(item);
-
-      // Then: true를 반환해야 함
-      expect(result).toBe(true);
+      expect((await service.getStatsById(ids[0])).success_count).toBe(1);
+      expect((await service.getStatsById(ids[2])).success_count).toBe(1);
+      expect((await service.getStatsById(ids[3])).failure_count).toBe(1);
     });
 
-    it('given: finalScore (camelCase)가 0.5 미만일 때, when: isItemSuccess를 호출하면, then: false를 반환해야 함', () => {
-      // Given: finalScore (camelCase)가 0.5 미만인 검색 결과 항목
-      const item: RecallResultItem = {
-        memory_id: 'mem_test',
-        content: 'Test content',
-        type: 'episodic',
-        importance: 0.8,
-        created_at: '2024-01-01T00:00:00.000Z',
-        finalScore: 0.3 // camelCase, 0.5 미만
-      } as any;
+    it('1위의 0.8 배에 못 미치는 결과는 실패이고 confidence 는 1위 대비 비율이다', async () => {
+      await recordAndScan([0.6, 0.48, 0.47]);
 
-      // When: isItemSuccess 호출
-      const result = service.isItemSuccess(item);
+      expect((await service.getStatsById(ids[1])).success_count).toBe(1);
+      const below = await service.getStatsById(ids[2]);
+      expect(below.failure_count).toBe(1);
+      expect(below.avg_confidence).toBeCloseTo(0.47 / 0.6, 5);
+    });
 
-      // Then: false를 반환해야 함
-      expect(result).toBe(false);
+    it('음수 점수는 0 으로 보고 confidence 가 0 아래로 내려가지 않는다', async () => {
+      await recordAndScan([0.5, -0.1]);
+
+      expect((await service.getStatsById(ids[1])).avg_confidence).toBe(0);
+    });
+
+    it('모든 점수가 0 이면 전부 실패, confidence 0 이다', async () => {
+      await recordAndScan([0, 0]);
+
+      const stats = await service.getStatsById(ids[0]);
+      expect(stats.failure_count).toBe(1);
+      expect(stats.avg_confidence).toBe(0);
     });
   });
 
