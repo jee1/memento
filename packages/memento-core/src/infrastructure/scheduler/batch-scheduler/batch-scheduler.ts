@@ -410,6 +410,17 @@ export class BatchScheduler implements IBatchScheduler {
   }
 
   async runJob(jobType: string): Promise<BatchJobResult> {
+    const result = await this.runJobLocked(jobType);
+    // #1753: 수동 실행도 예약 실행과 같이 오류 수를 세고, 성공하면 0 으로 되돌린다
+    if (result.success) {
+      this.retryManager.resetErrorCount(jobType);
+    } else {
+      this.retryManager.incrementErrorCount(jobType);
+    }
+    return result;
+  }
+
+  private async runJobLocked(jobType: string): Promise<BatchJobResult> {
     // Issue #834 SC-003: sync check+mark before await — blocks overlapping manual runs.
     if (this.jobQueue.isRunning(jobType)) {
       throw new BatchJobAlreadyRunningError(jobType);
@@ -605,6 +616,11 @@ export class BatchScheduler implements IBatchScheduler {
   }
 
   restartJob(jobName: string): boolean {
+    // #1753: 운영자가 멈춘 잡은 설정 재적용이 다시 예약하지 않는다. 다시 켜려면 resumeJob.
+    if (this.pausedJobs.has(jobName)) {
+      this.log(`restartJob(${jobName}): paused, not rescheduled`, undefined, 'warn');
+      return false;
+    }
     return restartBatchSchedulerJob(
       this.getServiceState(),
       this.getRecurringState(),

@@ -95,4 +95,35 @@ describe('BatchScheduler infrastructure jobs manual control', () => {
     const { scheduler } = await startSchedulerWithWal();
     await expect(scheduler.runJob('nope')).rejects.toThrow('unknown_job');
   });
+
+  it('수동 runJob 이 성공하면 오류 수를 0 으로 되돌린다 (#1753)', async () => {
+    const { scheduler } = await startSchedulerWithWal();
+    const retryManager = (scheduler as unknown as { retryManager: { incrementErrorCount(n: string): number; getErrorCount(n: string): number } }).retryManager;
+    retryManager.incrementErrorCount('wal_checkpoint');
+    retryManager.incrementErrorCount('wal_checkpoint');
+
+    await scheduler.runJob('wal_checkpoint');
+
+    expect(retryManager.getErrorCount('wal_checkpoint')).toBe(0);
+  });
+
+  it('일시 정지된 잡은 restartJob 으로 다시 예약하지 않는다 (#1753)', async () => {
+    const { scheduler } = await startSchedulerWithWal();
+    expect(scheduler.pauseJob('cleanup').ok).toBe(true);
+
+    scheduler.restartJob('cleanup');
+
+    const intervals = (scheduler as unknown as { intervals: Map<string, unknown> }).intervals;
+    expect(intervals.has('cleanup')).toBe(false);
+    expect(scheduler.isJobPaused('cleanup')).toBe(true);
+  });
+
+  it('수동 runJob 이 실패를 돌려주면 오류 수를 올린다 (#1753)', async () => {
+    const { scheduler } = await startSchedulerWithWal(vi.fn().mockResolvedValue({ success: false, errors: ['busy'] }));
+    const retryManager = (scheduler as unknown as { retryManager: { getErrorCount(n: string): number } }).retryManager;
+
+    await scheduler.runJob('wal_checkpoint');
+
+    expect(retryManager.getErrorCount('wal_checkpoint')).toBe(1);
+  });
 });

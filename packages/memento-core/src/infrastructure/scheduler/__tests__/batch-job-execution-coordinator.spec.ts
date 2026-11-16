@@ -459,3 +459,52 @@ describe('BatchJobExecutionCoordinator job_run append (#833)', () => {
     }
   });
 });
+
+describe('BatchJobExecutionCoordinator 결과 상태 (#1753)', () => {
+  it('success:false 를 돌려준 잡도 오류 수를 올린다', async () => {
+    const { coordinator, retryManager } = createCoordinator({});
+
+    await coordinator.executeJobWithRetry('returns_failure', async () => ({ success: false, errors: ['boom'] }), 5, 0);
+
+    expect(retryManager.getErrorCount('returns_failure')).toBe(1);
+  });
+
+  it('시간 초과가 나도 본문이 끝날 때까지 잠금을 쥔다', async () => {
+    vi.useFakeTimers();
+    try {
+      const { coordinator, jobQueue } = createCoordinator({ jobTimeout: 100 });
+
+      const runPromise = coordinator.executeJobWithRetry(
+        'slow_job',
+        () => new Promise(resolve => setTimeout(resolve, 300)),
+        5,
+        0
+      );
+      await vi.advanceTimersByTimeAsync(150);
+      await runPromise;
+
+      expect(jobQueue.isRunning('slow_job')).toBe(true);
+      await vi.advanceTimersByTimeAsync(200);
+      expect(jobQueue.isRunning('slow_job')).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('끝나지 않는 본문은 한도를 한 번 더 기다린 뒤 잠금을 푼다', async () => {
+    vi.useFakeTimers();
+    try {
+      const { coordinator, jobQueue } = createCoordinator({ jobTimeout: 100 });
+
+      const runPromise = coordinator.executeJobWithRetry('hung_job', () => new Promise(() => {}), 5, 0);
+      await vi.advanceTimersByTimeAsync(150);
+      await runPromise;
+      expect(jobQueue.isRunning('hung_job')).toBe(true);
+
+      await vi.advanceTimersByTimeAsync(100);
+      expect(jobQueue.isRunning('hung_job')).toBe(false);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
