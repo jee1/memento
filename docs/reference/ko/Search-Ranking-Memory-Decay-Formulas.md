@@ -111,13 +111,12 @@ $\text{dup\_ratio}$: 군집 내 유사 항목 비중(없으면 duplication_penal
 
 ### 삭제 정책(예시)
 
-- **소프트 삭제 후보**: $\text{ForgetScore} \geq \theta_{\text{soft}}$ AND $\text{age\_days} \geq \text{TTL}_{\text{soft}}(\text{type})$
-- **하드 삭제**: $\text{ForgetScore} \geq \theta_{\text{hard}}$ AND $\text{age\_days} \geq \text{TTL}_{\text{hard}}(\text{type})$
+- **소프트 삭제 후보**: $\text{age\_days} \geq \text{TTL}_{\text{soft}}(\text{type})$ AND ($\text{type} = \text{working}$ OR $\text{ForgetScore} \geq \theta_{\text{soft}}$). working 은 점수와 관계없이 TTL 로 지운다(#1743).
+- **하드 삭제**: 점수로 하지 않는다. 소프트 삭제 뒤 `SOFT_DELETE_GRACE_PERIOD_DAYS`(기본 30일)가 지난 행만 영구 삭제한다(#1389).
 
-**권장값(M1)**:
-- $\theta_{\text{soft}}=0.6$, $\theta_{\text{hard}}=0.8$
-- $\text{TTL}_{\text{soft}}(\text{working})=2$, $\text{TTL}_{\text{soft}}(\text{episodic})=30$, $\text{TTL}_{\text{soft}}(\text{semantic})=\infty$
-- $\text{TTL}_{\text{hard}}(\text{working})=7$, $\text{TTL}_{\text{hard}}(\text{episodic})=180$, $\text{TTL}_{\text{hard}}(\text{semantic})=\infty$
+**현재 값**:
+- $\theta_{\text{soft}}=0.6$
+- $\text{TTL}_{\text{soft}}$: working 2, episodic 30, procedural 90, semantic 180 (일)
 
 ### 7.2 간격 반복(Spaced Review) 스케줄
 

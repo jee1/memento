@@ -111,13 +111,12 @@ $\text{dup\_ratio}$: Proportion of similar items in cluster (if none, normalize 
 
 ### Deletion Policy (Example)
 
-- **Soft deletion candidates**: $\text{ForgetScore} \geq \theta_{\text{soft}}$ AND $\text{age\_days} \geq \text{TTL}_{\text{soft}}(\text{type})$
-- **Hard deletion**: $\text{ForgetScore} \geq \theta_{\text{hard}}$ AND $\text{age\_days} \geq \text{TTL}_{\text{hard}}(\text{type})$
+- **Soft deletion candidates**: $\text{age\_days} \geq \text{TTL}_{\text{soft}}(\text{type})$ AND ($\text{type} = \text{working}$ OR $\text{ForgetScore} \geq \theta_{\text{soft}}$). Working memory is deleted by TTL alone, whatever its score (#1743).
+- **Hard deletion**: not score-based. Only rows soft-deleted longer than `SOFT_DELETE_GRACE_PERIOD_DAYS` (default 30 days) are permanently deleted (#1389).
 
-**Recommended values (M1)**:
-- $\theta_{\text{soft}}=0.6$, $\theta_{\text{hard}}=0.8$
-- $\text{TTL}_{\text{soft}}(\text{working})=2$, $\text{TTL}_{\text{soft}}(\text{episodic})=30$, $\text{TTL}_{\text{soft}}(\text{semantic})=\infty$
-- $\text{TTL}_{\text{hard}}(\text{working})=7$, $\text{TTL}_{\text{hard}}(\text{episodic})=180$, $\text{TTL}_{\text{hard}}(\text{semantic})=\infty$
+**Current values**:
+- $\theta_{\text{soft}}=0.6$
+- $\text{TTL}_{\text{soft}}$: working 2, episodic 30, procedural 90, semantic 180 (days)
 
 ### 7.2 Spaced Review Schedule
 
