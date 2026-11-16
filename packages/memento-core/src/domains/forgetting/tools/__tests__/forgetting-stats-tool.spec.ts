@@ -49,7 +49,6 @@ describe('ForgettingStatsTool', () => {
       expect(resultData).toHaveProperty('stats');
       expect(resultData.stats).toHaveProperty('totalMemories');
       expect(resultData.stats).toHaveProperty('forgetCandidates');
-      expect(resultData.stats).toHaveProperty('reviewCandidates');
       expect(resultData.stats).toHaveProperty('averageForgetScore');
       expect(resultData.stats).toHaveProperty('memoryDistribution');
       expect(resultData).toHaveProperty('message', '망각 통계 조회 완료');
@@ -92,7 +91,6 @@ describe('ForgettingStatsTool', () => {
       const resultData = JSON.parse(result.content[0].text);
       expect(resultData.stats.totalMemories).toBe(0);
       expect(resultData.stats.forgetCandidates).toBe(0);
-      expect(resultData.stats.reviewCandidates).toBe(0);
     });
   });
 

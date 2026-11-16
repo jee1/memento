@@ -121,6 +121,8 @@ $\text{dup\_ratio}$: Proportion of similar items in cluster (if none, normalize 
 
 ### 7.2 Spaced Review Schedule
 
+> Not implemented: removed in #1743. The cleanup job's review step only reset `last_accessed` to now instead of issuing reminders, so no forget score reached the soft-delete threshold. The formulas below stay as a design record.
+
 $$p_{\text{recall}}(t) = \exp\left(-\frac{t}{\tau}\right)$$
 
 $$\tau_{\text{next}} = \tau_{\text{prev}} \cdot (1 + a_1 \cdot \text{importance} + a_2 \cdot \text{usage} + a_3 \cdot \text{feedback\_helpful} - a_4 \cdot \text{feedback\_bad})$$

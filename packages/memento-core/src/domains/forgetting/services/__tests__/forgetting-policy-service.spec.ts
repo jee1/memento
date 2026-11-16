@@ -37,7 +37,6 @@ describe('ForgettingPolicyService', () => {
 
       expect(result).toHaveProperty('softDeleted');
       expect(result).toHaveProperty('hardDeleted');
-      expect(result).toHaveProperty('reviewed');
       expect(result).toHaveProperty('totalProcessed');
       expect(result).toHaveProperty('summary');
     });
@@ -166,15 +165,6 @@ describe('ForgettingPolicyService', () => {
           },
         },
       ]);
-      vi.spyOn(service['spacedRepetition'], 'createReviewSchedule').mockReturnValue({
-        memory_id: memoryId,
-        current_interval: 7,
-        next_review: new Date(),
-        recall_probability: 0.4,
-        needs_review: false,
-        multiplier: 1,
-      });
-
       const first = await service.executeMemoryCleanup(db);
       expect(first.softDeleted).toContain(memoryId);
       expect(first.hardDeleted).not.toContain(memoryId);
@@ -215,19 +205,6 @@ describe('ForgettingPolicyService', () => {
       vi.unstubAllEnvs();
     });
 
-    it('리뷰 후보를 처리해야 함', async () => {
-      createTestMemory(db, {
-        content: 'Review candidate',
-        type: 'semantic',
-        importance: 0.8,
-        pinned: false
-      });
-
-      const result = await service.executeMemoryCleanup(db);
-
-      expect(result.summary.actualReviews).toBeGreaterThanOrEqual(0);
-    });
-
     it('여러 타입의 메모리를 처리해야 함', async () => {
       createTestMemory(db, { content: 'Working memory', type: 'working', pinned: false });
       createTestMemory(db, { content: 'Episodic memory', type: 'episodic', pinned: false });
@@ -250,7 +227,6 @@ describe('ForgettingPolicyService', () => {
 
       expect(stats).toHaveProperty('totalMemories');
       expect(stats).toHaveProperty('forgetCandidates');
-      expect(stats).toHaveProperty('reviewCandidates');
       expect(stats).toHaveProperty('averageForgetScore');
       expect(stats).toHaveProperty('memoryDistribution');
 
@@ -797,7 +773,7 @@ describe('ForgettingPolicyService', () => {
       return Number(row?.is_deleted) === 1;
     }
 
-    it.fails('정리는 last_accessed 를 지금으로 바꾸지 않는다', async () => {
+    it('정리는 last_accessed 를 지금으로 바꾸지 않는다', async () => {
       seedRecentEpisodic(20);
       const lastAccessed = new Date(Date.now() - 5 * DAY_MS).toISOString();
       const id = createTestMemory(db, { content: 'target', type: 'episodic', importance: 0.5 });
@@ -813,7 +789,7 @@ describe('ForgettingPolicyService', () => {
       expect(row.last_accessed).toBe(lastAccessed);
     });
 
-    it.fails('접근이 끊긴 기억은 매일 정리를 60일 돌리면 소프트 삭제된다', async () => {
+    it('접근이 끊긴 기억은 매일 정리를 60일 돌리면 소프트 삭제된다', async () => {
       seedRecentEpisodic(20);
       const id = createTestMemory(db, { content: 'target', type: 'episodic', importance: 0.1 });
       DatabaseUtils.run(db, 'UPDATE memory_item SET created_at = ?, last_accessed = ? WHERE id = ?', [
@@ -830,7 +806,7 @@ describe('ForgettingPolicyService', () => {
       expect(isSoftDeleted(id)).toBe(true);
     });
 
-    it.fails('48시간이 지난 working 기억은 중요도가 운영 평균(0.6)이어도 소프트 삭제된다', async () => {
+    it('48시간이 지난 working 기억은 중요도가 운영 평균(0.6)이어도 소프트 삭제된다', async () => {
       seedRecentEpisodic(20);
       const id = createTestMemory(db, { content: 'scratch', type: 'working', importance: 0.6 });
       DatabaseUtils.run(db, 'UPDATE memory_item SET created_at = ? WHERE id = ?', [

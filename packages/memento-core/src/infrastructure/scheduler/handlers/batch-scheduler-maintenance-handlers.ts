@@ -45,8 +45,7 @@ export async function runMemoryCleanup(ctx: BatchSchedulerRunContext): Promise<B
     ctx.log('Memory cleanup completed', {
       processed: cleanupResult.totalProcessed,
       softDeleted: cleanupResult.softDeleted.length,
-      hardDeleted: cleanupResult.hardDeleted.length,
-      reviewed: cleanupResult.reviewed.length
+      hardDeleted: cleanupResult.hardDeleted.length
     });
   } catch (error) {
     result.errors.push(error instanceof Error ? error.message : String(error));

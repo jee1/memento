@@ -121,6 +121,8 @@ $\text{dup\_ratio}$: 군집 내 유사 항목 비중(없으면 duplication_penal
 
 ### 7.2 간격 반복(Spaced Review) 스케줄
 
+> 구현 없음: #1743 에서 지웠다. 정리 잡의 리뷰 단계가 리마인드 대신 `last_accessed` 만 지금으로 바꿔 망각 점수가 소프트 삭제 기준에 닿지 못했다. 아래 식은 설계 기록으로만 남긴다.
+
 $$p_{\text{recall}}(t) = \exp\left(-\frac{t}{\tau}\right)$$
 
 $$\tau_{\text{next}} = \tau_{\text{prev}} \cdot (1 + a_1 \cdot \text{importance} + a_2 \cdot \text{usage} + a_3 \cdot \text{feedback\_helpful} - a_4 \cdot \text{feedback\_bad})$$

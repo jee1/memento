@@ -60,7 +60,7 @@ Memento follows the "Functional Core, Structured Shell" principle. Domain logic 
 | memory/ | store (remember), retrieve (recall), pin, forget, procedural memory |
 | search/ | hybrid search (FTS5 + vector) |
 | embedding/ | multiple embedding providers (tfidf, minilm, openai, gemini) |
-| forgetting/ | TTL policy + spaced repetition |
+| forgetting/ | TTL and forget-score policy |
 | anchor/ | A/B/C slot anchor-based context search |
 | relation/ | relation extraction (LLM + rule-based) + triple extraction |
 | consolidation/ | sleep consolidation (episodic → semantic distillation) |

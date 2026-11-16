@@ -1,45 +1,60 @@
+/**
+ * 망각 정리를 DB 사본에서 미리 돌려 유형별 소프트 삭제 수를 센다 (#1743).
+ * 접근 없이 N 일이 흐른 상태(created_at, last_accessed 를 N 일 당김)를 만든 뒤 실제 ForgettingPolicyService 를 돌린다.
+ *
+ * usage: npx tsx scripts/forgetting-dry-run.ts <db 사본> [일수,...]
+ * 원본은 읽기 전용으로 열어 SQLite backup 으로 임시 사본을 만든다(WAL 내용 포함).
+ */
+import { mkdtempSync, rmSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import Database from 'better-sqlite3';
-import { ForgettingAlgorithm } from '../packages/memento-core/src/domains/forgetting/algorithms/forgetting-algorithm.ts';
+import { ForgettingPolicyService } from '../packages/memento-core/src/domains/forgetting/services/forgetting-policy-service.ts';
+import { configureSqliteSession } from '../packages/memento-core/src/infrastructure/database/sqlite/init-sqlite-session.ts';
 
-const DAY = 86_400_000;
-const TTL_SOFT: Record<string, number> = { working: 2, episodic: 30, semantic: 180, procedural: 90 };
-const db = new Database(process.argv[2], { readonly: true });
-const rows = db.prepare(`
-  SELECT id, created_at, last_accessed, last_accessed_at, importance, pinned, type,
-         COALESCE(view_count,0) view_count, COALESCE(cite_count,0) cite_count, COALESCE(edit_count,0) edit_count
-  FROM memory_item WHERE pinned = 0 AND COALESCE(is_deleted,0) = 0`).all() as any[];
-
-const realNow = Date.now;
-function run(label: string, offsetDays: number, access: (r: any) => string | undefined) {
-  Date.now = () => realNow() + offsetDays * DAY;
-  const RealDate = globalThis.Date;
-  const shift = offsetDays * DAY;
-  class Shifted extends RealDate {
-    constructor(...a: any[]) { if (a.length === 0) super(realNow() + shift); else super(...(a as [any])); }
-  }
-  (globalThis as any).Date = Shifted;
-  const algo = new ForgettingAlgorithm();
-  const memories = rows.map(r => ({ ...r, pinned: Boolean(r.pinned), last_accessed: access(r) }));
-  const res = algo.analyzeForgetCandidates(memories);
-  const byId = new Map(memories.map(m => [m.id, m]));
-  const counts: Record<string, number> = {};
-  let ttlOnlyWorking = 0;
-  for (const r of res) {
-    const m = byId.get(r.memory_id)!;
-    const age = (realNow() + shift - new RealDate(m.created_at).getTime()) / DAY;
-    if (r.should_forget && age >= TTL_SOFT[m.type]) counts[m.type] = (counts[m.type] ?? 0) + 1;
-  }
-  for (const m of memories) {
-    const age = (realNow() + shift - new RealDate(m.created_at).getTime()) / DAY;
-    if (m.type === 'working' && age >= TTL_SOFT.working) ttlOnlyWorking++;
-  }
-  (globalThis as any).Date = RealDate;
-  Date.now = realNow;
-  console.log(label.padEnd(44), JSON.stringify(counts), 'working_past_ttl:', ttlOnlyWorking);
+const [source, daysArg = '0,30,60,90'] = process.argv.slice(2);
+if (!source) {
+  console.error('usage: npx tsx scripts/forgetting-dry-run.ts <db 사본> [일수,...]');
+  process.exit(64);
 }
 
-console.log('rows', rows.length);
-run('current last_accessed, now', 0, r => r.last_accessed ?? undefined);
-for (const d of [30, 60, 90, 180]) run(`frozen last_accessed, +${d}d`, d, r => r.last_accessed ?? undefined);
-run('last_accessed_at only, now', 0, r => r.last_accessed_at ?? undefined);
-run('no access signal, now', 0, () => undefined);
+const shift = (column: string, days: number) =>
+  `${column} = CASE WHEN ${column} IS NULL THEN NULL ELSE strftime('%Y-%m-%dT%H:%M:%fZ', ${column}, '-${days} days') END`;
+
+const dir = mkdtempSync(join(tmpdir(), 'forgetting-dry-run-'));
+try {
+  for (const days of daysArg.split(',').map(Number)) {
+    if (!Number.isInteger(days) || days < 0) throw new Error(`일수는 0 이상 정수: ${daysArg}`);
+    const copy = join(dir, `run-${days}.db`);
+    const src = new Database(source, { readonly: true });
+    await src.backup(copy);
+    src.close();
+    const db = new Database(copy);
+    await configureSqliteSession(db);
+    db.exec(`UPDATE memory_item SET ${shift('created_at', days)}, ${shift('last_accessed', days)}`);
+    const readAccess = () =>
+      new Map(
+        (db.prepare('SELECT id, last_accessed FROM memory_item').all() as { id: string; last_accessed: string | null }[])
+          .map((r) => [r.id, r.last_accessed]),
+      );
+    const before = readAccess();
+
+    const result = await new ForgettingPolicyService().executeMemoryCleanup(db);
+
+    const typeOf = db.prepare('SELECT type FROM memory_item WHERE id = ?');
+    const softDeleted: Record<string, number> = {};
+    for (const id of result.softDeleted) {
+      const { type } = typeOf.get(id) as { type: string };
+      softDeleted[type] = (softDeleted[type] ?? 0) + 1;
+    }
+    const deletedIds = new Set(result.softDeleted);
+    let lastAccessedTouched = 0;
+    for (const [id, value] of readAccess()) {
+      if (!deletedIds.has(id) && before.get(id) !== value) lastAccessedTouched++;
+    }
+    console.log(JSON.stringify({ days, processed: result.totalProcessed, softDeleted, hardDeleted: result.hardDeleted.length, lastAccessedTouched }));
+    db.close();
+  }
+} finally {
+  rmSync(dir, { recursive: true, force: true });
+}
