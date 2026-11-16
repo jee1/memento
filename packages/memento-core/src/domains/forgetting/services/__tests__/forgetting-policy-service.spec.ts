@@ -845,4 +845,43 @@ describe('ForgettingPolicyService', () => {
       expect(events).toHaveLength(1);
     });
   });
+
+  describe('#1751 쓰임은 recall 기록에서', () => {
+    const daysAgo = (n: number) => new Date(Date.now() - n * DAY_MS).toISOString();
+
+    function seedOldEpisodic(): string {
+      const id = createTestMemory(db, { content: 'old', type: 'episodic', importance: 0 });
+      DatabaseUtils.run(db, 'UPDATE memory_item SET created_at = ?, last_accessed = ? WHERE id = ?', [daysAgo(400), daysAgo(400), id]);
+      return id;
+    }
+
+    function seedRecallStats(memoryId: string, stats: { createdAt: string; lastRecalledAt?: string; recallCount?: number }): void {
+      DatabaseUtils.run(
+        db,
+        'INSERT INTO meta_memory_stats (memory_id, recall_count, last_recalled_at, created_at, updated_at) VALUES (?, ?, ?, ?, ?)',
+        [memoryId, stats.recallCount ?? 0, stats.lastRecalledAt ?? null, stats.createdAt, stats.createdAt],
+      );
+    }
+
+    it.fails('최근 recall 된 기억은 오래되었어도 소프트 삭제하지 않는다', async () => {
+      const recalled = seedOldEpisodic();
+      const unused = seedOldEpisodic();
+      seedRecallStats(recalled, { createdAt: daysAgo(400), lastRecalledAt: daysAgo(1), recallCount: 5 });
+
+      const result = await new ForgettingPolicyService({ softDeleteThreshold: 0.3 }).executeMemoryCleanup(db);
+
+      expect(result.softDeleted).toContain(unused);
+      expect(result.softDeleted).not.toContain(recalled);
+    });
+
+    it.fails('통계 수집 시작 전 기간은 안 쓰임으로 세지 않는다', async () => {
+      const id = seedOldEpisodic();
+      const witness = createTestMemory(db, { content: 'witness', type: 'semantic', pinned: true });
+      seedRecallStats(witness, { createdAt: daysAgo(5) });
+
+      const result = await new ForgettingPolicyService({ softDeleteThreshold: 0.3 }).executeMemoryCleanup(db);
+
+      expect(result.softDeleted).not.toContain(id);
+    });
+  });
 });

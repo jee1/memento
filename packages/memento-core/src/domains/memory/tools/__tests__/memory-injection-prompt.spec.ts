@@ -778,5 +778,31 @@ describe('MemoryInjectionPrompt', () => {
       expect(definition.inputSchema.properties.owner_id).toBeDefined();
     });
   });
-});
 
+  it.fails('주입한 기억을 recall 통계에 기록한다 (#1751)', async () => {
+    const hit = (id: string, finalScore: number) => ({
+      id, content: `injected ${id}`, type: 'semantic', importance: 0.5, created_at: new Date().toISOString(),
+      pinned: false, textScore: finalScore, vectorScore: finalScore, finalScore, recall_reason: 'test',
+    });
+    const recordRecall = vi.fn().mockResolvedValue(undefined);
+    const injectionContext = {
+      ...context,
+      services: {
+        ...context.services,
+        hybridSearchEngine: { search: vi.fn().mockResolvedValue({ items: [hit('mem_a', 0.9), hit('mem_b', 0.8)] }) },
+        metaMemoryService: { recordRecall },
+      },
+    } as unknown as ToolContext;
+    const scoreMin = mementoConfig.memoryInjectionItemScoreMin;
+    (mementoConfig as { memoryInjectionItemScoreMin: number }).memoryInjectionItemScoreMin = 0;
+    try {
+      await tool.handle({ query: 'injected' }, injectionContext);
+    } finally {
+      (mementoConfig as { memoryInjectionItemScoreMin: number }).memoryInjectionItemScoreMin = scoreMin;
+    }
+
+    expect(recordRecall).toHaveBeenCalledTimes(1);
+    expect(recordRecall.mock.calls[0][0].map((item: { memory_id: string; final_score: number }) => [item.memory_id, item.final_score]))
+      .toEqual([['mem_a', 0.9], ['mem_b', 0.8]]);
+  });
+});

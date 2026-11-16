@@ -272,5 +272,15 @@ describe('PinTool', () => {
       ).rejects.toThrow();
     });
   });
-});
 
+  it.fails('핀 고정은 last_accessed 를 바꾸지 않는다 (#1751)', async () => {
+    const memoryId = createTestMemory(db, { content: 'touch check', type: 'episodic', pinned: false });
+    const lastAccessed = new Date(Date.now() - 40 * 86_400_000).toISOString();
+    DatabaseUtils.run(db, 'UPDATE memory_item SET last_accessed = ? WHERE id = ?', [lastAccessed, memoryId]);
+
+    await tool.handle({ id: memoryId }, context);
+
+    const row = DatabaseUtils.get(db, 'SELECT last_accessed FROM memory_item WHERE id = ?', [memoryId]) as { last_accessed: string };
+    expect(row.last_accessed).toBe(lastAccessed);
+  });
+});
