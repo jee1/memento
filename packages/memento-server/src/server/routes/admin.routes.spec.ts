@@ -141,7 +141,7 @@ function deleteAdmin(port: number, path: string): Promise<{ statusCode: number; 
 }
 
 describe('admin.routes live stats and maintenance', () => {
-  it('preserves performance, forgetting, optimize, and cleanup route contracts', async () => {
+  it('preserves performance, forgetting, and optimize route contracts', async () => {
     const database = new Database(':memory:');
     database.exec(`
       CREATE TABLE memory_item (
@@ -174,16 +174,6 @@ describe('admin.routes live stats and maintenance', () => {
       const optimize = await postAdminJson(port, '/admin/database/optimize', {});
       expect(optimize.statusCode).toBe(200);
       expect(JSON.parse(optimize.body)).toMatchObject({ message: '데이터베이스 최적화 완료' });
-
-      const cleanup = await postAdminJson(port, '/admin/memory/cleanup', {});
-      expect(cleanup.statusCode).toBe(200);
-      expect(JSON.parse(cleanup.body)).toMatchObject({
-        message: '메모리 정리 완료',
-        deleted_count: 1,
-      });
-      expect(database.prepare('SELECT id FROM memory_item ORDER BY id').all()).toEqual([
-        { id: 'semantic-pinned' },
-      ]);
     } finally {
       await new Promise<void>((resolve, reject) => {
         server.close(error => error ? reject(error) : resolve());
@@ -192,7 +182,7 @@ describe('admin.routes live stats and maintenance', () => {
     }
   });
 
-  it.fails('memory/cleanup 은 48시간 지난 working 을 소프트 삭제하고 행을 남긴다 (#1749)', async () => {
+  it('memory/cleanup 은 48시간 지난 working 을 소프트 삭제하고 행을 남긴다 (#1749)', async () => {
     const ctx = await setupTestDatabase();
     const app = express();
     app.use(express.json());

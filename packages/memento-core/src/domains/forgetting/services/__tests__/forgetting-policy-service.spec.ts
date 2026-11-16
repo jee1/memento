@@ -133,9 +133,7 @@ describe('ForgettingPolicyService', () => {
       vi.stubEnv('SOFT_DELETE_GRACE_PERIOD_DAYS', '7');
       service = new ForgettingPolicyService({
         softDeleteThreshold: 0.1,
-        hardDeleteThreshold: 0.5,
         ttlSoft: { working: 1, episodic: 1, semantic: 999, procedural: 999 },
-        ttlHard: { working: 1, episodic: 1, semantic: 999, procedural: 999 },
       });
 
       const memoryId = createTestMemory(db, {
@@ -154,7 +152,6 @@ describe('ForgettingPolicyService', () => {
         {
           memory_id: memoryId,
           forget_score: 0.95,
-          should_forget: true,
           reason: '사용되지 않음',
           features: {
             recency: 0.05,
@@ -247,37 +244,7 @@ describe('ForgettingPolicyService', () => {
     });
   });
 
-  describe('shouldForget (ForgettingAlgorithm 직접 테스트)', () => {
-    it('망각 점수가 임계값 이상이면 망각해야 함', async () => {
-      // Given: ForgettingAlgorithm 직접 사용
-      const { ForgettingAlgorithm } = await import('../../algorithms/forgetting-algorithm.js');
-      const algorithm = new ForgettingAlgorithm();
-      
-      const forgetScore = 0.7; // 임계값(0.6) 이상
-      const threshold = 0.6;
-
-      // When: shouldForget 직접 호출
-      const shouldForget = algorithm.shouldForget(forgetScore, threshold);
-
-      // Then: 망각해야 함
-      expect(shouldForget).toBe(true);
-    });
-
-    it('망각 점수가 임계값 미만이면 망각하지 않아야 함', async () => {
-      // Given: ForgettingAlgorithm 직접 사용
-      const { ForgettingAlgorithm } = await import('../../algorithms/forgetting-algorithm.js');
-      const algorithm = new ForgettingAlgorithm();
-      
-      const forgetScore = 0.5; // 임계값(0.6) 미만
-      const threshold = 0.6;
-
-      // When: shouldForget 직접 호출
-      const shouldForget = algorithm.shouldForget(forgetScore, threshold);
-
-      // Then: 망각하지 않아야 함
-      expect(shouldForget).toBe(false);
-    });
-
+  describe('고정 기억', () => {
     it('고정된 메모리는 망각하지 않아야 함', async () => {
       // Given: 고정된 메모리 생성
       createTestMemory(db, {
@@ -723,9 +690,7 @@ describe('ForgettingPolicyService', () => {
   describe('커스텀 설정', () => {
     it('커스텀 설정으로 서비스를 생성할 수 있어야 함', () => {
       const customService = new ForgettingPolicyService({
-        forgetThreshold: 0.7,
         softDeleteThreshold: 0.7,
-        hardDeleteThreshold: 0.9
       });
 
       expect(customService).toBeDefined();
@@ -738,12 +703,6 @@ describe('ForgettingPolicyService', () => {
           episodic: 15,
           semantic: 90,
           procedural: 45
-        },
-        ttlHard: {
-          working: 3,
-          episodic: 90,
-          semantic: 180,
-          procedural: 90
         }
       });
 
@@ -822,11 +781,11 @@ describe('ForgettingPolicyService', () => {
 
   describe('#1747 softDeleteThreshold', () => {
     it('0.6 아래로 낮춘 임계값이 그대로 적용된다', async () => {
-      const id = createTestMemory(db, { content: 'old', type: 'episodic', importance: 0.5 });
+      const id = createTestMemory(db, { content: 'old', type: 'episodic', importance: 1 });
       const longAgo = new Date(Date.now() - 200 * DAY_MS).toISOString();
       DatabaseUtils.run(db, 'UPDATE memory_item SET created_at = ?, last_accessed = ? WHERE id = ?', [longAgo, longAgo, id]);
 
-      // 망각 점수 약 0.52 (유형 비중 0, 중요도 0.5)
+      // 망각 점수 약 0.56 (episodic 유형 비중 0.57, 중요도 1)
       expect((await new ForgettingPolicyService().executeMemoryCleanup(db)).softDeleted).not.toContain(id);
       const result = await new ForgettingPolicyService({ softDeleteThreshold: 0.3 }).executeMemoryCleanup(db);
 
@@ -842,7 +801,7 @@ describe('ForgettingPolicyService', () => {
       return { id, longAgo };
     }
 
-    it.fails('user-directive 태그 기억은 점수가 넘어도 소프트 삭제하지 않는다', async () => {
+    it('user-directive 태그 기억은 점수가 넘어도 소프트 삭제하지 않는다', async () => {
       const directive = seedOld('semantic', ['user-directive']);
       const plain = seedOld('semantic', ['knowledge']);
 
@@ -852,7 +811,7 @@ describe('ForgettingPolicyService', () => {
       expect(result.softDeleted).not.toContain(directive.id);
     });
 
-    it.fails('소프트 삭제는 last_accessed 를 바꾸지 않는다', async () => {
+    it('소프트 삭제는 last_accessed 를 바꾸지 않는다', async () => {
       const { id, longAgo } = seedOld('episodic');
 
       const result = await new ForgettingPolicyService({ softDeleteThreshold: 0.3 }).executeMemoryCleanup(db);

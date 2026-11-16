@@ -553,12 +553,13 @@ Retrieves neighbor memories similar to a specific memory.
 ```http
 POST /admin/memory/cleanup
 ```
-Cleans up memories.
+Runs the daily forgetting cleanup once now. It soft-deletes candidates and permanently deletes rows past the 30-day grace period. `deleted_count` is the number soft-deleted in this run.
 
 **Response:**
 ```json
 {
-  "message": "Memory cleanup completed"
+  "message": "메모리 정리 완료",
+  "deleted_count": 81
 }
 ```
 

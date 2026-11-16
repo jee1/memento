@@ -105,13 +105,13 @@ $$\text{ForgetScore} = u_1 \cdot (1 - \text{recency}) + u_2 \cdot (1 - \text{usa
 
 **기본 계수(M1)**: $u_1=0.35$, $u_2=0.25$, $u_3=0.20$, $u_4=0.15$, $u_5=0.30$
 
-$\text{dup\_ratio}$: 군집 내 유사 항목 비중(없으면 duplication_penalty를 0~1로 정규화해 대체)
+$\text{dup\_ratio}$: 유형별 고정값. episodic 0.57, semantic 0.39, procedural 0.04, working 0.01(2026-11 운영 DB 의 유형 비중). 정리 때마다 비중을 다시 세면 episodic 이 지워질수록 semantic 점수가 올라 지식 기억이 연쇄로 지워졌다(#1749).
 
-**해석**: 오래되고($1-\text{recency}↑$), 안 쓰이고($1-\text{usage}↑$), 중복 많을수록($\text{dup\_ratio}↑$) 지우기 쉽다. 중요하거나 핀인 항목은 보호.
+**해석**: 오래되고($1-\text{recency}↑$), 안 쓰이고($1-\text{usage}↑$), 기억이 많이 쌓이는 유형일수록($\text{dup\_ratio}↑$) 지우기 쉽다. 중요하거나 핀인 항목은 보호.
 
 ### 삭제 정책(예시)
 
-- **소프트 삭제 후보**: $\text{age\_days} \geq \text{TTL}_{\text{soft}}(\text{type})$ AND ($\text{type} = \text{working}$ OR $\text{ForgetScore} \geq \theta_{\text{soft}}$). working 은 점수와 관계없이 TTL 로 지운다(#1743).
+- **소프트 삭제 후보**: $\text{age\_days} \geq \text{TTL}_{\text{soft}}(\text{type})$ AND ($\text{type} = \text{working}$ OR $\text{ForgetScore} \geq \theta_{\text{soft}}$). working 은 점수와 관계없이 TTL 로 지운다(#1743). 핀 고정과 `user-directive` 태그 기억은 후보에서 뺀다(#1749).
 - **하드 삭제**: 점수로 하지 않는다. 소프트 삭제 뒤 `SOFT_DELETE_GRACE_PERIOD_DAYS`(기본 30일)가 지난 행만 영구 삭제한다(#1389).
 
 **현재 값**:

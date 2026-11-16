@@ -8,7 +8,7 @@ import { daysBetween } from '../../../shared/utils/date.js';
 export interface ForgettingFeatures {
   recency: number;        // 최근성 (0-1)
   usage: number;          // 사용성 (0-1)
-  duplication_ratio: number; // 중복 비율 (0-1)
+  duplication_ratio: number; // 유형별 고정 비중 (TYPE_DUPLICATION_RATIO)
   importance: number;     // 중요도 (0-1)
   pinned: boolean;        // 고정 여부
 }
@@ -24,10 +24,20 @@ interface ForgettingWeights {
 export interface ForgettingResult {
   memory_id: string;
   forget_score: number;
-  should_forget: boolean;
   reason: string;
   features: ForgettingFeatures;
 }
+
+/**
+ * 같은 유형 기억의 비중. 2026-11 운영 DB 의 유형 비중을 고정값으로 둔다 (#1749).
+ * 정리 때마다 다시 세면 episodic 이 지워질수록 semantic 비중이 올라 지식 기억이 연쇄로 지워졌다.
+ */
+const TYPE_DUPLICATION_RATIO: Record<string, number> = {
+  episodic: 0.57,
+  semantic: 0.39,
+  procedural: 0.04,
+  working: 0.01,
+};
 
 export class ForgettingAlgorithm {
   private readonly weights: ForgettingWeights;
@@ -59,13 +69,6 @@ export class ForgettingAlgorithm {
     return recencyScore + usageScore + duplicationScore - importanceScore - pinnedScore;
   }
 
-  /**
-   * 망각 점수가 임계값을 넘으면 저장 공간을 효율적으로 관리하기 위해 해당 기억을 망각 대상으로 결정합니다.
-   * 임계값을 조정하여 망각 정책의 엄격도를 제어할 수 있도록 합니다.
-   */
-  shouldForget(forgetScore: number, threshold: number = 0.6): boolean {
-    return forgetScore >= threshold;
-  }
 
   /**
    * 사용자에게 망각 결정의 근거를 명확히 전달하여 투명성을 보장합니다.
@@ -79,9 +82,6 @@ export class ForgettingAlgorithm {
     }
     if (features.usage < 0.2) {
       reasons.push('사용되지 않음');
-    }
-    if (features.duplication_ratio > 0.7) {
-      reasons.push('중복도 높음');
     }
     if (features.importance < 0.3) {
       reasons.push('중요도 낮음');
@@ -110,7 +110,7 @@ export class ForgettingAlgorithm {
     view_count?: number;
     cite_count?: number;
     edit_count?: number;
-  }, duplicates: number = 0, totalMemories: number = 1): ForgettingFeatures {
+  }): ForgettingFeatures {
     // 시간에 따른 기억의 자연스러운 감쇠를 반영하여 오래된 기억을 식별합니다.
     const recency = this.calculateRecency(new Date(memory.created_at), memory.type);
     
@@ -122,8 +122,7 @@ export class ForgettingAlgorithm {
       memory.edit_count || 0
     );
     
-    // 유사한 내용의 중복 기억을 식별하여 저장 공간을 효율적으로 관리합니다.
-    const duplication_ratio = totalMemories > 0 ? duplicates / totalMemories : 0;
+    const duplication_ratio = TYPE_DUPLICATION_RATIO[memory.type] ?? 0;
     
     // 사용자가 명시적으로 설정한 중요도를 그대로 사용하여 사용자의 의도를 존중합니다.
     const importance = memory.importance;
@@ -199,7 +198,7 @@ export class ForgettingAlgorithm {
 
   /**
    * 여러 메모리를 일괄 분석하여 망각 후보를 선정합니다.
-   * 중복도를 계산하고 각 메모리의 망각 점수를 산출하여 우선순위를 결정합니다.
+   * 각 메모리의 망각 점수를 산출해 높은 순으로 정렬합니다.
    */
   analyzeForgetCandidates(memories: Array<{
     id: string;
@@ -212,33 +211,17 @@ export class ForgettingAlgorithm {
     cite_count?: number;
     edit_count?: number;
   }>): ForgettingResult[] {
-    const results: ForgettingResult[] = [];
-    const totalMemories = memories.length;
-    
-    // 중복 기억을 식별하기 위해 간단한 구현을 사용하여 저장 공간을 효율적으로 관리합니다.
-    const contentMap = new Map<string, number>();
-    memories.forEach(memory => {
-      const key = memory.type; // 실제 구현에서는 내용 유사도로 계산하여 더 정확한 중복 감지를 수행합니다.
-      contentMap.set(key, (contentMap.get(key) || 0) + 1);
-    });
-    
-    for (const memory of memories) {
-      const duplicates = (contentMap.get(memory.type) || 1) - 1;
-      
-      const features = this.calculateFeatures(memory, duplicates, totalMemories);
-      const forgetScore = this.calculateForgetScore(features);
-      const shouldForget = this.shouldForget(forgetScore);
-      const reason = this.generateForgetReason(features, forgetScore);
-      
-      results.push({
-        memory_id: memory.id,
-        forget_score: forgetScore,
-        should_forget: shouldForget,
-        reason,
-        features
-      });
-    }
-    
-    return results.sort((a, b) => b.forget_score - a.forget_score);
+    return memories
+      .map((memory) => {
+        const features = this.calculateFeatures(memory);
+        const forgetScore = this.calculateForgetScore(features);
+        return {
+          memory_id: memory.id,
+          forget_score: forgetScore,
+          reason: this.generateForgetReason(features, forgetScore),
+          features,
+        };
+      })
+      .sort((a, b) => b.forget_score - a.forget_score);
   }
 }

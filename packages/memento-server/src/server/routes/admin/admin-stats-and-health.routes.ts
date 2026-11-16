@@ -5,7 +5,6 @@
 import type { Request, Response, Router } from 'express';
 import type Database from 'better-sqlite3';
 import {
-  deleteExpiredWorkingMemories,
   logger,
   queryMemoryCountsByTypeStats,
   queryMemoryForgettingStatsByType,
@@ -16,18 +15,18 @@ function databaseUnavailable(res: Response) {
   return res.status(500).json({ error: '데이터베이스가 연결되지 않았습니다' });
 }
 
-function postMemoryCleanup(db: Database.Database | null) {
+function postMemoryCleanup(db: Database.Database | null, serverServices: ServerServices | null) {
   return async (_req: Request, res: Response) => {
     try {
-      if (!db) {
+      if (!db || !serverServices) {
         return databaseUnavailable(res);
       }
 
-      const deletedCount = deleteExpiredWorkingMemories(db);
+      const result = await serverServices.forgettingPolicyService.executeMemoryCleanup(db);
 
       return res.json({
         message: '메모리 정리 완료',
-        deleted_count: deletedCount,
+        deleted_count: result.softDeleted.length,
         timestamp: new Date().toISOString()
       });
     } catch (error) {
@@ -224,7 +223,7 @@ export function registerAdminStatsAndHealthRoutes(
   db: Database.Database | null,
   serverServices: ServerServices | null
 ): void {
-  router.post('/memory/cleanup', postMemoryCleanup(db));
+  router.post('/memory/cleanup', postMemoryCleanup(db, serverServices));
   router.get('/stats/forgetting', getForgettingStats(db));
   router.get('/stats/performance', getPerformanceStats(db));
   router.get('/stats/consolidation', getConsolidationStats(db, serverServices));

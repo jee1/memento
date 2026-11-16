@@ -4,7 +4,6 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as ownedIds from '../../../../shared/utils/owned-ids.js';
 import {
   countActiveMemoryItems,
-  deleteExpiredWorkingMemories,
   deleteProjectMemoriesOlderThan,
   findAnchorMemorySummaryById,
   findMemoryProvenancePreviews,
@@ -176,7 +175,6 @@ describe('memory-item-repository query helpers (#1531)', () => {
     expect(queryMemoryForgettingStatsByType(db)).toContainEqual({
       type: 'working', total_count: 2, pinned_count: 1, old_count: 2,
     });
-    expect(deleteExpiredWorkingMemories(db)).toBe(1);
     expect(findMemoryResourceRowById(db, 'pinned', {})?.pinned).toBe(1);
     expect(findMemoryResourceRowById(db, 'deleted', {})).toBeUndefined();
   });
@@ -214,7 +212,6 @@ describe('memory-item-repository query helpers (#1531)', () => {
       pinned_memories: 1,
     });
 
-    expect(deleteExpiredWorkingMemories(db)).toBe(1);
     expect(deleteProjectMemoriesOlderThan(db, 'proj-a', ['episodic'], 30)).toBe(1);
   });
 });

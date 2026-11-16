@@ -15,11 +15,8 @@ import {
 import { ForgettingAlgorithm, type ForgettingResult } from '../algorithms/forgetting-algorithm.js';
 
 interface ForgettingPolicyConfig {
-  // 망각 정책 설정
-  forgetThreshold: number;        // 망각 임계값 (기본: 0.6)
   softDeleteThreshold: number;    // 소프트 삭제 임계값 (기본: 0.6)
-  hardDeleteThreshold: number;    // 하드 삭제 임계값 (기본: 0.8)
-  
+
   // TTL 설정 (일 단위)
   ttlSoft: {
     working: number;
@@ -27,15 +24,10 @@ interface ForgettingPolicyConfig {
     semantic: number;
     procedural: number;
   };
-  
-  ttlHard: {
-    working: number;
-    episodic: number;
-    semantic: number;
-    procedural: number;
-  };
-  
 }
+
+/** 주인 지침. 망각 정리 대상에서 뺀다 (#1749) */
+const USER_DIRECTIVE_TAG = 'user-directive';
 
 /** 망각 분석용 메모리 행 (getAllMemories) */
 interface PolicyMemoryRow {
@@ -73,20 +65,12 @@ export class ForgettingPolicyService {
     this.forgettingEventRepository = new ForgettingEventRepository();
     
     this.config = {
-      forgetThreshold: 0.6,
       softDeleteThreshold: 0.6,
-      hardDeleteThreshold: 0.8,
       ttlSoft: {
         working: 2,
         episodic: 30,
         semantic: 180,
         procedural: 90
-      },
-      ttlHard: {
-        working: 7,
-        episodic: 180,
-        semantic: 365,
-        procedural: 180
       },
       ...config
     };
@@ -157,8 +141,9 @@ export class ForgettingPolicyService {
       FROM memory_item
       WHERE pinned = FALSE
         AND (is_deleted IS NULL OR is_deleted = 0)
+        AND NOT EXISTS (SELECT 1 FROM json_each(CASE WHEN json_valid(tags) THEN tags ELSE '[]' END) WHERE value = ?)
       ORDER BY created_at DESC
-    `);
+    `, [USER_DIRECTIVE_TAG]);
 
     return (rows as PolicyMemoryRow[]).map((row) => ({
       id: row.id,
@@ -243,8 +228,7 @@ export class ForgettingPolicyService {
       UPDATE memory_item
       SET is_deleted = 1,
           deleted_at = ?,
-          pinned = 0,
-          last_accessed = CURRENT_TIMESTAMP
+          pinned = 0
       WHERE id = ?
         AND COALESCE(pinned, 0) = 0
     `,
