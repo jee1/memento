@@ -11,6 +11,7 @@ import ts from 'typescript';
  * 허용 목록과 FROZEN 상수를 같이 올려야 하고, 줄이면 둘을 같이 내린다.
  * 2026-10-30 HEAD 측정: 80파일 → server 8파일 이관 후 72파일.
  * 2026-11-15 앵커 다시 걸기 서비스 삭제로 71파일 (#1729).
+ * 2026-11-17 기억 삭제 전이 파일을 더하고 wipe 도구가 빠져 71파일 그대로 (#1752).
  * 방식은 #749 `dependency-boundaries.spec.ts` 를 따른다.
  */
 const repoRoot = path.resolve(import.meta.dirname, '..');
@@ -46,6 +47,10 @@ const MEMORY_ITEM_SQL_ALLOWLIST: readonly AllowlistEntry[] = [
   {
     path: 'packages/memento-core/src/domains/embedding/services/embedding-reindex-service.ts',
     rationale: 'embedding 도메인의 기존 기억 질의; 레인별 후속 이관 대상',
+  },
+  {
+    path: 'packages/memento-core/src/domains/forgetting/repositories/memory-delete-transitions.ts',
+    rationale: '기억 삭제 전이(#1752): is_deleted, deleted_at 을 쓰고 memory_item 을 지우는 유일한 곳',
   },
   {
     path: 'packages/memento-core/src/domains/forgetting/services/forgetting-policy-service.ts',
@@ -173,10 +178,6 @@ const MEMORY_ITEM_SQL_ALLOWLIST: readonly AllowlistEntry[] = [
   },
   {
     path: 'packages/memento-core/src/domains/memory/tools/unpin-tool.ts',
-    rationale: 'memory 도메인의 기존 기억 질의; 레인별 후속 이관 대상',
-  },
-  {
-    path: 'packages/memento-core/src/domains/memory/tools/wipe-memory-tool.ts',
     rationale: 'memory 도메인의 기존 기억 질의; 레인별 후속 이관 대상',
   },
   {

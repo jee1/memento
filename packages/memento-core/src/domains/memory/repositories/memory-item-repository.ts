@@ -6,8 +6,9 @@
 import type Database from 'better-sqlite3';
 import { callerMemoryScopeSql, type CallerMemoryScope } from '../../../shared/utils/owned-ids.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
-import { buildMemoryFilterSql, supersedeByActiveTargetSql } from '../../../shared/utils/memory-filter-sql.js';
+import { buildMemoryFilterSql, supersedeByActiveTargetSql, tagMatchSql } from '../../../shared/utils/memory-filter-sql.js';
 import { embeddingColumnToNumbers } from '../../../shared/utils/embedding-serialization.js';
+import { softDeleteMemoryItem } from '../../forgetting/index.js';
 
 export interface MemoryItemEntity {
   id: string;
@@ -457,27 +458,32 @@ export function listProjectMemoryCleanupCandidates(
        FROM memory_item
        WHERE project_id = ? AND type IN (${placeholders})
          AND created_at < datetime('now', '-${olderThanDays} days')
-         AND COALESCE(is_deleted, 0) = 0`,
+         AND COALESCE(is_deleted, 0) = 0
+         AND COALESCE(pinned, 0) = 0
+         AND NOT ${tagMatchSql()}`,
     )
-    .all(projectId, ...types) as ProjectMemoryCleanupCandidateRow[];
+    .all(projectId, ...types, 'user-directive') as ProjectMemoryCleanupCandidateRow[];
 }
 
+/**
+ * 프로젝트의 오래된 기억을 소프트 삭제한다 (#1752). 미리보기(listProjectMemoryCleanupCandidates)와 같은 행이다.
+ * 유예 30일 뒤 망각 정리가 영구 삭제한다. 전에는 유예와 이벤트 없이 바로 지웠다.
+ */
 export function deleteProjectMemoriesOlderThan(
   db: Database.Database,
   projectId: string,
   types: string[],
   olderThanDays: number,
 ): number {
-  const placeholders = types.map(() => '?').join(', ');
-  const result = db
-    .prepare(
-      `DELETE FROM memory_item
-       WHERE project_id = ? AND type IN (${placeholders})
-         AND created_at < datetime('now', '-${olderThanDays} days')
-         AND COALESCE(is_deleted, 0) = 0`,
-    )
-    .run(projectId, ...types);
-  return result.changes;
+  const candidates = listProjectMemoryCleanupCandidates(db, projectId, types, olderThanDays);
+  return db.transaction(() =>
+    candidates.filter((row) =>
+      softDeleteMemoryItem(db, row.id, {
+        reason: `project_cleanup_older_than_${olderThanDays}d`,
+        policy: 'project-cleanup',
+      }),
+    ).length,
+  )();
 }
 
 export function queryMemoryForgettingStatsByType(

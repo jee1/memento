@@ -739,5 +739,20 @@ describe('ForgetTool', () => {
       expect(resultData.memory_id).toBe(memoryId);
     });
   });
-});
 
+  it('이미 소프트 삭제된 기억을 다시 지우면 「이미 삭제됨」을 돌려주고 유예를 늘리지 않는다 (#1752)', async () => {
+    const memoryId = createTestMemory(db, { content: 'delete twice', type: 'episodic' });
+    await tool.handle({ id: memoryId, hard: false }, context);
+    const first = DatabaseUtils.get(db, 'SELECT deleted_at FROM memory_item WHERE id = ?', [memoryId]) as { deleted_at: string };
+    DatabaseUtils.run(db, 'UPDATE memory_item SET deleted_at = ? WHERE id = ?', ['2026-01-01T00:00:00.000Z', memoryId]);
+
+    const result = await tool.handle({ id: memoryId, hard: false }, context);
+
+    expect(first.deleted_at).toBeTruthy();
+    expect(JSON.parse(result.content[0].text)).toMatchObject({ memory_id: memoryId, already_deleted: true });
+    const row = DatabaseUtils.get(db, 'SELECT deleted_at FROM memory_item WHERE id = ?', [memoryId]) as { deleted_at: string };
+    expect(row.deleted_at).toBe('2026-01-01T00:00:00.000Z');
+    const events = DatabaseUtils.all(db, "SELECT id FROM memory_forgetting_event WHERE memory_id = ? AND action = 'soft'", [memoryId]);
+    expect(events).toHaveLength(1);
+  });
+});

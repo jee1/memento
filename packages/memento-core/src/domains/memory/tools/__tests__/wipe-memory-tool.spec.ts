@@ -176,4 +176,15 @@ describe('WipeMemoryTool', () => {
     const integrity = db.prepare('PRAGMA integrity_check').get() as { integrity_check: string };
     expect(integrity.integrity_check).toBe('ok');
   });
+
+  it('wipe 는 망각 이벤트를 hard, retention_wipe 로 남긴다 (#1752)', async () => {
+    const memoryId = createTestMemory(db, { content: 'wipe event', type: 'episodic' });
+
+    await tool.handle({ id: memoryId, dry_run: false }, context);
+
+    const events = db
+      .prepare('SELECT action, reason FROM memory_forgetting_event WHERE memory_id = ?')
+      .all(memoryId);
+    expect(events).toEqual([{ action: 'hard', reason: 'retention_wipe' }]);
+  });
 });

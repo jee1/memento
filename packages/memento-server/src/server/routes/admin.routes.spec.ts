@@ -1244,8 +1244,14 @@ describe('Project memory admin routes', () => {
         project_id TEXT,
         created_at TEXT DEFAULT (datetime('now')),
         is_deleted INTEGER DEFAULT 0,
-          deleted_at TEXT
-      )
+          deleted_at TEXT,
+        pinned INTEGER DEFAULT 0,
+        tags TEXT
+      );
+      CREATE TABLE IF NOT EXISTS memory_forgetting_event (
+        id TEXT PRIMARY KEY, memory_id TEXT NOT NULL, action TEXT NOT NULL, reason TEXT NOT NULL, policy TEXT NOT NULL,
+        forget_score REAL, ttl_days INTEGER, created_at TEXT NOT NULL, metadata_json TEXT
+      );
     `);
   });
 
@@ -1320,7 +1326,7 @@ describe('Project memory admin routes', () => {
     }
   });
 
-  it('DELETE /admin/memory/project/:project_id/cleanup deletes old memories', async () => {
+  it('DELETE /admin/memory/project/:project_id/cleanup soft-deletes old memories (#1752)', async () => {
     const old = new Date(Date.now() - 100 * DAY_MS).toISOString();
     db.exec(`INSERT INTO memory_item (id, type, content, importance, project_id, created_at, is_deleted) VALUES ('del1', 'episodic', 'del', 0.5, 'proj-del', '${old}', 0)`);
 
@@ -1330,8 +1336,9 @@ describe('Project memory admin routes', () => {
       expect(res.statusCode).toBe(200);
       const body = JSON.parse(res.body) as { deleted: number };
       expect(body.deleted).toBe(1);
-      const count = db.prepare(`SELECT COUNT(*) as c FROM memory_item WHERE id = 'del1'`).get() as { c: number };
-      expect(count.c).toBe(0);
+      const row = db.prepare(`SELECT is_deleted, deleted_at FROM memory_item WHERE id = 'del1'`).get() as { is_deleted: number; deleted_at: string | null };
+      expect(row.is_deleted).toBe(1);
+      expect(row.deleted_at).toBeTruthy();
     } finally {
       await new Promise<void>(r => server.close(() => r()));
     }

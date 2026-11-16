@@ -21,6 +21,7 @@ export function createFixtureDb(): Database.Database {
       owner_id TEXT,
       privacy_scope TEXT DEFAULT 'private',
       is_deleted BOOLEAN DEFAULT FALSE NOT NULL,
+      deleted_at TEXT,
       recall_count INTEGER,
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
     );
@@ -48,8 +49,9 @@ export function createFixtureDb(): Database.Database {
       memory_id TEXT REFERENCES memory_item(id) ON DELETE CASCADE
     );
     CREATE TABLE memory_forgetting_event (
-      id INTEGER PRIMARY KEY, memory_id TEXT, action TEXT,
-      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP
+      id TEXT PRIMARY KEY, memory_id TEXT NOT NULL, action TEXT NOT NULL,
+      reason TEXT, policy TEXT, forget_score REAL, ttl_days INTEGER,
+      created_at TEXT NOT NULL DEFAULT CURRENT_TIMESTAMP, metadata_json TEXT
     );
     CREATE TABLE kg_triple (
       id INTEGER PRIMARY KEY,

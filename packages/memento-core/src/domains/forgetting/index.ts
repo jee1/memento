@@ -1,4 +1,9 @@
-export { ForgettingEventRepository } from './repositories/forgetting-event-repository.js';
+export {
+  softDeleteMemoryItem,
+  hardDeleteMemoryItem,
+  type MemoryDeleteEvent,
+  type MemoryDeleteScope,
+} from './repositories/memory-delete-transitions.js';
 export type {
   ForgettingEventAction,
   ForgettingEventInsert,

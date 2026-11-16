@@ -12,7 +12,7 @@ import { BaseTool } from '../../../tools/base-tool.js';
 import type { ToolContext,ToolResult } from '../../../tools/types.js';
 import { CommonSchemas } from '../../../tools/types.js';
 import { callerOwnerClause } from '../../../tools/caller-scope.js';
-import { ForgettingEventRepository } from '../../forgetting/index.js';
+import { hardDeleteMemoryItem, softDeleteMemoryItem } from '../../forgetting/index.js';
 
 const MANUAL_FORGET_POLICY_NAME = 'manual-forget';
 const MANUAL_FORGET_DEFAULT_REASON = 'manual';
@@ -36,6 +36,8 @@ type MemoryDeleteRow = {
   created_at?: string;
   owner_id?: string | null;
   project_id?: string | null;
+  is_deleted?: boolean | number;
+  deleted_at?: string | null;
 };
 
 function memoryNotFoundError(id: string): Error {
@@ -52,7 +54,6 @@ type DeleteStats = Record<string, unknown> & {
 };
 
 export class ForgetTool extends BaseTool {
-  private readonly forgettingEventRepository = new ForgettingEventRepository();
 
   constructor() {
     super(
@@ -173,6 +174,18 @@ export class ForgetTool extends BaseTool {
         throw memoryNotFoundError(id);
       }
       
+      // #1752: 이미 소프트 삭제된 기억은 다시 지우지 않는다(유예가 다시 시작되지 않게). 영구 삭제는 그대로 한다.
+      if (!hard && Number(memory.is_deleted) === 1) {
+        return this.createSuccessResult({
+          memory_id: id,
+          deleted_type: 'soft',
+          already_deleted: true,
+          message: `이미 삭제된 기억입니다: ${id}`,
+          reason: reason || 'No reason provided',
+          deleted_at: memory.deleted_at ?? null,
+        });
+      }
+
       // 삭제 권한 확인
       await this.validateDeletePermission(memory, context);
       
@@ -183,10 +196,10 @@ export class ForgetTool extends BaseTool {
       await DatabaseUtils.runTransaction(context.db, async () => {
         if (hard) {
           // 하드 삭제: 완전 제거
-          return await this.performHardDelete(id, context);
+          return await this.performHardDelete(id, reason, context);
         } else {
-          // 소프트 삭제: TTL에 의해 나중에 삭제
-          return await this.performSoftDelete(id, context);
+          // 소프트 삭제: 유예 뒤 망각 정리가 영구 삭제
+          return await this.performSoftDelete(id, reason, context);
         }
       });
       
@@ -197,8 +210,6 @@ export class ForgetTool extends BaseTool {
       
       // 관련 데이터 정리
       await this.cleanupRelatedData(id, hard, context);
-
-      this.recordForgettingEvent(id, hard, reason, context);
 
       return this.createSuccessResult({
         memory_id: id,
@@ -260,19 +271,17 @@ export class ForgetTool extends BaseTool {
    */
   private async performHardDelete(
     id: string,
+    reason: string | undefined,
     context: ToolContext,
   ): Promise<DeleteOperationResult> {
     // Bound callers (tools/caller-scope.ts) only touch their own memories.
-    const ownerScope = callerOwnerClause(context);
-
-    // 메인 테이블에서 삭제
-    const deleteResult = await DatabaseUtils.run(
+    const deleted = hardDeleteMemoryItem(
       context.db,
-      `DELETE FROM memory_item WHERE id = ?${ownerScope.sql}`,
-      [id, ...ownerScope.params],
+      id,
+      { reason: reason || MANUAL_FORGET_DEFAULT_REASON, policy: MANUAL_FORGET_POLICY_NAME },
+      { includeLive: true, scope: callerOwnerClause(context) },
     );
-    
-    if (deleteResult.changes === 0) {
+    if (!deleted) {
       throw memoryNotFoundError(id);
     }
     
@@ -295,7 +304,7 @@ export class ForgetTool extends BaseTool {
       [id]
     );
     
-    return { type: 'hard', changes: deleteResult.changes };
+    return { type: 'hard', changes: 1 };
   }
 
   /**
@@ -303,24 +312,20 @@ export class ForgetTool extends BaseTool {
    */
   private async performSoftDelete(
     id: string,
+    reason: string | undefined,
     context: ToolContext,
   ): Promise<DeleteOperationResult> {
     // Bound callers (tools/caller-scope.ts) only touch their own memories.
-    const ownerScope = callerOwnerClause(context);
-
-    // pinned 해제 + is_deleted/deleted_at (망각 정책 softDeleteMemory 와 동일 컬럼; last_accessed 는 갱신하지 않음 — #1388)
-    const deletedAt = new Date().toISOString();
-    const updateResult = await DatabaseUtils.run(
+    const deleted = softDeleteMemoryItem(
       context.db,
-      `UPDATE memory_item SET pinned = FALSE, is_deleted = 1, deleted_at = ? WHERE id = ?${ownerScope.sql}`,
-      [deletedAt, id, ...ownerScope.params],
+      id,
+      { reason: reason || MANUAL_FORGET_DEFAULT_REASON, policy: MANUAL_FORGET_POLICY_NAME },
+      callerOwnerClause(context),
     );
-    
-    if (updateResult.changes === 0) {
+    if (!deleted) {
       throw memoryNotFoundError(id);
     }
-    
-    return { type: 'soft', changes: updateResult.changes };
+    return { type: 'soft', changes: 1 };
   }
 
   /**
@@ -371,32 +376,6 @@ export class ForgetTool extends BaseTool {
     } catch (error) {
       const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
       logger.warn('삭제 로그 기록 실패', {
-        error: maskedError.message
-      });
-    }
-  }
-
-  /**
-   * 수동 삭제를 memory_forgetting_event 에 남긴다 (#1304).
-   * feedback_event 는 memory_item 에 ON DELETE CASCADE 로 묶여 하드 삭제 때 함께 지워지므로,
-   * FK 가 없는 이 테이블이 soft/hard 구분과 사유를 보존한다.
-   */
-  private recordForgettingEvent(
-    id: string,
-    hard: boolean,
-    reason: string | undefined,
-    context: ToolContext
-  ): void {
-    try {
-      this.forgettingEventRepository.insert(context.db, {
-        memory_id: id,
-        action: hard ? 'hard' : 'soft',
-        reason: reason || MANUAL_FORGET_DEFAULT_REASON,
-        policy: MANUAL_FORGET_POLICY_NAME,
-      });
-    } catch (error) {
-      const maskedError = error instanceof Error ? PIIMasker.maskError(error) : { message: String(error), name: 'Error' };
-      logger.warn('망각 이벤트 기록 실패', {
         error: maskedError.message
       });
     }

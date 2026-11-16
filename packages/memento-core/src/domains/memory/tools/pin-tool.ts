@@ -29,6 +29,7 @@ type MemoryPinRow = {
   created_at?: string;
   last_accessed?: string | null;
   pinned?: boolean | number;
+  is_deleted?: boolean | number;
 };
 
 type PinStats = Record<string, unknown> & {
@@ -108,6 +109,11 @@ export class PinTool extends BaseTool {
       if (!memory) {
         throw new Error(`Memory with ID ${id} not found`);
       }
+
+      // #1752: 삭제된 기억에 핀을 걸면 유예 뒤 정리(핀 제외)가 영원히 건너뛴다
+      if (Number(memory.is_deleted) === 1) {
+        throw new Error(`Memory with ID ${id} is deleted and cannot be pinned`);
+      }
       
       // 이미 고정된 기억 확인
       if (memory.pinned) {
@@ -125,7 +131,7 @@ export class PinTool extends BaseTool {
       await DatabaseUtils.runTransaction(context.db, async () => {
         const result = await DatabaseUtils.run(
           context.db, 
-          'UPDATE memory_item SET pinned = TRUE WHERE id = ?', 
+          'UPDATE memory_item SET pinned = TRUE WHERE id = ? AND COALESCE(is_deleted, 0) = 0', 
           [id]
         );
         

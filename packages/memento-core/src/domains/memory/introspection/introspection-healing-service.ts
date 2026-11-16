@@ -22,9 +22,7 @@ import {
   expectedDimensions,
   normalizeProvider,
 } from '../../embedding/index.js';
-import {
-  ForgettingEventRepository,
-} from '../../forgetting/index.js';
+import { softDeleteMemoryItem } from '../../forgetting/index.js';
 
 const INTROSPECTION_HEAL_POLICY_NAME = 'introspection-heal';
 
@@ -76,7 +74,6 @@ export class IntrospectionHealingService {
   constructor(
     private readonly db: Database.Database,
     private readonly embeddingService: MemoryEmbeddingService,
-    private readonly forgettingEventRepository: ForgettingEventRepository = new ForgettingEventRepository(),
   ) {}
 
   async heal(options: IntrospectionHealOptions = {}): Promise<IntrospectionHealResult> {
@@ -186,25 +183,9 @@ export class IntrospectionHealingService {
   }
 
   private applySoftDelete(result: IntrospectionHealResult): void {
-    const now = new Date().toISOString();
     for (const id of result.softDelete.memoryIds) {
       try {
-        const updated = DatabaseUtils.run(
-          this.db,
-          `UPDATE memory_item SET is_deleted = 1, deleted_at = ?
-           WHERE id = ? AND COALESCE(pinned, 0) = 0`,
-          [now, id],
-        );
-        if (updated.changes > 0) {
-          this.forgettingEventRepository.insert(this.db, {
-            memory_id: id,
-            action: 'soft',
-            reason: 'introspection_heal',
-            policy: INTROSPECTION_HEAL_POLICY_NAME,
-            forget_score: null,
-            ttl_days: null,
-            metadata_json: JSON.stringify({ deleted_at: now }),
-          });
+        if (softDeleteMemoryItem(this.db, id, { reason: 'introspection_heal', policy: INTROSPECTION_HEAL_POLICY_NAME })) {
           result.softDelete.softDeletedCount++;
         }
       } catch (error) {
