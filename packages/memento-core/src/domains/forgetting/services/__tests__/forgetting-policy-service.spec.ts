@@ -833,4 +833,33 @@ describe('ForgettingPolicyService', () => {
       expect(result.softDeleted).toContain(id);
     });
   });
+
+  describe('#1749 정리 대상과 삭제 기록', () => {
+    function seedOld(type: 'episodic' | 'semantic', tags?: string[]): { id: string; longAgo: string } {
+      const id = createTestMemory(db, { content: 'old', type, importance: 0, tags });
+      const longAgo = new Date(Date.now() - 400 * DAY_MS).toISOString();
+      DatabaseUtils.run(db, 'UPDATE memory_item SET created_at = ?, last_accessed = ? WHERE id = ?', [longAgo, longAgo, id]);
+      return { id, longAgo };
+    }
+
+    it.fails('user-directive 태그 기억은 점수가 넘어도 소프트 삭제하지 않는다', async () => {
+      const directive = seedOld('semantic', ['user-directive']);
+      const plain = seedOld('semantic', ['knowledge']);
+
+      const result = await new ForgettingPolicyService({ softDeleteThreshold: 0.3 }).executeMemoryCleanup(db);
+
+      expect(result.softDeleted).toContain(plain.id);
+      expect(result.softDeleted).not.toContain(directive.id);
+    });
+
+    it.fails('소프트 삭제는 last_accessed 를 바꾸지 않는다', async () => {
+      const { id, longAgo } = seedOld('episodic');
+
+      const result = await new ForgettingPolicyService({ softDeleteThreshold: 0.3 }).executeMemoryCleanup(db);
+
+      expect(result.softDeleted).toContain(id);
+      const row = DatabaseUtils.get(db, 'SELECT last_accessed FROM memory_item WHERE id = ?', [id]) as { last_accessed: string };
+      expect(row.last_accessed).toBe(longAgo);
+    });
+  });
 });

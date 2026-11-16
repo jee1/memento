@@ -13,6 +13,7 @@ import { createAdminRouter } from './admin.routes.js';
 import { resetBatchRunHistoryForTests } from '../batch-run-history.js';
 import { resetReviewCandidatesSseHubForTests } from '../review-candidates-sse-hub.js';
 import type { ServerServices } from '../bootstrap.js';
+import { setupTestDatabase, cleanupTestDatabase } from '../test/helpers/test-database.js';
 import {
   type SleepConsolidationRunResult,
   TelemetryService,
@@ -188,6 +189,30 @@ describe('admin.routes live stats and maintenance', () => {
         server.close(error => error ? reject(error) : resolve());
       });
       database.close();
+    }
+  });
+
+  it.fails('memory/cleanup 은 48시간 지난 working 을 소프트 삭제하고 행을 남긴다 (#1749)', async () => {
+    const ctx = await setupTestDatabase();
+    const app = express();
+    app.use(express.json());
+    app.use('/admin', createAdminRouter(ctx.db, ctx.services as ServerServices));
+    const { server, port } = await listen(app);
+    try {
+      ctx.db.prepare(
+        `INSERT INTO memory_item (id, type, content, created_at) VALUES ('working-old', 'working', 'scratch', datetime('now', '-3 days'))`,
+      ).run();
+
+      const cleanup = await postAdminJson(port, '/admin/memory/cleanup', {});
+
+      expect(cleanup.statusCode).toBe(200);
+      expect(JSON.parse(cleanup.body)).toMatchObject({ message: '메모리 정리 완료', deleted_count: 1 });
+      expect(ctx.db.prepare('SELECT is_deleted FROM memory_item WHERE id = ?').get('working-old')).toEqual({ is_deleted: 1 });
+    } finally {
+      await new Promise<void>((resolve, reject) => {
+        server.close(error => error ? reject(error) : resolve());
+      });
+      await cleanupTestDatabase(ctx);
     }
   });
 });
