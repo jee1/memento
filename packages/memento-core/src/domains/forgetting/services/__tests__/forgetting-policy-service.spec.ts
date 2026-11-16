@@ -821,7 +821,7 @@ describe('ForgettingPolicyService', () => {
   });
 
   describe('#1747 softDeleteThreshold', () => {
-    it.fails('0.6 아래로 낮춘 임계값이 그대로 적용된다', async () => {
+    it('0.6 아래로 낮춘 임계값이 그대로 적용된다', async () => {
       const id = createTestMemory(db, { content: 'old', type: 'episodic', importance: 0.5 });
       const longAgo = new Date(Date.now() - 200 * DAY_MS).toISOString();
       DatabaseUtils.run(db, 'UPDATE memory_item SET created_at = ?, last_accessed = ? WHERE id = ?', [longAgo, longAgo, id]);

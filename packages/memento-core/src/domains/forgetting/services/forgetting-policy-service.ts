@@ -195,7 +195,7 @@ export class ForgettingPolicyService {
     const ttl = this.config.ttlSoft[memory.type as keyof typeof this.config.ttlSoft];
     if (memory.pinned || ageDays < ttl) return false;
     if (memory.type === 'working') return true;
-    return candidate.should_forget && candidate.forget_score >= this.config.softDeleteThreshold;
+    return candidate.forget_score >= this.config.softDeleteThreshold;
   }
 
   /**
