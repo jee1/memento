@@ -214,4 +214,20 @@ describe('memory-item-repository query helpers (#1531)', () => {
 
     expect(deleteProjectMemoriesOlderThan(db, 'proj-a', ['episodic'], 30)).toBe(1);
   });
+
+  it.fails('프로젝트 정리는 소프트 삭제하고 망각 이벤트를 남긴다 (#1752)', () => {
+    db.prepare(
+      `INSERT INTO memory_item (id, type, content, project_id, pinned, created_at, is_deleted)
+       VALUES ('old-ep', 'episodic', 'old', 'proj-x', 0, datetime('now', '-40 days'), 0)`,
+    ).run();
+
+    expect(deleteProjectMemoriesOlderThan(db, 'proj-x', ['episodic'], 30)).toBe(1);
+
+    const row = db.prepare('SELECT is_deleted, deleted_at FROM memory_item WHERE id = ?').get('old-ep') as
+      | { is_deleted: number; deleted_at: string | null }
+      | undefined;
+    expect(row?.is_deleted).toBe(1);
+    expect(row?.deleted_at).toBeTruthy();
+    expect(db.prepare("SELECT action FROM memory_forgetting_event WHERE memory_id = 'old-ep'").all()).toEqual([{ action: 'soft' }]);
+  });
 });

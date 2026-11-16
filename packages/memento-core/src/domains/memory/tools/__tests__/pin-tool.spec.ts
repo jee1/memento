@@ -283,4 +283,14 @@ describe('PinTool', () => {
     const row = DatabaseUtils.get(db, 'SELECT last_accessed FROM memory_item WHERE id = ?', [memoryId]) as { last_accessed: string };
     expect(row.last_accessed).toBe(lastAccessed);
   });
+
+  it.fails('소프트 삭제된 기억에는 핀을 걸지 않는다 (#1752)', async () => {
+    const memoryId = createTestMemory(db, { content: 'deleted pin', type: 'episodic', pinned: false });
+    DatabaseUtils.run(db, 'UPDATE memory_item SET is_deleted = 1, deleted_at = ? WHERE id = ?', [new Date().toISOString(), memoryId]);
+
+    await expect(tool.handle({ id: memoryId }, context)).rejects.toThrow();
+
+    const row = DatabaseUtils.get(db, 'SELECT pinned FROM memory_item WHERE id = ?', [memoryId]) as { pinned: number };
+    expect(row.pinned).toBe(0);
+  });
 });
