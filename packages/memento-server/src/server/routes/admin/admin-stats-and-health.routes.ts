@@ -27,6 +27,7 @@ function postMemoryCleanup(db: Database.Database | null, serverServices: ServerS
       return res.json({
         message: '메모리 정리 완료',
         deleted_count: result.softDeleted.length,
+        hard_deleted_count: result.hardDeleted.length,
         timestamp: new Date().toISOString()
       });
     } catch (error) {

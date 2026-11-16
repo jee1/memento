@@ -820,5 +820,29 @@ describe('ForgettingPolicyService', () => {
       const row = DatabaseUtils.get(db, 'SELECT last_accessed FROM memory_item WHERE id = ?', [id]) as { last_accessed: string };
       expect(row.last_accessed).toBe(longAgo);
     });
+
+    it('이미 소프트 삭제된 user-directive 기억도 유예가 지나도 영구 삭제하지 않는다', async () => {
+      const id = createTestMemory(db, { content: 'directive', type: 'semantic', tags: ['user-directive'] });
+      DatabaseUtils.run(db, 'UPDATE memory_item SET is_deleted = 1, deleted_at = ? WHERE id = ?', [
+        new Date(Date.now() - 60 * DAY_MS).toISOString(),
+        id,
+      ]);
+
+      const result = await service.executeMemoryCleanup(db);
+
+      expect(result.hardDeleted).not.toContain(id);
+      expect(DatabaseUtils.get(db, 'SELECT id FROM memory_item WHERE id = ?', [id])).toBeDefined();
+    });
+
+    it('같은 기억을 두 번 소프트 삭제해도 망각 이벤트는 하나다', async () => {
+      const { id } = seedOld('episodic');
+      const event = { forgetScore: 0.7, reason: 'test', ttlDays: 30 };
+
+      expect(await service['softDeleteMemory'](db, id, event)).toBe(true);
+      expect(await service['softDeleteMemory'](db, id, event)).toBe(false);
+
+      const events = DatabaseUtils.all(db, "SELECT id FROM memory_forgetting_event WHERE memory_id = ? AND action = 'soft'", [id]);
+      expect(events).toHaveLength(1);
+    });
   });
 });

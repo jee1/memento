@@ -8,6 +8,7 @@ import { daysBetween } from '../../../shared/utils/date.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { tagMatchSql } from '../../../shared/utils/memory-filter-sql.js';
 import {
   DEFAULT_FORGETTING_POLICY_NAME,
   ForgettingEventRepository,
@@ -104,11 +105,12 @@ export class ForgettingPolicyService {
       // 3. 소프트 삭제 실행
       for (const { candidate, memory } of candidates) {
         const ttlDays = this.config.ttlSoft[memory.type as keyof typeof this.config.ttlSoft];
-        await this.softDeleteMemory(db, candidate.memory_id, {
+        const deleted = await this.softDeleteMemory(db, candidate.memory_id, {
           forgetScore: candidate.forget_score,
           reason: memory.type === 'working' ? WORKING_TTL_REASON : candidate.reason,
           ttlDays,
         });
+        if (!deleted) continue;
         result.softDeleted.push(candidate.memory_id);
         result.summary.actualSoftDeletes++;
       }
@@ -141,7 +143,7 @@ export class ForgettingPolicyService {
       FROM memory_item
       WHERE pinned = FALSE
         AND (is_deleted IS NULL OR is_deleted = 0)
-        AND NOT EXISTS (SELECT 1 FROM json_each(CASE WHEN json_valid(tags) THEN tags ELSE '[]' END) WHERE value = ?)
+        AND NOT ${tagMatchSql()}
       ORDER BY created_at DESC
     `, [USER_DIRECTIVE_TAG]);
 
@@ -203,15 +205,16 @@ export class ForgettingPolicyService {
         AND COALESCE(pinned, 0) = 0
         AND deleted_at IS NOT NULL
         AND datetime(deleted_at) < datetime('now', '-' || ? || ' days')
-    `, [days])) as Array<{ id: string }>;
+        AND NOT ${tagMatchSql()}
+    `, [days, USER_DIRECTIVE_TAG])) as Array<{ id: string }>;
     const deleted: string[] = [];
     for (const r of rows) {
-      await this.hardDeleteMemory(db, r.id, {
+      const removed = await this.hardDeleteMemory(db, r.id, {
         forgetScore: null,
         reason: 'soft_delete_grace_period_expired',
         ttlDays: days,
       });
-      deleted.push(r.id);
+      if (removed) deleted.push(r.id);
     }
     return deleted;
   }
@@ -220,9 +223,9 @@ export class ForgettingPolicyService {
     db: Database.Database,
     memoryId: string,
     event: { forgetScore: number; reason: string; ttlDays: number },
-  ): Promise<void> {
+  ): Promise<boolean> {
     const now = new Date().toISOString();
-    await DatabaseUtils.run(
+    const { changes } = DatabaseUtils.run(
       db,
       `
       UPDATE memory_item
@@ -231,9 +234,11 @@ export class ForgettingPolicyService {
           pinned = 0
       WHERE id = ?
         AND COALESCE(pinned, 0) = 0
+        AND COALESCE(is_deleted, 0) = 0
     `,
       [now, memoryId]
     );
+    if (changes === 0) return false;
     this.forgettingEventRepository.insert(db, {
       memory_id: memoryId,
       action: 'soft',
@@ -243,6 +248,7 @@ export class ForgettingPolicyService {
       ttl_days: event.ttlDays,
       metadata_json: JSON.stringify({ deleted_at: now }),
     });
+    return true;
   }
 
   /**
@@ -252,12 +258,13 @@ export class ForgettingPolicyService {
     db: Database.Database,
     memoryId: string,
     event: { forgetScore: number | null; reason: string; ttlDays: number },
-  ): Promise<void> {
-    await DatabaseUtils.run(
+  ): Promise<boolean> {
+    const { changes } = DatabaseUtils.run(
       db,
       'DELETE FROM memory_item WHERE id = ? AND COALESCE(pinned, 0) = 0',
       [memoryId]
     );
+    if (changes === 0) return false;
     this.forgettingEventRepository.insert(db, {
       memory_id: memoryId,
       action: 'hard',
@@ -266,6 +273,7 @@ export class ForgettingPolicyService {
       forget_score: event.forgetScore,
       ttl_days: event.ttlDays,
     });
+    return true;
   }
 
   /**

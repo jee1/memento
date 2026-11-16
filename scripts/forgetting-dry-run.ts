@@ -14,6 +14,7 @@ import { join } from 'node:path';
 import Database from 'better-sqlite3';
 import { ForgettingPolicyService } from '../packages/memento-core/src/domains/forgetting/services/forgetting-policy-service.ts';
 import { configureSqliteSession } from '../packages/memento-core/src/infrastructure/database/sqlite/init-sqlite-session.ts';
+import { tagMatchSql } from '../packages/memento-core/src/shared/utils/memory-filter-sql.ts';
 
 const args = process.argv.slice(2);
 const stepArg = args.find((a) => a.startsWith('--step='));
@@ -26,16 +27,16 @@ const days = daysArg.split(',').map(Number);
 const step = stepArg ? Number(stepArg.slice('--step='.length)) : undefined;
 if (days.some((d) => !Number.isInteger(d) || d < 0)) throw new Error(`일수는 0 이상 정수: ${daysArg}`);
 if (step !== undefined && (!Number.isInteger(step) || step <= 0)) throw new Error(`step 은 1 이상 정수: ${stepArg}`);
+if (step !== undefined && days.some((d) => d % step !== 0)) throw new Error(`일수는 step(${step}) 의 배수: ${daysArg}`);
 
 const shift = (column: string, n: number) =>
   `${column} = CASE WHEN ${column} IS NULL THEN NULL ELSE strftime('%Y-%m-%dT%H:%M:%fZ', ${column}, '-${n} days') END`;
 const passDays = (db: Database.Database, n: number) =>
   db.exec(`UPDATE memory_item SET ${shift('created_at', n)}, ${shift('last_accessed', n)}, ${shift('deleted_at', n)}`);
-const CATEGORY = `CASE WHEN type = 'semantic' AND EXISTS (SELECT 1 FROM json_each(CASE WHEN json_valid(tags) THEN tags ELSE '[]' END) WHERE value = 'user-directive')
-  THEN 'semantic:user-directive' ELSE type END`;
+const CATEGORY = `CASE WHEN type = 'semantic' AND ${tagMatchSql()} THEN 'semantic:user-directive' ELSE type END`;
 const aliveByCategory = (db: Database.Database) =>
   new Map(
-    (db.prepare(`SELECT ${CATEGORY} k, count(*) n FROM memory_item WHERE COALESCE(is_deleted, 0) = 0 GROUP BY k`).all() as { k: string; n: number }[])
+    (db.prepare(`SELECT ${CATEGORY} k, count(*) n FROM memory_item WHERE COALESCE(is_deleted, 0) = 0 GROUP BY k`).all('user-directive') as { k: string; n: number }[])
       .map((r) => [r.k, r.n]),
   );
 const deletedSince = (start: Map<string, number>, db: Database.Database) => {
