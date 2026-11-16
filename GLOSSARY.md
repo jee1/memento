@@ -9,7 +9,7 @@ AI 에이전트의 기억을 저장하고, 검색하고, 잊는 MCP 서버의 �
 _Avoid_: note, record, entry
 
 **Working memory**:
-지금 하는 작업의 맥락을 담는 단기 기억. 세션이 끝나면 episodic으로 옮겨 간다.
+지금 하는 작업의 맥락을 담는 단기 기억. 48시간이 지나면 쓰임과 관계없이 소프트 삭제된다. episodic 으로 옮겨 가지 않는다.
 _Avoid_: scratch, temp memory
 
 **Episodic memory**:
@@ -49,6 +49,10 @@ _Avoid_: fact triple, edge
 **Relation**:
 두 기억을 방향을 갖고 잇는 연결. 표준 어휘는 [relation-type-vocabulary.md](./docs/reference/ko/relation-type-vocabulary.md)가 정한다.
 _Avoid_: link, edge
+
+**Last used (마지막 쓰임)**:
+기억이 recall 이나 `memory_injection` 결과에 마지막으로 나온 시각. `meta_memory_stats.last_recalled_at` 이 정본이고, 통계를 모으기 전 기간은 쓰이지 않은 기간으로 세지 않는다. 망각은 이 시각부터 보존 기간을 잰다(#1751). `memory_item.last_accessed` 는 기억을 만든 시각에 가깝고 쓰임을 뜻하지 않는다.
+_Avoid_: last accessed, 접근 시각
 
 **Introspection**:
 신뢰도가 낮거나 자주 실패하는 기억을 찾아내고 정리(heal)하는 운영 절차.

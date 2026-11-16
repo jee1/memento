@@ -657,13 +657,13 @@ describe('VectorSearchRepositoryImpl', () => {
   });
 
   describe('Procedural Memory Enhancement (v7.0) 필드 반환', () => {
-    it('should include last_accessed_at in search results', async () => {
-      // Given: last_accessed_at이 있는 메모리 생성
+    it('should include last_accessed in search results', async () => {
+      // Given: last_accessed이 있는 메모리 생성
       try {
         // 메모리 아이템 생성
         DatabaseUtils.run(db, `
           INSERT INTO memory_item (
-            id, type, content, importance, privacy_scope, created_at, last_accessed_at) VALUES (
+            id, type, content, importance, privacy_scope, created_at, last_accessed) VALUES (
             'mem_with_last_accessed', 'episodic', 'Test content', 0.7, 'private',
             '2024-01-01T00:00:00Z', '2024-01-15T00:00:00Z')
         `);
@@ -707,23 +707,23 @@ describe('VectorSearchRepositoryImpl', () => {
 
       const results = await repository.search(query);
 
-      // Then: last_accessed_at이 포함되어야 함
+      // Then: last_accessed이 포함되어야 함
       if (results.length > 0) {
         const result = results.find(r => r.memory_id === 'mem_with_last_accessed');
         if (result) {
-          expect(result.last_accessed_at).toBeDefined();
-          expect(result.last_accessed_at).toBe('2024-01-15T00:00:00Z');
+          expect(result.last_accessed).toBeDefined();
+          expect(result.last_accessed).toBe('2024-01-15T00:00:00Z');
         }
       }
     });
 
-    it('should include last_accessed_at in hybrid search results', async () => {
-      // Given: last_accessed_at이 있는 메모리 생성
+    it('should include last_accessed in hybrid search results', async () => {
+      // Given: last_accessed이 있는 메모리 생성
       try {
         // 메모리 아이템 생성
         DatabaseUtils.run(db, `
           INSERT INTO memory_item (
-            id, type, content, importance, privacy_scope, created_at, last_accessed_at) VALUES (
+            id, type, content, importance, privacy_scope, created_at, last_accessed) VALUES (
             'mem_hybrid_last_accessed', 'semantic', 'Test content for hybrid', 0.8, 'private',
             '2024-01-01T00:00:00Z', '2024-01-20T00:00:00Z')
         `);
@@ -777,12 +777,12 @@ describe('VectorSearchRepositoryImpl', () => {
 
       const results = await repository.hybridSearch(query);
 
-      // Then: last_accessed_at이 포함되어야 함
+      // Then: last_accessed이 포함되어야 함
       if (results.length > 0) {
         const result = results.find(r => r.memory_id === 'mem_hybrid_last_accessed');
         if (result) {
-          expect(result.last_accessed_at).toBeDefined();
-          expect(result.last_accessed_at).toBe('2024-01-20T00:00:00Z');
+          expect(result.last_accessed).toBeDefined();
+          expect(result.last_accessed).toBe('2024-01-20T00:00:00Z');
         }
       }
     });

@@ -15,6 +15,7 @@ import {
   cleanupTestDatabase,
   createTestMemory,
   setupTestDatabase,
+  startRecallStatsAt,
 } from '../../../test/helpers/test-database.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 
@@ -26,6 +27,7 @@ describe('forgetting event log', () => {
   beforeEach(async () => {
     db = await setupTestDatabase();
     await new MemoryForgettingEventMigration().up(db);
+    startRecallStatsAt(db, new Date('2000-01-01T00:00:00Z'));
     service = new ForgettingPolicyService({
       softDeleteThreshold: 0.1,
       ttlSoft: { working: 1, episodic: 1, semantic: 999, procedural: 999 },

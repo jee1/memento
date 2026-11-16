@@ -6,7 +6,7 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { ForgettingPolicyService, type MemoryCleanupResult } from '../forgetting-policy-service.js';
-import { setupTestDatabase, createTestMemory, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
+import { setupTestDatabase, createTestMemory, cleanupTestDatabase, startRecallStatsAt } from '../../../../test/helpers/test-database.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { DAY_MS } from '../../../../shared/utils/date.js';
 
@@ -17,6 +17,7 @@ describe('ForgettingPolicyService', () => {
   beforeEach(async () => {
     service = new ForgettingPolicyService();
     db = await setupTestDatabase();
+    startRecallStatsAt(db, new Date('2000-01-01T00:00:00Z'));
   });
 
   afterEach(async () => {
@@ -863,7 +864,7 @@ describe('ForgettingPolicyService', () => {
       );
     }
 
-    it.fails('최근 recall 된 기억은 오래되었어도 소프트 삭제하지 않는다', async () => {
+    it('최근 recall 된 기억은 오래되었어도 소프트 삭제하지 않는다', async () => {
       const recalled = seedOldEpisodic();
       const unused = seedOldEpisodic();
       seedRecallStats(recalled, { createdAt: daysAgo(400), lastRecalledAt: daysAgo(1), recallCount: 5 });
@@ -874,10 +875,10 @@ describe('ForgettingPolicyService', () => {
       expect(result.softDeleted).not.toContain(recalled);
     });
 
-    it.fails('통계 수집 시작 전 기간은 안 쓰임으로 세지 않는다', async () => {
+    it('통계 수집 시작 전 기간은 안 쓰임으로 세지 않는다', async () => {
       const id = seedOldEpisodic();
-      const witness = createTestMemory(db, { content: 'witness', type: 'semantic', pinned: true });
-      seedRecallStats(witness, { createdAt: daysAgo(5) });
+      DatabaseUtils.run(db, 'DELETE FROM meta_memory_stats');
+      startRecallStatsAt(db, new Date(Date.now() - 5 * DAY_MS));
 
       const result = await new ForgettingPolicyService({ softDeleteThreshold: 0.3 }).executeMemoryCleanup(db);
 

@@ -34,16 +34,21 @@ const USER_DIRECTIVE_TAG = 'user-directive';
 interface PolicyMemoryRow {
   id: string;
   created_at: string;
-  last_accessed?: string;
+  /** max(last_recalled_at, created_at, 통계 수집 시작 시각) */
+  last_used_at: string;
+  recall_count: number;
   importance: number;
   pinned: boolean;
   type: string;
-  view_count?: number;
-  cite_count?: number;
-  edit_count?: number;
 }
 
 const WORKING_TTL_REASON = 'working TTL 만료';
+
+function latestIso(...values: Array<string | null>): string {
+  return values
+    .filter((v): v is string => Boolean(v))
+    .reduce((a, b) => (new Date(b).getTime() > new Date(a).getTime() ? b : a));
+}
 
 export interface MemoryCleanupResult {
   softDeleted: string[];
@@ -134,30 +139,36 @@ export class ForgettingPolicyService {
    * 모든 메모리 가져오기
    */
   private async getAllMemories(db: Database.Database): Promise<PolicyMemoryRow[]> {
-    const rows = await DatabaseUtils.all(db, `
-      SELECT 
-        id, created_at, last_accessed, importance, pinned, type,
-        COALESCE(view_count, 0) as view_count,
-        COALESCE(cite_count, 0) as cite_count,
-        COALESCE(edit_count, 0) as edit_count
-      FROM memory_item
-      WHERE pinned = FALSE
-        AND (is_deleted IS NULL OR is_deleted = 0)
-        AND NOT ${tagMatchSql()}
-      ORDER BY created_at DESC
-    `, [USER_DIRECTIVE_TAG]);
+    const statsStartedAt = this.getRecallStatsStartedAt(db);
+    const rows = (await DatabaseUtils.all(db, `
+      SELECT
+        m.id, m.created_at, m.importance, m.pinned, m.type,
+        COALESCE(s.recall_count, 0) AS recall_count,
+        s.last_recalled_at
+      FROM memory_item m
+      LEFT JOIN meta_memory_stats s ON s.memory_id = m.id
+      WHERE m.pinned = FALSE
+        AND (m.is_deleted IS NULL OR m.is_deleted = 0)
+        AND NOT ${tagMatchSql('m.tags')}
+      ORDER BY m.created_at DESC
+    `, [USER_DIRECTIVE_TAG])) as Array<Omit<PolicyMemoryRow, 'last_used_at'> & { last_recalled_at: string | null }>;
 
-    return (rows as PolicyMemoryRow[]).map((row) => ({
-      id: row.id,
-      created_at: row.created_at,
-      last_accessed: row.last_accessed,
-      importance: row.importance,
-      pinned: row.pinned,
-      type: row.type,
-      view_count: row.view_count,
-      cite_count: row.cite_count,
-      edit_count: row.edit_count
+    return rows.map(({ last_recalled_at, ...row }) => ({
+      ...row,
+      last_used_at: latestIso(row.created_at, last_recalled_at, statsStartedAt),
     }));
+  }
+
+  /**
+   * recall 통계를 모으기 시작한 시각 (#1751). 그 전 기간은 「안 쓰임」으로 세지 않는다.
+   * 통계 행이 하나도 없으면 지금으로 본다.
+   */
+  private getRecallStatsStartedAt(db: Database.Database): string {
+    const row = DatabaseUtils.get(
+      db,
+      `SELECT strftime('%Y-%m-%dT%H:%M:%fZ', MIN(created_at)) AS started_at FROM meta_memory_stats`,
+    ) as { started_at: string | null } | undefined;
+    return row?.started_at ?? new Date().toISOString();
   }
 
   private selectSoftDeleteCandidates(
@@ -178,10 +189,11 @@ export class ForgettingPolicyService {
    * 망각 점수 상한(0.35 + 0.25 + 0.20 x 유형 비중 - 0.15 x 중요도)이 working 에서는 중요도가 거의 0 이 아니면 0.6 에 닿지 않는다.
    */
   private isSoftDeleteCandidate(memory: PolicyMemoryRow, candidate: ForgettingResult): boolean {
-    const ageDays = daysBetween(new Date(), new Date(memory.created_at));
     const ttl = this.config.ttlSoft[memory.type as keyof typeof this.config.ttlSoft];
-    if (memory.pinned || ageDays < ttl) return false;
-    if (memory.type === 'working') return true;
+    if (memory.pinned) return false;
+    if (memory.type === 'working') return daysBetween(new Date(), new Date(memory.created_at)) >= ttl;
+    // #1751: 나머지 유형은 ttlSoft 동안 쓰이지 않아야 후보가 된다
+    if (daysBetween(new Date(), new Date(memory.last_used_at)) < ttl) return false;
     return candidate.forget_score >= this.config.softDeleteThreshold;
   }
 

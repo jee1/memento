@@ -103,24 +103,17 @@ export class ForgettingAlgorithm {
    */
   calculateFeatures(memory: {
     created_at: string;
-    last_accessed?: string;
+    /** 마지막으로 쓰인 시각. 없으면 created_at */
+    last_used_at?: string;
+    recall_count?: number;
     importance: number;
     pinned: boolean;
     type: string;
-    view_count?: number;
-    cite_count?: number;
-    edit_count?: number;
   }): ForgettingFeatures {
     // 시간에 따른 기억의 자연스러운 감쇠를 반영하여 오래된 기억을 식별합니다.
     const recency = this.calculateRecency(new Date(memory.created_at), memory.type);
     
-    // 실제 사용 빈도를 반영하여 사용되지 않는 기억을 식별합니다.
-    const usage = this.calculateUsage(
-      memory.last_accessed ? new Date(memory.last_accessed) : undefined,
-      memory.view_count || 0,
-      memory.cite_count || 0,
-      memory.edit_count || 0
-    );
+    const usage = this.calculateUsage(new Date(memory.last_used_at ?? memory.created_at), memory.recall_count ?? 0);
     
     const duplication_ratio = TYPE_DUPLICATION_RATIO[memory.type] ?? 0;
     
@@ -148,27 +141,12 @@ export class ForgettingAlgorithm {
   }
 
   /**
-   * 실제 사용 빈도를 반영하여 사용되지 않는 기억을 식별합니다.
-   * 접근 빈도와 사용 빈도를 종합하여 사용성을 정량화합니다.
+   * 마지막 쓰임(recall, 주입)에서 지난 시간과 쓰인 횟수(meta_memory_stats, #1751)로 사용성을 0~1 로 낸다.
    */
-  private calculateUsage(
-    lastAccessed?: Date,
-    viewCount: number = 0,
-    citeCount: number = 0,
-    editCount: number = 0
-  ): number {
-    // 시간이 지날수록 기억의 관련성이 자연스럽게 감쇠하므로, 마지막 접근 시간을 기반으로 최근성 점수를 계산합니다.
-    const accessScore = lastAccessed ? this.calculateAccessScore(lastAccessed) : 0;
-    
-    // 로그 스케일을 사용하여 사용 빈도의 차이를 완화하고 균형잡힌 점수를 생성합니다.
-    const usageScore = Math.log(1 + viewCount) + 
-                      2 * Math.log(1 + citeCount) + 
-                      0.5 * Math.log(1 + editCount);
-    
-    // 점수를 0-1 범위로 정규화하여 다른 지표와 일관된 비교가 가능하도록 합니다.
-    const normalizedUsage = Math.min(1, usageScore / 10); // 경험적으로 도출된 최대값을 사용하여 정규화합니다.
-    
-    return Math.max(accessScore, normalizedUsage);
+  private calculateUsage(lastUsed: Date, recallCount: number): number {
+    const accessScore = this.calculateAccessScore(lastUsed);
+    const countScore = Math.min(1, Math.log(1 + recallCount) / 10);
+    return Math.max(accessScore, countScore);
   }
 
   /**
@@ -203,13 +181,11 @@ export class ForgettingAlgorithm {
   analyzeForgetCandidates(memories: Array<{
     id: string;
     created_at: string;
-    last_accessed?: string;
+    last_used_at?: string;
+    recall_count?: number;
     importance: number;
     pinned: boolean;
     type: string;
-    view_count?: number;
-    cite_count?: number;
-    edit_count?: number;
   }>): ForgettingResult[] {
     return memories
       .map((memory) => {

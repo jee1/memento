@@ -73,7 +73,7 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       '    mi.type, ' +
       '    mi.importance, ' +
       '    mi.created_at, ' +
-      '    COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at, ' +
+      '    mi.last_accessed as last_accessed, ' +
       '    mi.pinned, ' +
       '    mi.tags, ' +
       '    mi.project_id, ' +
@@ -106,7 +106,7 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       '    mi.type, ' +
       '    mi.importance, ' +
       '    mi.created_at, ' +
-      '    COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at, ' +
+      '    mi.last_accessed as last_accessed, ' +
       '    mi.pinned, ' +
       '    mi.tags, ' +
       '    mi.project_id, ' +
@@ -138,7 +138,7 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       '  COALESCE(vs.type, ts.type) as type, ' +
       '  COALESCE(vs.importance, ts.importance) as importance, ' +
       '  COALESCE(vs.created_at, ts.created_at) as created_at, ' +
-      '  COALESCE(vs.last_accessed_at, ts.last_accessed_at) as last_accessed_at, ' +
+      '  COALESCE(vs.last_accessed, ts.last_accessed) as last_accessed, ' +
       '  COALESCE(vs.pinned, ts.pinned) as pinned, ' +
       '  COALESCE(vs.tags, ts.tags) as tags, ' +
       '  COALESCE(vs.project_id, ts.project_id) as project_id, ' +
@@ -164,7 +164,7 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       '  ts.type, ' +
       '  ts.importance, ' +
       '  ts.created_at, ' +
-      '  ts.last_accessed_at as last_accessed_at, ' +
+      '  ts.last_accessed as last_accessed, ' +
       '  ts.pinned, ' +
       '  ts.tags, ' +
       '  ts.project_id, ' +
@@ -204,7 +204,7 @@ export function executeHybridQuery(params: HybridQueryParams): VectorSearchResul
       '  mi.type, ' +
       '  mi.importance, ' +
       '  mi.created_at, ' +
-      '  COALESCE(mi.last_accessed_at, mi.last_accessed) as last_accessed_at, ' +
+      '  mi.last_accessed as last_accessed, ' +
       '  mi.pinned, ' +
       '  mi.tags, ' +
       '  mi.project_id, ' +

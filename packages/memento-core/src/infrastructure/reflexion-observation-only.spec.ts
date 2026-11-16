@@ -1,7 +1,7 @@
 import type Database from 'better-sqlite3';
 import { randomUUID } from 'node:crypto';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { setupTestDatabase } from '../../test/helpers/test-database.js';
+import { setupTestDatabase, startRecallStatsAt } from '../../test/helpers/test-database.js';
 import { mementoConfig } from '../shared/config/index.js';
 import type { FailureEvent } from '../shared/types/failure-event.js';
 import type { MemoryEmbeddingService } from '../domains/embedding/services/memory-embedding-service.js';
@@ -320,6 +320,7 @@ describe('Reflexion observation-only (#1547)', () => {
       expect(unpinnedBefore).toBeGreaterThan(0);
       db.prepare(`UPDATE memory_item SET created_at = '2000-01-01T00:00:00.000Z', importance = 0.1,
         last_accessed = '2000-01-01T00:00:00.000Z' WHERE COALESCE(pinned, 0) = 0`).run();
+      startRecallStatsAt(db, new Date('2000-01-01T00:00:00.000Z'));
       const cleanup = await new ForgettingPolicyService().executeMemoryCleanup(db);
       expect(cleanup.summary.actualSoftDeletes).toBeGreaterThan(0);
       const softDeleted = Number(

@@ -779,7 +779,7 @@ describe('MemoryInjectionPrompt', () => {
     });
   });
 
-  it.fails('주입한 기억을 recall 통계에 기록한다 (#1751)', async () => {
+  it('주입한 기억을 recall 통계에 기록한다 (#1751)', async () => {
     const hit = (id: string, finalScore: number) => ({
       id, content: `injected ${id}`, type: 'semantic', importance: 0.5, created_at: new Date().toISOString(),
       pinned: false, textScore: finalScore, vectorScore: finalScore, finalScore, recall_reason: 'test',

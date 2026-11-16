@@ -50,7 +50,6 @@ let cleanupPromise: Promise<void> | null = null;
 let shuttingDown = false;
 
 const serverState = ServerState.getInstance();
-serverState.setMcpServerInitialized(false);
 
 /** MCP 초기화 완료를 기다리기 위한 Promise */
 let resolveInit: () => void;
@@ -188,7 +187,6 @@ export async function startServer() {
     if (shuttingDown) return shutdown;
     
     serverState.setMcpTransportConnected(true);
-    serverState.setMcpServerInitialized(true);
     
     heavyInitPromise = runHeavyInit();
     

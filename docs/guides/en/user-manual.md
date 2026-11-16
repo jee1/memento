@@ -128,11 +128,11 @@ Memento distinguishes four memory types that govern storage purpose and automati
 
 **Working memory** holds temporary context for the current session. After 48 hours the daily cleanup soft-deletes it, and it is permanently deleted after a 30-day grace period. This suits in-progress bug fixes, scratch notes, or ephemeral task state.
 
-**Episodic memory** records events and experiences — meeting outcomes, task completion notes, project milestones. There is no fixed expiry. After 30 days, a memory with low importance that has not been used for a long time reaches a forget score of 0.6 and is soft-deleted, then permanently deleted after a 30-day grace period. Pinned memories stay.
+**Episodic memory** records events and experiences — meeting outcomes, task completion notes, project milestones. There is no fixed expiry. A memory not used by recall or injection for 30 days whose low importance gives a forget score of 0.6 is soft-deleted, then permanently deleted after a 30-day grace period. Pinned memories stay.
 
-**Semantic memory** holds knowledge that should last: technical explanations, architectural guidelines, team conventions. After 180 days it is soft-deleted only when its forget score reaches 0.6, which takes low importance and no use for a long time.
+**Semantic memory** holds knowledge that should last: technical explanations, architectural guidelines, team conventions. After 180 days without use it is soft-deleted only when its forget score reaches 0.6, which takes low importance.
 
-**Procedural memory** captures repeatable processes such as deployment steps, configuration procedures, and troubleshooting runbooks. After 90 days it follows the same forget-score rule.
+**Procedural memory** captures repeatable processes such as deployment steps, configuration procedures, and troubleshooting runbooks. After 90 days without use it follows the same forget-score rule.
 
 Memories tagged `user-directive` (the owner's standing instructions) are never removed by the automatic cleanup, whatever their type.
 
@@ -308,7 +308,7 @@ docker compose -f docker/docker-compose.dev.yml ps
 
 **Are memories automatically deleted?**
 
-It depends on the type. Working memory is soft-deleted after 48 hours. Episodic memory after 30 days, procedural after 90 days, and semantic after 180 days are soft-deleted when their forget score (age, no use, low importance) reaches 0.6. In practice this is mostly low-importance episodic memory. Soft-deleted memories are permanently deleted after 30 days (`SOFT_DELETE_GRACE_PERIOD_DAYS`). Pinned memories are never deleted automatically, whatever their type.
+It depends on the type. Working memory is soft-deleted after 48 hours. Episodic memory unused by recall or injection for 30 days, procedural for 90 days, and semantic for 180 days are soft-deleted when their forget score (age, no use, low importance) reaches 0.6. In practice this is mostly low-importance episodic memory. Soft-deleted memories are permanently deleted after 30 days (`SOFT_DELETE_GRACE_PERIOD_DAYS`). Pinned memories are never deleted automatically, whatever their type.
 
 **How do I keep a memory permanently?**
 

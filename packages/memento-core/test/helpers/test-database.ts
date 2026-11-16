@@ -91,6 +91,21 @@ export function createTestMemory(
 }
 
 /**
+ * recall 통계 수집 시작 시각을 과거로 둔다 (#1751).
+ * 망각은 통계가 비어 있으면 「지금 막 수집을 시작했다」로 보고 working 말고는 지우지 않는다.
+ * 핀 고정한 기억 하나에 통계 행을 붙인다. 핀 고정 기억은 망각 대상이 아니라 다른 기억의 점수가 바뀌지 않는다.
+ */
+export function startRecallStatsAt(db: Database.Database, startedAt: Date): void {
+  const witness = createTestMemory(db, { content: 'recall stats witness', type: 'semantic', pinned: true });
+  const at = startedAt.toISOString();
+  DatabaseUtils.run(
+    db,
+    'INSERT INTO meta_memory_stats (memory_id, recall_count, created_at, updated_at) VALUES (?, 0, ?, ?)',
+    [witness, at, at],
+  );
+}
+
+/**
  * 테스트 데이터베이스 정리
  *
  * @param db 데이터베이스 인스턴스

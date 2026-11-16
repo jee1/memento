@@ -158,7 +158,7 @@ export class UnpinTool extends BaseTool {
       await DatabaseUtils.runTransaction(context.db, async () => {
         const result = await DatabaseUtils.run(
           context.db, 
-          'UPDATE memory_item SET pinned = FALSE, last_accessed = CURRENT_TIMESTAMP WHERE id = ?', 
+          'UPDATE memory_item SET pinned = FALSE WHERE id = ?', 
           [id]
         );
         
