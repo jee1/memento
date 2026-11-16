@@ -819,4 +819,18 @@ describe('ForgettingPolicyService', () => {
       expect(result.softDeleted).toContain(id);
     });
   });
+
+  describe('#1747 softDeleteThreshold', () => {
+    it('0.6 아래로 낮춘 임계값이 그대로 적용된다', async () => {
+      const id = createTestMemory(db, { content: 'old', type: 'episodic', importance: 0.5 });
+      const longAgo = new Date(Date.now() - 200 * DAY_MS).toISOString();
+      DatabaseUtils.run(db, 'UPDATE memory_item SET created_at = ?, last_accessed = ? WHERE id = ?', [longAgo, longAgo, id]);
+
+      // 망각 점수 약 0.52 (유형 비중 0, 중요도 0.5)
+      expect((await new ForgettingPolicyService().executeMemoryCleanup(db)).softDeleted).not.toContain(id);
+      const result = await new ForgettingPolicyService({ softDeleteThreshold: 0.3 }).executeMemoryCleanup(db);
+
+      expect(result.softDeleted).toContain(id);
+    });
+  });
 });
