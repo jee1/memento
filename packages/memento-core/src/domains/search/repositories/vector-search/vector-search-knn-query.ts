@@ -54,7 +54,7 @@ export function executeKnnQuery(params: KnnQueryParams): VectorSearchResult[] {
     '  m.type, ' +
     '  m.importance, ' +
     '  m.created_at, ' +
-    '  m.last_accessed as last_accessed, ' +
+    '  COALESCE(m.last_accessed_at, m.last_accessed) as last_accessed_at, ' +
     '  m.pinned, ' +
     '  m.tags, ' +
     '  m.project_id, ' +

@@ -884,5 +884,19 @@ describe('ForgettingPolicyService', () => {
 
       expect(result.softDeleted).not.toContain(id);
     });
+
+    it('주입 쓰임 기록을 켜기 전 기간도 안 쓰임으로 세지 않는다', async () => {
+      const id = seedOldEpisodic();
+      db.exec('CREATE TABLE IF NOT EXISTS memento_schema_version (version TEXT PRIMARY KEY, applied_at TIMESTAMP, migration_name TEXT NOT NULL)');
+      DatabaseUtils.run(
+        db,
+        "INSERT INTO memento_schema_version (version, applied_at, migration_name) VALUES ('67.0', ?, 'recall-use-recording-start')",
+        [daysAgo(5).replace('T', ' ').slice(0, 19)],
+      );
+
+      const result = await new ForgettingPolicyService({ softDeleteThreshold: 0.3 }).executeMemoryCleanup(db);
+
+      expect(result.softDeleted).not.toContain(id);
+    });
   });
 });

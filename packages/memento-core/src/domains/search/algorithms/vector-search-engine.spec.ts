@@ -382,7 +382,7 @@ describe('VectorSearchEngine', () => {
         type: row.type,
         importance: row.importance,
         created_at: row.created_at,
-        last_accessed: row.last_accessed,
+        last_accessed_at: row.last_accessed, // 쿼리에서 사용하는 필드명
         pinned: row.pinned,
         tags: row.tags
       }));
@@ -451,7 +451,7 @@ describe('VectorSearchEngine', () => {
         includeContent: true,
       };
 
-      // Mock database results
+      // Mock database results - last_accessed_at 필드 필요
       const mockResults = [
         {
           memory_id: 'mem1',
@@ -460,7 +460,8 @@ describe('VectorSearchEngine', () => {
           type: 'semantic',
           importance: 0.8,
           created_at: '2023-01-01T00:00:00Z',
-          last_accessed: '2023-01-02T00:00:00Z',
+          last_accessed_at: '2023-01-02T00:00:00Z', // 쿼리에서 사용하는 필드명
+          last_accessed: '2023-01-02T00:00:00Z', // fallback용
           pinned: false,
           tags: JSON.stringify(['test', 'example'])
         }
@@ -495,7 +496,7 @@ describe('VectorSearchEngine', () => {
           type: 'semantic',
           importance: 0.8,
           created_at: '2023-01-01T00:00:00Z',
-          last_accessed: '2023-01-02T00:00:00Z',
+          last_accessed_at: '2023-01-02T00:00:00Z',
           pinned: false,
           tags: JSON.stringify(['test', 'example'])
         }

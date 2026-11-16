@@ -27,6 +27,9 @@ interface ForgettingPolicyConfig {
   };
 }
 
+/** 마이그레이션 067 의 name. 적용 시각이 주입 쓰임 기록의 시작이다 (#1751) */
+const RECALL_USE_RECORDING_START_MIGRATION = 'recall-use-recording-start';
+
 /** 주인 지침. 망각 정리 대상에서 뺀다 (#1749) */
 const USER_DIRECTIVE_TAG = 'user-directive';
 
@@ -160,15 +163,28 @@ export class ForgettingPolicyService {
   }
 
   /**
-   * recall 통계를 모으기 시작한 시각 (#1751). 그 전 기간은 「안 쓰임」으로 세지 않는다.
-   * 통계 행이 하나도 없으면 지금으로 본다.
+   * 쓰임 기록을 모으기 시작한 시각 (#1751). 그 전 기간은 「안 쓰임」으로 세지 않는다.
+   * 통계의 가장 이른 행과, 주입 쓰임 기록을 켠 마이그레이션 067 이 적용된 시각 중 늦은 쪽이다.
+   * 둘 다 없으면 지금으로 본다. 두 값 모두 CURRENT_TIMESTAMP(UTC) 형식이라 ISO 로 바꿔 읽는다.
    */
   private getRecallStatsStartedAt(db: Database.Database): string {
-    const row = DatabaseUtils.get(
+    const statsStart = DatabaseUtils.get(
       db,
-      `SELECT strftime('%Y-%m-%dT%H:%M:%fZ', MIN(created_at)) AS started_at FROM meta_memory_stats`,
-    ) as { started_at: string | null } | undefined;
-    return row?.started_at ?? new Date().toISOString();
+      `SELECT strftime('%Y-%m-%dT%H:%M:%fZ', MIN(created_at)) AS at FROM meta_memory_stats`,
+    ) as { at: string | null } | undefined;
+    const hasVersionTable = DatabaseUtils.get(
+      db,
+      `SELECT 1 AS ok FROM sqlite_master WHERE type = 'table' AND name = 'memento_schema_version'`,
+    );
+    const markerApplied = hasVersionTable
+      ? (DatabaseUtils.get(
+          db,
+          `SELECT strftime('%Y-%m-%dT%H:%M:%fZ', applied_at) AS at FROM memento_schema_version WHERE migration_name = ?`,
+          [RECALL_USE_RECORDING_START_MIGRATION],
+        ) as { at: string | null } | undefined)
+      : undefined;
+    const known = [statsStart?.at ?? null, markerApplied?.at ?? null].filter((v): v is string => Boolean(v));
+    return known.length > 0 ? latestIso(...known) : new Date().toISOString();
   }
 
   private selectSoftDeleteCandidates(
@@ -190,7 +206,7 @@ export class ForgettingPolicyService {
    */
   private isSoftDeleteCandidate(memory: PolicyMemoryRow, candidate: ForgettingResult): boolean {
     const ttl = this.config.ttlSoft[memory.type as keyof typeof this.config.ttlSoft];
-    if (memory.pinned) return false;
+    if (memory.pinned || ttl === undefined) return false;
     if (memory.type === 'working') return daysBetween(new Date(), new Date(memory.created_at)) >= ttl;
     // #1751: 나머지 유형은 ttlSoft 동안 쓰이지 않아야 후보가 된다
     if (daysBetween(new Date(), new Date(memory.last_used_at)) < ttl) return false;
@@ -301,7 +317,9 @@ export class ForgettingPolicyService {
     const forgetResults = this.forgettingAlgorithm.analyzeForgetCandidates(memories);
     
     const forgetCandidates = this.selectSoftDeleteCandidates(memories, forgetResults).length;
-    const averageForgetScore = forgetResults.reduce((sum, r) => sum + r.forget_score, 0) / forgetResults.length;
+    const averageForgetScore = forgetResults.length
+      ? forgetResults.reduce((sum, r) => sum + r.forget_score, 0) / forgetResults.length
+      : 0;
     
     const memoryDistribution = memories.reduce((acc, memory) => {
       acc[memory.type] = (acc[memory.type] || 0) + 1;

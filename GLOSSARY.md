@@ -51,7 +51,7 @@ _Avoid_: fact triple, edge
 _Avoid_: link, edge
 
 **Last used (마지막 쓰임)**:
-기억이 recall 이나 `memory_injection` 결과에 마지막으로 나온 시각. `meta_memory_stats.last_recalled_at` 이 정본이고, 통계를 모으기 전 기간은 쓰이지 않은 기간으로 세지 않는다. 망각은 이 시각부터 보존 기간을 잰다(#1751). `memory_item.last_accessed` 는 기억을 만든 시각에 가깝고 쓰임을 뜻하지 않는다.
+기억이 recall 이나 `memory_injection` 결과에 마지막으로 나온 시각. `meta_memory_stats.last_recalled_at` 이 정본이고, 쓰임 기록을 모으기 전 기간은 쓰이지 않은 기간으로 세지 않는다. 망각은 이 시각부터 보존 기간을 잰다(#1751). `memory_item.last_accessed` 와 `last_accessed_at` 은 쓰임을 뜻하지 않는다(새 기억은 `last_accessed` 가 비어 있고, `last_accessed_at` 은 저장과 재강화 시각이다).
 _Avoid_: last accessed, 접근 시각
 
 **Introspection**:

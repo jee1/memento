@@ -103,6 +103,10 @@ export function startRecallStatsAt(db: Database.Database, startedAt: Date): void
     'INSERT INTO meta_memory_stats (memory_id, recall_count, created_at, updated_at) VALUES (?, 0, ?, ?)',
     [witness, at, at],
   );
+  const hasVersionTable = DatabaseUtils.get(db, `SELECT 1 FROM sqlite_master WHERE type = 'table' AND name = 'memento_schema_version'`);
+  if (hasVersionTable) {
+    DatabaseUtils.run(db, `UPDATE memento_schema_version SET applied_at = ? WHERE migration_name = 'recall-use-recording-start'`, [at]);
+  }
 }
 
 /**

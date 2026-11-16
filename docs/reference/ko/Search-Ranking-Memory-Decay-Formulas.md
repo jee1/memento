@@ -105,7 +105,7 @@ $$\text{ForgetScore} = u_1 \cdot (1 - \text{recency}) + u_2 \cdot (1 - \text{usa
 
 **기본 계수(M1)**: $u_1=0.35$, $u_2=0.25$, $u_3=0.20$, $u_4=0.15$, $u_5=0.30$
 
-$\text{usage}$: $\max(e^{-d/30}, \min(1, \ln(1 + \text{recall\_count}) / 10))$. $d$ 는 마지막으로 쓰인 뒤 지난 날수, $\text{recall\_count}$ 는 recall 과 `memory_injection` 에 나온 횟수다(`meta_memory_stats`). 마지막 쓰인 시각은 $\max(\text{last\_recalled\_at}, \text{created\_at}, \text{통계 수집 시작 시각})$ 이다. 통계 수집 시작 시각은 `meta_memory_stats` 의 가장 이른 `created_at` 이고, 통계가 없으면 지금이다. 통계를 모으기 전 기간은 「안 쓰임」으로 세지 않는다(#1751). 5절의 `view_cnt`, `cite_cnt`, `edit_cnt` 는 쓰는 코드가 없어 망각 식에서 지웠다.
+$\text{usage}$: $\max(e^{-d/30}, \min(1, \ln(1 + \text{recall\_count}) / 10))$. $d$ 는 마지막으로 쓰인 뒤 지난 날수, $\text{recall\_count}$ 는 recall 에 나온 횟수다(`meta_memory_stats`). `memory_injection` 은 판정을 남기지 않고 마지막 쓰인 시각만 고친다. 마지막 쓰인 시각은 $\max(\text{last\_recalled\_at}, \text{created\_at}, \text{기록 시작 시각})$ 이다. 기록 시작 시각은 `meta_memory_stats` 의 가장 이른 `created_at` 과 마이그레이션 067(`recall-use-recording-start`) 적용 시각 중 늦은 쪽이고, 둘 다 없으면 지금이다. 통계를 모으기 전 기간은 「안 쓰임」으로 세지 않는다(#1751). 5절의 `view_cnt`, `cite_cnt`, `edit_cnt` 는 쓰는 코드가 없어 망각 식에서 지웠다.
 
 $\text{dup\_ratio}$: 유형별 고정값. episodic 0.57, semantic 0.39, procedural 0.04, working 0.01(2026-11 운영 DB 의 유형 비중). 정리 때마다 비중을 다시 세면 episodic 이 지워질수록 semantic 점수가 올라 지식 기억이 연쇄로 지워졌다(#1749).
 

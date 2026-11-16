@@ -34,7 +34,7 @@ export async function buildSearchStatement(
         sql = `
               SELECT
                 m.id, m.content, m.type, m.importance, m.created_at,
-                m.last_accessed, m.pinned, m.tags, m.source,
+                COALESCE(m.last_accessed_at, m.last_accessed) AS last_accessed, m.pinned, m.tags, m.source,
                 m.task_goal, m.steps, m.reflection_notes,
                 m.workflow_name, m.skill_name, m.trigger_conditions,
                 m.version, m.version_series_id,
@@ -48,7 +48,7 @@ export async function buildSearchStatement(
         sql = `
               SELECT
                 m.id, m.content, m.type, m.importance, m.created_at,
-                m.last_accessed, m.pinned, m.tags, m.source,
+                COALESCE(m.last_accessed_at, m.last_accessed) AS last_accessed, m.pinned, m.tags, m.source,
                 m.task_goal, m.steps, m.reflection_notes,
                 m.workflow_name, m.skill_name, m.trigger_conditions,
                 m.version, m.version_series_id,
@@ -71,7 +71,7 @@ export async function buildSearchStatement(
       sql = `
             SELECT
               m.id, m.content, m.type, m.importance, m.created_at,
-              m.last_accessed, m.pinned, m.tags, m.source,
+              COALESCE(m.last_accessed_at, m.last_accessed) AS last_accessed, m.pinned, m.tags, m.source,
               m.task_goal, m.steps, m.reflection_notes,
               m.workflow_name, m.skill_name, m.trigger_conditions,
               m.version, m.version_series_id,
@@ -86,7 +86,7 @@ export async function buildSearchStatement(
     sql = `
           SELECT
             m.id, m.content, m.type, m.importance, m.created_at,
-            m.last_accessed, m.pinned, m.tags, m.source,
+            COALESCE(m.last_accessed_at, m.last_accessed) AS last_accessed, m.pinned, m.tags, m.source,
             m.task_goal, m.steps, m.reflection_notes,
             m.workflow_name, m.skill_name, m.trigger_conditions,
             m.version, m.version_series_id,

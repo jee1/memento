@@ -63,6 +63,24 @@ export class MetaMemoryService {
   }
 
   /**
+   * 쓰인 시각만 남긴다 (memory_injection, #1751)
+   *
+   * recall_count, 성공, 실패, 신뢰도는 건드리지 않는다. 주입은 recall 판정이 아니라서,
+   * 섞으면 1위보다 낮은 주입 항목이 실패로 쌓여 자가 치유가 쓰인 기억을 지운다.
+   * 버퍼를 타지 않고 바로 쓴다.
+   */
+  recordUse(memoryIds: string[]): void {
+    const now = new Date().toISOString();
+    const stmt = this.db.prepare(`
+      INSERT INTO meta_memory_stats (memory_id, last_recalled_at) VALUES (?, ?)
+      ON CONFLICT(memory_id) DO UPDATE SET last_recalled_at = excluded.last_recalled_at, updated_at = CURRENT_TIMESTAMP
+    `);
+    this.db.transaction((ids: string[]) => {
+      for (const id of ids) stmt.run(id, now);
+    })([...new Set(memoryIds)]);
+  }
+
+  /**
    * Recall 통계 기록
    * 
    * 검색 결과를 기반으로 각 메모리 항목의 통계를 업데이트합니다.

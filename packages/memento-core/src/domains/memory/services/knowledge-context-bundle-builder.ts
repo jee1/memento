@@ -14,6 +14,7 @@ import type {
   RelevanceGateOutcome,
 } from '../../search/index.js';
 import { overlayWorkRecordDisplay } from '../remember/work-record.js';
+import type { MetaMemoryService } from '../introspection/meta-memory-service.js';
 import {
   buildItemFilterMeta,
   type GateItemScore,
@@ -25,6 +26,8 @@ export type { ItemFilterMeta } from './injection-item-filter.js';
 export interface KnowledgeContextBundleBuilderDeps {
   db: Database.Database;
   hybridSearchEngine: HybridSearchEngine;
+  /** 있으면 프롬프트에 넣은 기억의 쓰인 시각을 남긴다 (#1751) */
+  metaMemoryService?: Pick<MetaMemoryService, 'recordUse'>;
 }
 
 export interface KnowledgeContextBundleParams {
@@ -53,8 +56,6 @@ export interface KnowledgeContextBundle {
   query: string;
   /** 하이브리드 검색 1위 기억 ID (앵커 자동 설정용) */
   topMemoryId?: string;
-  /** 프롬프트에 실제로 들어간 기억. memory_injection 이 recall 통계에 기록한다 (#1751). */
-  injectedItems: Array<{ id: string; finalScore: number }>;
   /** #1682 항목 필터 결과. memory_injection 이 응답 최상위에 싣는다. */
   itemFilter?: ItemFilterMeta;
   /** 텔레메트리용: 마지막 검색의 게이트 판정 */
@@ -114,14 +115,12 @@ function summarizeMemoryContent(content: string, maxTokens: number): string {
   return summary + (summary.length < content.length ? '...' : '');
 }
 
-type MemorySummary = { id: string; content: string; type: string; importance: number; finalScore: number; summary: string };
-
 function summarizeMemories(
   memories: HybridSearchResult[],
   tokenBudget: number,
   maxMemories: number,
-): MemorySummary[] {
-  const summaries: MemorySummary[] = [];
+): Array<{ id: string; content: string; type: string; importance: number; summary: string }> {
+  const summaries: Array<{ id: string; content: string; type: string; importance: number; summary: string }> = [];
   let usedTokens = 0;
   const maxTokensPerMemory = Math.floor(tokenBudget / maxMemories);
 
@@ -140,7 +139,6 @@ function summarizeMemories(
         content: memory.content,
         type: memory.type,
         importance: memory.importance,
-        finalScore: memory.finalScore,
         summary,
       });
       usedTokens += summaryTokens;
@@ -151,7 +149,7 @@ function summarizeMemories(
 }
 
 function formatMemoryPrompt(
-  summaries: MemorySummary[],
+  summaries: Array<{ id: string; content: string; type: string; importance: number; summary: string }>,
   query: string,
 ): string {
   if (summaries.length === 0) {
@@ -362,7 +360,6 @@ export async function buildKnowledgeContextBundle(
       tokenEstimate: 0,
       contextSummary: '관련 기억 0건',
       query,
-      injectedItems: [],
       itemFilter,
       rejectionGate: lastRejectionGate,
     };
@@ -381,6 +378,16 @@ export async function buildKnowledgeContextBundle(
     .join(', ');
   const contextSummary = `관련 기억 ${summary.length}건 (${breakdown}), 추정 토큰 ${tokenEstimate}`;
 
+  if (deps.metaMemoryService) {
+    try {
+      deps.metaMemoryService.recordUse(summary.map((row) => row.id));
+    } catch (error) {
+      logger.warn('[knowledge-context-bundle] 쓰인 시각 기록 실패', {
+        error: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+
   logger.info('[knowledge-context-bundle] 완료', {
     memoryCount: summary.length,
     tokenCount: tokenEstimate,
@@ -393,7 +400,6 @@ export async function buildKnowledgeContextBundle(
     contextSummary,
     query,
     topMemoryId: summary[0]?.id,
-    injectedItems: summary.map(({ id, finalScore }) => ({ id, finalScore })),
     itemFilter,
     rejectionGate: lastRejectionGate,
   };

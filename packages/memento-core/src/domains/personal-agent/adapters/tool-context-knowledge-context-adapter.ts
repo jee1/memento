@@ -26,6 +26,7 @@ export class ToolContextKnowledgeContextAdapter implements IContextPort {
       {
         db: this.toolContext.db as Database.Database,
         hybridSearchEngine: this.toolContext.services.hybridSearchEngine,
+        metaMemoryService: this.toolContext.services.metaMemoryService,
       },
       {
         query: request.userMessage,

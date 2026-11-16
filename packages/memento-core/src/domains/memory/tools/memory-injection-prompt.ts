@@ -17,7 +17,6 @@ import {
 import { normalizeMemoryTypesForHybridItemSearch } from '../utils/normalize-memory-types-for-item-search.js';
 import { handleAutoSetAnchor } from '../recall/recall-tool-anchor-rotation.js';
 import type { RecallToolHost } from '../recall/recall-tool-host.js';
-import type { RecallResultItem } from '../recall/recall-tool-types.js';
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { supersedeByActiveTargetSql } from '../../../shared/utils/memory-filter-sql.js';
 import { rejectionGateTelemetryExtra } from '../../telemetry/index.js';
@@ -211,6 +210,7 @@ export class MemoryInjectionPrompt extends BaseTool {
         {
           db: context.db,
           hybridSearchEngine: context.services.hybridSearchEngine,
+          metaMemoryService: context.services.metaMemoryService,
         },
         {
           query,
@@ -229,16 +229,6 @@ export class MemoryInjectionPrompt extends BaseTool {
       });
 
       const itemFilter = resolveItemFilter(bundle);
-
-      if (context.services.metaMemoryService && bundle.injectedItems.length > 0) {
-        try {
-          await context.services.metaMemoryService.recordRecall(
-            bundle.injectedItems.map((item) => ({ memory_id: item.id, id: item.id, final_score: item.finalScore }) as RecallResultItem),
-          );
-        } catch (error) {
-          this.logError(error as Error, '주입 기억 recall 통계 기록 실패', { items_count: bundle.injectedItems.length });
-        }
-      }
 
       if (
         mementoConfig.autoSetAnchorDefault

@@ -13,7 +13,7 @@ export interface RawVectorSearchResult {
   type: string;
   importance: number;
   created_at: string;
-  last_accessed?: string | null;
+  last_accessed_at?: string | null;
   pinned: number | boolean;
   tags?: string | null;
   project_id?: string | null;

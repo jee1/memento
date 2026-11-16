@@ -27,6 +27,7 @@ function initializeTestDatabase(db: Database.Database): void {
       privacy_scope TEXT CHECK (privacy_scope IN ('private','team','public')) DEFAULT 'private',
       created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
       last_accessed TIMESTAMP,
+      last_accessed_at TIMESTAMP,
       pinned BOOLEAN DEFAULT FALSE,
       tags TEXT,
       source TEXT,
