@@ -96,7 +96,7 @@ describe('BatchScheduler infrastructure jobs manual control', () => {
     await expect(scheduler.runJob('nope')).rejects.toThrow('unknown_job');
   });
 
-  it.fails('수동 runJob 이 성공하면 오류 수를 0 으로 되돌린다 (#1753)', async () => {
+  it('수동 runJob 이 성공하면 오류 수를 0 으로 되돌린다 (#1753)', async () => {
     const { scheduler } = await startSchedulerWithWal();
     const retryManager = (scheduler as unknown as { retryManager: { incrementErrorCount(n: string): number; getErrorCount(n: string): number } }).retryManager;
     retryManager.incrementErrorCount('wal_checkpoint');
@@ -107,7 +107,7 @@ describe('BatchScheduler infrastructure jobs manual control', () => {
     expect(retryManager.getErrorCount('wal_checkpoint')).toBe(0);
   });
 
-  it.fails('일시 정지된 잡은 restartJob 으로 다시 예약하지 않는다 (#1753)', async () => {
+  it('일시 정지된 잡은 restartJob 으로 다시 예약하지 않는다 (#1753)', async () => {
     const { scheduler } = await startSchedulerWithWal();
     expect(scheduler.pauseJob('cleanup').ok).toBe(true);
 

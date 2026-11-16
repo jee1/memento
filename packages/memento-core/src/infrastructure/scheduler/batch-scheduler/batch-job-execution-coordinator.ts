@@ -122,6 +122,9 @@ export class BatchJobExecutionCoordinator {
     let retryCount = initialRetryCount;
     let jobOk = false;
     let outcome: unknown;
+    /** 시간 초과로 빠져나와도 본문이 끝날 때까지 잠금을 쥔다 (#1753) */
+    let runningBody: Promise<unknown> | undefined;
+    let timedOut = false;
     let failureMessage: string | undefined;
     /** Issue #834: MVP boundary lines; flushed after job_run append. */
     const logBuffer = new JobRunLogBuffer();
@@ -140,12 +143,16 @@ export class BatchJobExecutionCoordinator {
 
     try {
       const jobTimeoutMs = resolveBatchJobTimeout(name, this.deps.getConfig());
-      outcome = await this.executeWithTimeout(job, jobTimeoutMs);
+      runningBody = job();
+      outcome = await this.executeWithTimeout(runningBody, jobTimeoutMs, () => {
+        timedOut = true;
+      });
       this.deps.lastExecution.set(name, new Date());
       this.deps.totalExecutions.set(name, (this.deps.totalExecutions.get(name) || 0) + 1);
       const resultErrors = failedJobResultErrors(outcome);
       if (resultErrors) {
         const message = resultErrors.join('; ') || 'job returned success=false';
+        this.deps.retryManager.incrementErrorCount(name);
         logBuffer.append({
           level: 'error',
           message: `${name} failed: ${message}`,
@@ -266,7 +273,12 @@ export class BatchJobExecutionCoordinator {
         durationMs
       });
       this.appendScheduleJobRun(name, startTime, durationMs, jobOk, logBuffer, outcome, failureMessage);
-      this.deps.jobQueue.markCompleted(name);
+      const release = () => this.deps.jobQueue.markCompleted(name);
+      if (timedOut && runningBody) {
+        runningBody.then(release, release);
+      } else {
+        release();
+      }
     }
   }
 
@@ -314,12 +326,20 @@ export class BatchJobExecutionCoordinator {
     }
   }
 
-  private async executeWithTimeout<T>(promise: () => Promise<T>, timeout: number): Promise<T> {
-    return Promise.race([
-      promise(),
-      new Promise<never>((_, reject) => {
-        setTimeout(() => reject(new Error(`Job timeout after ${timeout}ms`)), timeout);
-      })
-    ]);
+  private async executeWithTimeout<T>(body: Promise<T>, timeout: number, onTimeout: () => void): Promise<T> {
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    try {
+      return await Promise.race([
+        body,
+        new Promise<never>((_, reject) => {
+          timer = setTimeout(() => {
+            onTimeout();
+            reject(new Error(`Job timeout after ${timeout}ms`));
+          }, timeout);
+        })
+      ]);
+    } finally {
+      clearTimeout(timer);
+    }
   }
 }

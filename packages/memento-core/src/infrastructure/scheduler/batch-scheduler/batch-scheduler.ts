@@ -416,82 +416,91 @@ export class BatchScheduler implements IBatchScheduler {
     }
     this.jobQueue.markRunning(jobType);
     try {
-      const infraEntry = this.infrastructureJobs.get(jobType);
-      if (infraEntry) {
-        const startTime = new Date();
-        try {
-          const resolved = await infraEntry.job();
-          const endTime = new Date();
-          const duration = endTime.getTime() - startTime.getTime();
-
-          let success = true;
-          let processed = 1;
-          let errors: string[] = [];
-          if (
-            resolved !== null &&
-            typeof resolved === 'object' &&
-            'success' in resolved &&
-            (resolved as { success: unknown }).success === false
-          ) {
-            success = false;
-            processed = 0;
-            const maybeErrors = (resolved as { errors?: unknown }).errors;
-            if (Array.isArray(maybeErrors)) {
-              errors = maybeErrors.filter((entry): entry is string => typeof entry === 'string');
-            }
-          }
-
-          const result: BatchJobResult = {
-            jobType,
-            startTime,
-            endTime,
-            duration,
-            success,
-            processed,
-            errors,
-            warnings: [],
-          };
-
-          this.lastExecution.set(jobType, new Date());
-          this.totalExecutions.set(jobType, (this.totalExecutions.get(jobType) || 0) + 1);
-
-          return result;
-        } catch (error) {
-          const endTime = new Date();
-          const duration = endTime.getTime() - startTime.getTime();
-          const message = error instanceof Error ? error.message : String(error);
-          const result: BatchJobResult = {
-            jobType,
-            startTime,
-            endTime,
-            duration,
-            success: false,
-            processed: 0,
-            errors: [message],
-            warnings: [],
-          };
-
-          this.lastExecution.set(jobType, new Date());
-          this.totalExecutions.set(jobType, (this.totalExecutions.get(jobType) || 0) + 1);
-
-          return result;
-        }
+      const result = await this.runJobBody(jobType);
+      // #1753: 수동 실행이 성공하면 예약 실행 성공과 같이 오류 수를 0 으로 되돌린다
+      if (result.success) {
+        this.retryManager.resetErrorCount(jobType);
       }
-
-      if (!isRegisteredManualBatchJobType(jobType)) {
-        throw new Error('unknown_job');
-      }
-
-      return await runBatchSchedulerJob(
-        jobType,
-        this.getContextSource(),
-        this.lastExecution,
-        this.totalExecutions,
-        this.lastJobRunMeta
-      );
+      return result;
     } finally {
       this.jobQueue.markCompleted(jobType);
     }
+  }
+
+  private async runJobBody(jobType: string): Promise<BatchJobResult> {
+    const infraEntry = this.infrastructureJobs.get(jobType);
+    if (infraEntry) {
+      const startTime = new Date();
+      try {
+        const resolved = await infraEntry.job();
+        const endTime = new Date();
+        const duration = endTime.getTime() - startTime.getTime();
+
+        let success = true;
+        let processed = 1;
+        let errors: string[] = [];
+        if (
+          resolved !== null &&
+          typeof resolved === 'object' &&
+          'success' in resolved &&
+          (resolved as { success: unknown }).success === false
+        ) {
+          success = false;
+          processed = 0;
+          const maybeErrors = (resolved as { errors?: unknown }).errors;
+          if (Array.isArray(maybeErrors)) {
+            errors = maybeErrors.filter((entry): entry is string => typeof entry === 'string');
+          }
+        }
+
+        const result: BatchJobResult = {
+          jobType,
+          startTime,
+          endTime,
+          duration,
+          success,
+          processed,
+          errors,
+          warnings: [],
+        };
+
+        this.lastExecution.set(jobType, new Date());
+        this.totalExecutions.set(jobType, (this.totalExecutions.get(jobType) || 0) + 1);
+
+        return result;
+      } catch (error) {
+        const endTime = new Date();
+        const duration = endTime.getTime() - startTime.getTime();
+        const message = error instanceof Error ? error.message : String(error);
+        const result: BatchJobResult = {
+          jobType,
+          startTime,
+          endTime,
+          duration,
+          success: false,
+          processed: 0,
+          errors: [message],
+          warnings: [],
+        };
+
+        this.lastExecution.set(jobType, new Date());
+        this.totalExecutions.set(jobType, (this.totalExecutions.get(jobType) || 0) + 1);
+
+        return result;
+      }
+    }
+
+    if (!isRegisteredManualBatchJobType(jobType)) {
+      throw new Error('unknown_job');
+    }
+
+    return await runBatchSchedulerJob(
+      jobType,
+      this.getContextSource(),
+      this.lastExecution,
+      this.totalExecutions,
+      this.lastJobRunMeta
+    );
   }
 
   private getContextSource() {
@@ -605,6 +614,11 @@ export class BatchScheduler implements IBatchScheduler {
   }
 
   restartJob(jobName: string): boolean {
+    // #1753: 운영자가 멈춘 잡은 설정 재적용이 다시 예약하지 않는다. 다시 켜려면 resumeJob.
+    if (this.pausedJobs.has(jobName)) {
+      this.log(`restartJob(${jobName}): paused, not rescheduled`, { level: 'warn' });
+      return false;
+    }
     return restartBatchSchedulerJob(
       this.getServiceState(),
       this.getRecurringState(),

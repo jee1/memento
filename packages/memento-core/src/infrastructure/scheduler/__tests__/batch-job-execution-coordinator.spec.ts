@@ -461,7 +461,7 @@ describe('BatchJobExecutionCoordinator job_run append (#833)', () => {
 });
 
 describe('BatchJobExecutionCoordinator 결과 상태 (#1753)', () => {
-  it.fails('success:false 를 돌려준 잡도 오류 수를 올린다', async () => {
+  it('success:false 를 돌려준 잡도 오류 수를 올린다', async () => {
     const { coordinator, retryManager } = createCoordinator({});
 
     await coordinator.executeJobWithRetry('returns_failure', async () => ({ success: false, errors: ['boom'] }), 5, 0);
@@ -469,7 +469,7 @@ describe('BatchJobExecutionCoordinator 결과 상태 (#1753)', () => {
     expect(retryManager.getErrorCount('returns_failure')).toBe(1);
   });
 
-  it.fails('시간 초과가 나도 본문이 끝날 때까지 잠금을 쥔다', async () => {
+  it('시간 초과가 나도 본문이 끝날 때까지 잠금을 쥔다', async () => {
     vi.useFakeTimers();
     try {
       const { coordinator, jobQueue } = createCoordinator({ jobTimeout: 100 });
