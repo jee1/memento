@@ -25,6 +25,7 @@
     "dev:http": "npm run dev:http -w memento-server",
     "build": "npm run build:packages",
     "build:packages": "npm run build -w @memento/agent-integration && npm run build -w @memento/core && npm run build -w memento-server && npm run build -w @jee1/memento-client && npm run build -w @jee1/memento-assistant && npm run sync:root-server-dist",
+    "ci:local": "bash scripts/ci-local.sh",
     "docs:audit-links": "node scripts/audit-markdown-links.mjs",
     "docs:verify-npm-scripts": "node scripts/verify-doc-npm-scripts.mjs",
     "check-debt-markers": "tsx scripts/check-debt-markers.ts",
