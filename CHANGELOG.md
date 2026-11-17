@@ -27,6 +27,7 @@
 
 ### Changed
 
+- 주기 점검 로그 `Monitoring completed` 의 `metrics` 에 `rssMiB`, `heapUsedMiB`, `heapTotalMiB`, `externalMiB`, `arrayBuffersMiB` 를 MiB 절대값으로 남기고, 힙 비율인 `memoryUsage` 는 `heapFillPercent` 로 이름을 바꾼다. 컨테이너 메모리로 오독하던 값이다. 로그를 읽는 알림과 대시보드는 없고 메모리 알림(`RssAnon` 기준)은 그대로다. 새 설정, 화면, 테이블은 없다 (#1757).
 - **로컬 임베딩 모델을 multilingual-e5-small-ko-v2 로 바꾼다** (#1729 PR 8): 임베딩 제공자 `minilm` 뒤의 모델이 `dragonkue/multilingual-e5-small-ko-v2`(384차원, apache-2.0)입니다. 운영 질문 262개에서 주입 상위 5 가 52.7% 에서 61.8% 로 올랐습니다(+9.2%p, 95% 구간 [+5.7, +12.6]).
   - 모델 파일은 npm 의존성 `@jee1/memento-embedding-e5-small-ko-v2@1.0.0`(정확한 버전) 안에 있고 그 폴더에서만 읽습니다. 원격 내려받기는 끕니다. Docker 의 모델 warmup 단계, `SKIP_TRANSFORMERS_WARMUP` 빌드 인자, CI 의 Hugging Face 캐시 단계를 지웠습니다. 이미지 스모크 검사는 패키지 파일 다섯 개의 sha256 과 오프라인 임베딩을 봅니다.
   - 역할 접두 `query: `, `passage: ` 를 붙입니다(기억 창 507 토큰). 질의 점수 사상은 `{ a: 1.9943, b: -0.6838 }` 입니다.
