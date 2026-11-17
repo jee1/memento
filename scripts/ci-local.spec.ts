@@ -35,13 +35,19 @@ describe('ci-local.sh', () => {
   it('fails when ci.yml gains a multi-line step it does not know', () => {
     const dir = mkdtempSync(join(tmpdir(), 'ci-local-'));
     dirs.push(dir);
-    const yml = readFileSync(join(REPO_ROOT, '.github/workflows/ci.yml'), 'utf8').replace(
-      '      - run: npm run type-check\n',
-      '      - run: npm run type-check\n      - name: New gate\n        run: |\n          echo a\n          echo b\n',
-    );
-    writeFileSync(join(dir, 'ci.yml'), yml);
-    const r = list({ CI_LOCAL_CI_YML: join(dir, 'ci.yml') });
-    expect(r.status).toBe(2);
-    expect(r.stderr).toContain('처리하지 못하는 여러 줄 단계');
+    const original = readFileSync(join(REPO_ROOT, '.github/workflows/ci.yml'), 'utf8');
+    const newGate = '      - name: New gate\n        run: |\n          echo a\n          echo b\n';
+    // 중간 단계와 잡의 마지막 단계 둘 다 감지해야 한다.
+    const variants = [
+      original.replace('      - run: npm run type-check\n', `      - run: npm run type-check\n${newGate}`),
+      original.replace('\n  test-root:', `${newGate}\n  test-root:`),
+    ];
+    for (const [i, yml] of variants.entries()) {
+      expect(yml).not.toBe(original);
+      writeFileSync(join(dir, `ci${i}.yml`), yml);
+      const r = list({ CI_LOCAL_CI_YML: join(dir, `ci${i}.yml`) });
+      expect(r.status, `variant ${i}`).toBe(2);
+      expect(r.stderr).toContain('처리하지 못하는 여러 줄 단계');
+    }
   });
 });

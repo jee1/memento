@@ -83,15 +83,33 @@ describe('check-removed-names', () => {
   });
 
   it('ignores removed lines in spec files and non-code files', () => {
+    const hunk = (file: string, body: string) => [`diff --git a/${file} b/${file}`, `--- a/${file}`, `+++ b/${file}`, '@@ -1 +1 @@', body].join('\n');
     const diff = [
-      '+++ b/src/a.spec.ts',
-      '-export function specHelperName() {}',
-      '+++ b/docs/x.md',
-      '-export function docOnlyName() {}',
-      '+++ b/src/a.ts',
-      '-export function realRemovedName() {}',
+      hunk('src/a.spec.ts', '-export function specHelperName() {}'),
+      hunk('docs/x.md', '-export function docOnlyName() {}'),
+      hunk('src/a.ts', '-export function realRemovedName() {}'),
     ].join('\n');
     expect([...parseDiff(diff).removed.keys()]).toEqual(['realRemovedName']);
+  });
+
+  it('reads names from a file deleted as a whole and treats content lines starting with dashes as content', () => {
+    const diff = [
+      'diff --git a/src/gone.ts b/src/gone.ts',
+      'deleted file mode 100644',
+      '--- a/src/gone.ts',
+      '+++ /dev/null',
+      '@@ -1,2 +0,0 @@',
+      '-export class GoneServiceName {',
+      '--- not a header',
+    ].join('\n');
+    expect([...parseDiff(diff).removed.keys()]).toEqual(['GoneServiceName']);
+  });
+
+  it('does not let a definition added in a spec or markdown file suppress the check', () => {
+    write('src/service.ts', 'export class Service {}\n');
+    write('src/other.spec.ts', 'function oldHelperName() {}\nfunction calculateConfidence() {}\n');
+    git('add', '-A');
+    expect(findRemainingMentions('HEAD', root).map((m) => m.name)).toEqual(['calculateConfidence', 'oldHelperName']);
   });
 
   it('does not treat calls or imports as definitions', () => {

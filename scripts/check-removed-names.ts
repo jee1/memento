@@ -4,7 +4,7 @@ import { isMain } from './lib/cli.js';
  * 지운 이름의 남은 언급 검사 (문서 동반 수정 규칙의 기계 검사)
  *
  * merge-base 대비 diff 에서 지워진 export 와 클래스 메서드 이름을 뽑아,
- * 아직 어디에도 정의가 남지 않은 이름이 코드나 docs 에 남아 있으면 목록을 찍고 exit 1 입니다.
+ * 아직 어디에도 정의가 남지 않은 이름이 코드나 docs 에 남으면 목록을 찍고 exit 1 입니다.
  *
  * 사용법:
  *   npx tsx scripts/check-removed-names.ts [옵션]
@@ -15,8 +15,8 @@ import { isMain } from './lib/cli.js';
  *
  * 오탐을 줄이는 규칙은 세 가지뿐입니다.
  * 1. 이름이 짧거나 흔한 낱말이면 무시한다 (camelCase/PascalCase/snake_case 이고 6자 이상만).
- * 2. diff 에서 다시 추가한 이름(다른 파일로 옮긴 경우 포함)은 무시한다. 같은 이름의 정의가 다른 곳에
- *    남아 있으면(다른 클래스의 같은 메서드 이름) 코드의 언급은 그 정의를 부르는 것일 수 있으니 docs 의 언급만 본다.
+ * 2. diff 의 코드 파일(spec 제외)에서 다시 추가한 이름(다른 파일로 옮긴 경우 포함)은 무시한다.
+ *    같은 이름의 정의가 다른 곳에 남으면(다른 클래스의 같은 메서드 이름) 코드의 언급은 그 정의를 부르기도 하니 docs 의 언급만 본다.
  * 3. 이력을 적는 곳(CHANGELOG.md, docs/adr/)과 spec 파일의 지워진 줄은 보지 않는다.
  */
 
@@ -48,14 +48,22 @@ export function parseDiff(diff: string): DiffLines {
   const removed = new Map<string, Set<string>>();
   const added: string[] = [];
   let file = '';
+  let inHunk = false;
+  const isCode = (): boolean => CODE_FILE.test(file) && !SPEC_FILE.test(file);
   for (const line of diff.split('\n')) {
-    if (line.startsWith('+++ ')) {
-      file = line.slice(4).replace(/^b\//, '');
-    } else if (line.startsWith('--- ')) {
-      continue;
-    } else if (line.startsWith('+')) {
-      added.push(line.slice(1));
-    } else if (line.startsWith('-') && CODE_FILE.test(file) && !SPEC_FILE.test(file)) {
+    if (line.startsWith('diff --git ')) {
+      inHunk = false;
+      file = '';
+    } else if (!inHunk && line.startsWith('--- ')) {
+      // 파일 전체를 지우면 `+++ /dev/null` 이라 옛 경로를 여기서 잡는다.
+      if (line !== '--- /dev/null') file = line.slice(4).replace(/^a\//, '');
+    } else if (!inHunk && line.startsWith('+++ ')) {
+      if (line !== '+++ /dev/null') file = line.slice(4).replace(/^b\//, '');
+    } else if (line.startsWith('@@')) {
+      inHunk = true;
+    } else if (inHunk && line.startsWith('+')) {
+      if (isCode()) added.push(line.slice(1));
+    } else if (inHunk && line.startsWith('-') && isCode()) {
       const text = line.slice(1);
       const name = EXPORT_DECL.exec(text)?.[1] ?? METHOD_DECL.exec(text)?.[1];
       if (name && isDistinctiveName(name)) {

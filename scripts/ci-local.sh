@@ -5,7 +5,8 @@
 #   - .github/workflows/ci.yml 의 lint-typecheck job: `npm ci` 를 뺀 모든 run 단계
 #   - .github/workflows/security-check.yml: `npx tsx scripts/check-*.ts` 정적 검사 단계
 #     (npm audit 은 네트워크가 필요하고 type-check, lint 는 위 job 과 겹쳐 뺀다)
-# 한 줄짜리 run 은 그대로 돌린다. 여러 줄 run 은 check-version-sync 만 로컬용으로 바꿔 돌리고,
+# 한 줄짜리 run 은 그대로 돌린다. 여러 줄 run 은 check-version-sync 만 로컬용으로 바꿔 돌리고(PR 제목과 라벨은
+# 로컬에 없어 --title, --labels 는 뺀다. 이 둘이 거는 게이트는 CI 에서만 본다),
 # 모르는 여러 줄 단계가 생기면 실패해 이 스크립트를 고치게 한다(워크플로와 어긋남 감지).
 # 끝에 scripts/check-removed-names.ts (지운 이름의 남은 언급)를 부른다.
 # 테스트는 포함하지 않는다. 바꾼 범위의 테스트를 따로 돌린다.
@@ -17,12 +18,19 @@ ROOT=$(git rev-parse --show-toplevel)
 cd "$ROOT"
 CI_YML=${CI_LOCAL_CI_YML:-.github/workflows/ci.yml}
 SEC_YML=${CI_LOCAL_SECURITY_YML:-.github/workflows/security-check.yml}
-BASE=${CI_LOCAL_BASE:-$(git merge-base origin/main HEAD)}
+BASE=${CI_LOCAL_BASE:-$(git merge-base origin/main HEAD 2>/dev/null)}
+if [ -z "$BASE" ]; then
+  echo "ci-local: origin/main 과의 merge-base 를 못 찾았다. git fetch origin 을 먼저 해라." >&2
+  exit 2
+fi
 
 # job 블록(2칸 들여쓰기 키)에서 run 단계를 한 줄에 하나씩 뽑는다. 여러 줄 run 은 MULTI<TAB>본문(줄은 공백으로 이음).
 extract_runs() { # <file> <job-key-or-*>
   awk -v job="$2" '
-    /^  [A-Za-z0-9_-]+:[[:space:]]*$/ { injob = (job == "*" || $1 == job ":") ; multi = 0 }
+    /^  [A-Za-z0-9_-]+:[[:space:]]*$/ {
+      if (multi) { print "MULTI\t" body; multi = 0 }
+      injob = (job == "*" || $1 == job ":")
+    }
     !injob { next }
     multi {
       match($0, /^ */); ind = RLENGTH
