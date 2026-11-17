@@ -21,6 +21,21 @@ function countMonitoringAlertBuckets(alerts: PerformanceAlert[]): {
   };
 }
 
+const MIB = 1024 * 1024;
+
+/** 컨테이너 메모리와 같은 축의 절대값(MiB). 힙 충전률은 별도 필드로 둔다. */
+export function formatProcessMemory(mem: NodeJS.MemoryUsage): Record<string, number | string> {
+  const mib = (bytes: number): number => Math.round((bytes / MIB) * 10) / 10;
+  return {
+    rssMiB: mib(mem.rss),
+    heapUsedMiB: mib(mem.heapUsed),
+    heapTotalMiB: mib(mem.heapTotal),
+    externalMiB: mib(mem.external),
+    arrayBuffersMiB: mib(mem.arrayBuffers),
+    heapFillPercent: `${((mem.heapUsed / mem.heapTotal) * 100).toFixed(1)}%`
+  };
+}
+
 export async function runMemoryCleanup(ctx: BatchSchedulerRunContext): Promise<BatchJobResult> {
   const result = createEmptyBatchJobResult('memory_cleanup');
 
@@ -81,7 +96,7 @@ export async function runMonitoring(ctx: BatchSchedulerRunContext): Promise<Batc
 
     ctx.log('Monitoring completed', {
       metrics: {
-        memoryUsage: `${((metrics.memory.heapUsed / metrics.memory.heapTotal) * 100).toFixed(1)}%`,
+        ...formatProcessMemory(process.memoryUsage()),
         dbSize: `${(metrics.database.size / (1024 * 1024)).toFixed(1)}MB`,
         queryTime: `${metrics.database.queryTime}ms`
       },
