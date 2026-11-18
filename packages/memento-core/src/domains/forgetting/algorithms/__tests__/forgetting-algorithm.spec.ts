@@ -2,7 +2,7 @@
  * 망각 알고리즘 단위 테스트
  */
 
-import { describe, it, expect, beforeEach, afterEach } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
 import { DAY_MS } from '../../../../shared/utils/date.js';
 import { ForgettingAlgorithm, type ForgettingFeatures, type ForgettingResult } from '../forgetting-algorithm.js';
 
@@ -371,6 +371,16 @@ describe('ForgettingAlgorithm', () => {
   });
 
   describe('#1749 다른 유형 수와 무관한 점수', () => {
+    // 점수가 현재 시각에 따라 달라지므로 두 번 계산하는 사이에 시각이 넘어가면 정확 비교가 어긋난다 (#1781).
+    beforeEach(() => {
+      vi.useFakeTimers();
+      vi.setSystemTime(new Date('2026-11-18T00:00:00.000Z'));
+    });
+
+    afterEach(() => {
+      vi.useRealTimers();
+    });
+
     const memoryOf = (id: string, type: string) => ({
       id,
       created_at: new Date(Date.now() - 400 * DAY_MS).toISOString(),
