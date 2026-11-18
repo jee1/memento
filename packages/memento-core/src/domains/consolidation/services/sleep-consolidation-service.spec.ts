@@ -464,6 +464,29 @@ describe('SleepConsolidationService', () => {
       expect(result.clustersFound).toBe(1);
     });
 
+    it('#1771: a second run over unchanged candidates does not re-embed, a changed one does', async () => {
+      insertEpisodic(db, 'e1', { owner: 'agent-x', content: templateContent('alpha') });
+      insertEpisodic(db, 'e2', { owner: 'agent-x', content: templateContent('beta') });
+      insertEmbedding(db, 'e1', emb, provider);
+      insertEmbedding(db, 'e2', emb, provider);
+
+      const { uni, svc } = setupService();
+      const generateEmbedding = vi.spyOn(uni, 'generateEmbedding').mockImplementation(async text => {
+        const vec = text.includes('alpha') ? [1, 0, 0, 0] : [0, 1, 0, 0];
+        return { embedding: vec, provider };
+      });
+
+      const first = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+      expect(generateEmbedding).toHaveBeenCalledTimes(2);
+      const second = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+      expect(generateEmbedding).toHaveBeenCalledTimes(2);
+      expect(second.clustersFound).toBe(first.clustersFound);
+
+      db.prepare('UPDATE memory_item SET content = ? WHERE id = ?').run(templateContent('alpha gamma'), 'e1');
+      await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+      expect(generateEmbedding).toHaveBeenCalledTimes(3);
+    });
+
     it('T4: re-embed failure keeps stored vector and clusters', async () => {
       insertEpisodic(db, 'e1', { owner: 'agent-x', content: templateContent('alpha') });
       insertEpisodic(db, 'e2', { owner: 'agent-x', content: templateContent('beta') });
