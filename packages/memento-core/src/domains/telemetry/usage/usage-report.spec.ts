@@ -9,7 +9,7 @@ import {
   validateUsageReport,
   type UsageReportInput,
 } from './usage-report.js';
-import { countMemories, readUsageRows, reportSinceDay } from './usage-report-reader.js';
+import { readUsageRows, reportSinceDay } from './usage-report-reader.js';
 
 const registeredTools = new Set(['recall', 'remember', 'forget']);
 
@@ -215,10 +215,9 @@ describe('usage-report-reader', () => {
     db.close();
   });
 
-  it('표가 없으면 빈 값과 null 이다', () => {
+  it('표가 없으면 빈 값이다', () => {
     const db = new Database(':memory:');
     expect(readUsageRows(db, now)).toEqual([]);
-    expect(countMemories(db)).toBeNull();
     db.close();
   });
 });

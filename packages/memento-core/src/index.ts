@@ -312,7 +312,8 @@ export {
   validateUsageReport,
 } from './domains/telemetry/usage/usage-report.js';
 export type { UsageReport, UsageReportInput, IssueDraft } from './domains/telemetry/usage/usage-report.js';
-export { countMemories, readUsageRows } from './domains/telemetry/usage/usage-report-reader.js';
+export { readUsageRows } from './domains/telemetry/usage/usage-report-reader.js';
+export { countActiveMemoryItems } from './domains/memory/repositories/memory-item-repository.js';
 export {
   normalizeClientName,
   normalizeClientVersion,

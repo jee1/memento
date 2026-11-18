@@ -40,7 +40,7 @@ describe('memento doctor --report (#1769)', () => {
   function seedDatabase() {
     const db = new Database(dbPath);
     db.exec(`
-      CREATE TABLE memory_item (id TEXT PRIMARY KEY, content TEXT NOT NULL);
+      CREATE TABLE memory_item (id TEXT PRIMARY KEY, content TEXT NOT NULL, is_deleted INTEGER NOT NULL DEFAULT 0);
       CREATE TABLE memento_schema_version (version TEXT PRIMARY KEY, applied_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP, migration_name TEXT NOT NULL);
       INSERT INTO memento_schema_version (version, migration_name) VALUES ('69.0', 'usage');
       CREATE TABLE usage_daily_count (
@@ -50,6 +50,8 @@ describe('memento doctor --report (#1769)', () => {
     `);
     const insertMemory = db.prepare('INSERT INTO memory_item (id, content) VALUES (?, ?)');
     for (let i = 0; i < 150; i += 1) insertMemory.run(`m${i}`, i === 0 ? SECRET_MEMORY : `기억 ${i}`);
+    // 삭제 표시된 60건은 세지 않는다: 150건 중 활성 90건이라 구간이 1-99 다.
+    db.exec("UPDATE memory_item SET is_deleted = 1 WHERE CAST(substr(id, 2) AS INTEGER) >= 90");
     db.prepare(
       `INSERT INTO usage_daily_count VALUES ('2026-11-18', 'claude-code', '2.1.327', 'stdio', 'modern', 'tools/call', 'recall', 'error', -32603, 3)`,
     ).run();
@@ -63,7 +65,7 @@ describe('memento doctor --report (#1769)', () => {
     seedDatabase();
     expect(await run(['--report', '--print'])).toBe(0);
     const out = stdout.join('');
-    expect(out).toContain('기억 수 100-999');
+    expect(out).toContain('기억 수 1-99');
     expect(out).toContain('claude-code 2.1.327: 요청 43, 오류 3');
     expect(out).toContain('recall, 오류 코드 -32603: 3회');
     expect(out).toContain('스키마 69.0');

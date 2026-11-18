@@ -1,5 +1,6 @@
 /**
- * 보고서에 넣을 값을 DB 에서 읽는다 (#1769). 읽기만 하고, 호출하는 쪽이 읽기 전용으로 연 연결을 넘긴다.
+ * 보고서에 넣을 사용 집계를 DB 에서 읽는다 (#1769). 읽기만 하고, 호출하는 쪽이 읽기 전용으로 연 연결을 넘긴다.
+ * 기억 수는 telemetry 가 memory 를 가져오면 도메인 방향(#1534)이 순환하므로 여기서 세지 않고 호출하는 쪽이 센다.
  * 표가 없거나(옛 스키마) 질의가 실패하면 빈 값을 돌려준다. 보고서 때문에 진단이 멈추면 안 된다.
  */
 
@@ -24,15 +25,5 @@ export function readUsageRows(db: Database.Database, now: Date): UsageRowInput[]
       .all(reportSinceDay(now)) as UsageRowInput[];
   } catch {
     return [];
-  }
-}
-
-/** 기억 수. 세지 못하면 null. */
-export function countMemories(db: Database.Database): number | null {
-  try {
-    const row = db.prepare('SELECT COUNT(*) AS n FROM memory_item').get() as { n?: unknown } | undefined;
-    return typeof row?.n === 'number' ? row.n : null;
-  } catch {
-    return null;
   }
 }

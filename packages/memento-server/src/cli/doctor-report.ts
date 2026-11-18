@@ -5,7 +5,7 @@ import Database from 'better-sqlite3';
 import {
   buildIssueDraft,
   buildUsageReport,
-  countMemories,
+  countActiveMemoryItems,
   getAllTools,
   mementoConfig,
   readCurrentSchemaVersion,
@@ -46,6 +46,15 @@ function probeNativeModule(): 'ok' | 'load_failed' {
     return 'ok';
   } catch {
     return 'load_failed';
+  }
+}
+
+/** 삭제 표시되지 않은 기억 수. 기억 SQL 은 MemoryItemRepository 가 갖는다(#1531). 세지 못하면 null. */
+function countMemories(db: Database.Database): number | null {
+  try {
+    return countActiveMemoryItems(db);
+  } catch {
+    return null;
   }
 }
 
