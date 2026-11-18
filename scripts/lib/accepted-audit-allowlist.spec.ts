@@ -100,10 +100,10 @@ const LEGACY_ACCEPTED = {
 };
 
 describe('loadAcceptedAuditAllowlist (#942)', () => {
-  it('loads the repository allowlist (empty since #989)', async () => {
+  it('loads the repository allowlist (picomatch has no patched release, #1764)', async () => {
     const { loadAcceptedAuditAllowlist } = await import('./accepted-audit-allowlist.js');
     const set = loadAcceptedAuditAllowlist();
-    expect([...set]).toEqual([]);
+    expect([...set]).toEqual(['picomatch']);
   });
 
   it('loads packages from a JSON file via url', async () => {

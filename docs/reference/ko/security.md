@@ -7,11 +7,11 @@ HTTP 관리 서버를 열면 **브라우저 세션**, **스코프드 API 토큰*
 - **CI gate**: `.github/workflows/security-check.yml`가 두 레인을 돌립니다. ① production 레인 — `node scripts/check-production-audit-fixable.mjs` (`npm audit --omit=dev`), **fixable High/Moderate/Critical이 1건이라도 있으면 실패**. ② full-tree 레인 (#909) — 같은 스크립트에 `--include-dev`, dev 포함 전체 트리에서 **wanted 범위로 고칠 수 있는 High/Critical**만 실패시킵니다(major 업그레이드로만 풀리는 건은 제외). 두 레인 뒤의 `npm audit summary` 스텝이 전체 결과를 job summary 에 남깁니다.
 - **정책**: wanted 범위(minor/patch) 안에서만 해소합니다. `npm audit fix --force`·`overrides`로 ML 스택을 끌어올리지 않습니다 (`AGENTS.md` deps wanted-only).
 - **수용 목록 (#942)**: 게이트의 진실 원본은 `security/accepted-audit.json` 입니다. upstream-blocked(고칠 수 없는) 항목이 목록에 없으면 Security Check 가 실패합니다. 목록과 아래 Upstream-blocked 표는 `scripts/lib/accepted-audit-allowlist.spec.ts` 가 집합 동일성으로 검증하므로, 새 수용 항목은 **표와 JSON 을 같은 PR 에서** 고쳐야 합니다. full-tree 레인에서 major-only 수정만 있는 High 도 자동 통과가 아니라 이 목록에 올려야 통과합니다.
-- **Upstream-blocked (accepted risk, no force-override)** — 2026-09-16 재측정:
+- **Upstream-blocked (accepted risk, no force-override)** — 2026-11-18 재측정:
 
 | Package path | Advisory / notes | Why blocked | Tracking |
 |--------------|------------------|-------------|----------|
-| (2026-09-16 기준 수용 중인 upstream-blocked 항목 없음 — #989) | — | — | — |
+| `picomatch` | [GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf) (High), dev 전용. 이 원인을 거쳐서만 걸리는 `tinyglobby`, `fdir`, `vite`, `vitest`, `@vitest/coverage-v8`, `@typescript-eslint/*` 는 목록에 따로 올리지 않는다(자체 권고가 생기면 목록에 없어 게이트가 막는다) | 수정 버전이 없다(권고 범위 `<=4.0.7`, npm 최신 4.0.7). 운영 트리(`--omit=dev`)에는 없다 | #1764 |
 
 - **High 8건 처리 대장 (#909)** — 2026-09-16 측정 (`npm audit`: high 0 / moderate 3, `--omit=dev`: high 0):
 
