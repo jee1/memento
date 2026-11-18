@@ -310,7 +310,7 @@ export {
   normalizeClientVersion,
   normalizeTool,
   normalizeErrorCode,
-  sanitizeClientNameForLog,
+  loggableClientName,
 } from './domains/telemetry/usage/usage-vocabulary.js';
 export type {
   ClientName,

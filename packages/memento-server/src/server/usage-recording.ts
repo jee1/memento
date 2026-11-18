@@ -15,7 +15,7 @@ import {
   normalizeClientVersion,
   normalizeErrorCode,
   normalizeTool,
-  sanitizeClientNameForLog,
+  loggableClientName,
   type ClientName,
   type ConnectionMethod,
   type ProtocolEra,
@@ -44,13 +44,26 @@ function registeredToolNames(): ReadonlySet<string> {
 const MAX_LOGGED_UNRECOGNIZED = 32;
 const unrecognizedLogged = new Set<string>();
 
-/** 목록에 없는 새 클라이언트 이름을 프로세스마다 한 번 로그에 남긴다(Set 은 32개까지만). */
+/** 이름을 로그에 남길 수 없는 모양일 때 한 번만 남기는 표식(중복 제거 열쇠). */
+const UNLOGGABLE = '\u0000unloggable';
+
+/**
+ * 목록에 없는 새 클라이언트를 프로세스마다 한 번 로그에 남긴다(Set 은 32개까지만).
+ * 이름은 영문자와 하이픈만 있는 20자 이하일 때만 남기고, 그 밖의 모양(숫자, 점, 밑줄, 긴 값)은 이름 대신
+ * 「이름은 남기지 않음, 길이 N」만 한 번 남긴다. 새 클라이언트가 있다는 신호는 잃지 않되 값은 새지 않는다.
+ */
 function noteUnrecognized(raw: unknown, name: ClientName): void {
   if (name !== 'other') return;
-  const shown = sanitizeClientNameForLog(raw);
-  if (!shown || unrecognizedLogged.has(shown) || unrecognizedLogged.size >= MAX_LOGGED_UNRECOGNIZED) return;
-  unrecognizedLogged.add(shown);
-  mcpLogger.logServer('info', `client_name_unrecognized ${shown}`);
+  const shown = loggableClientName(raw);
+  const key = shown || UNLOGGABLE;
+  if (unrecognizedLogged.has(key) || unrecognizedLogged.size >= MAX_LOGGED_UNRECOGNIZED) return;
+  unrecognizedLogged.add(key);
+  if (shown) {
+    mcpLogger.logServer('info', `client_name_unrecognized ${shown}`);
+  } else {
+    const length = typeof raw === 'string' ? raw.length : 0;
+    mcpLogger.logServer('info', `client_name_unrecognized (이름은 남기지 않음: 허용 모양이 아님, 길이 ${length})`);
+  }
 }
 
 function countSafely(fn: () => void): void {

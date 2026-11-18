@@ -4,7 +4,7 @@ import {
   normalizeClientVersion,
   normalizeErrorCode,
   normalizeTool,
-  sanitizeClientNameForLog,
+  loggableClientName,
 } from './usage-vocabulary.js';
 
 describe('usage-vocabulary (#1768)', () => {
@@ -77,11 +77,24 @@ describe('usage-vocabulary (#1768)', () => {
     });
   });
 
-  describe('sanitizeClientNameForLog', () => {
-    it('소문자 영숫자와 .-_ 만 남기고 40자로 자른다', () => {
-      expect(sanitizeClientNameForLog('My Client/1.0 (x)')).toBe('myclient1.0x');
-      expect(sanitizeClientNameForLog('a'.repeat(100))).toHaveLength(40);
-      expect(sanitizeClientNameForLog(42)).toBe('');
+  describe('loggableClientName', () => {
+    it('영문자와 하이픈만 있는 20자 이하만 소문자로 돌려준다', () => {
+      expect(loggableClientName('Brand-New-Client')).toBe('brand-new-client');
+      expect(loggableClientName('  zed ')).toBe('zed');
+      expect(loggableClientName('a'.repeat(20))).toHaveLength(20);
+    });
+
+    it.each([
+      ['21자 이상', 'a'.repeat(21)],
+      ['숫자가 든 값(토큰 모양)', 'sk-live-abcdef0123456789'],
+      ['점이나 밑줄이 든 값', 'my_client.v2'],
+      ['경로 모양', '/home/jee1lee/secret'],
+      ['공백이 든 값', 'my client'],
+      ['하이픈으로 시작', '-leading'],
+      ['빈 문자열', ''],
+      ['문자열이 아닌 값', 42],
+    ])('%s 는 남기지 않는다', (_label, raw) => {
+      expect(loggableClientName(raw)).toBe('');
     });
   });
 });

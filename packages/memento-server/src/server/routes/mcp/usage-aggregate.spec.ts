@@ -294,22 +294,33 @@ describe('사용 집계: HTTP 진입점 (#1768)', () => {
 
   it('새어 나가지 않는다: 경로, 토큰, 프로젝트 이름, 세션 ID 를 클라이언트 이름과 도구 이름, 인자에 넣어도 표에 없다 (테스트 1)', async () => {
     const leaks = ['/home/jee1lee/secret-project', 'sk-live-abcdef0123456789', 'my-private-project', 'sess-0123456789-abcdef'];
+    // 도구 이름: 모양(`[a-z0-9_]`)은 맞지만 등록되지 않은 값. DB 제약은 이 값을 받아들이므로 앱 정규화가 마지막 방어선이다.
+    const shapedButUnregistered = ['secretproject', 'a3f9c2e17b4d8a60', 'memento'];
     const poisonedMeta = {
       ...modernMeta,
       'io.modelcontextprotocol/clientInfo': { name: leaks[0], version: leaks[1] },
     };
-    await handleStreamableMcpPost(
-      modernRequest(
-        { id: 6, method: 'tools/call', params: { name: leaks[2], arguments: { content: leaks[1], project_id: leaks[2], session: leaks[3] } } },
-        { meta: poisonedMeta },
-      ),
-      fakeRes(),
-      ctx.db,
-      ctx.services,
-    );
-    const everything = JSON.stringify(flushed());
-    for (const leak of leaks) expect(everything).not.toContain(leak);
+    const call = (id: number, toolName: string) =>
+      handleStreamableMcpPost(
+        modernRequest(
+          { id, method: 'tools/call', params: { name: toolName, arguments: { content: leaks[1], project_id: leaks[2], session: leaks[3] } } },
+          { meta: poisonedMeta },
+        ),
+        fakeRes(),
+        ctx.db,
+        ctx.services,
+      );
+    await call(6, leaks[2]);
+    for (const [i, toolName] of shapedButUnregistered.entries()) await call(20 + i, toolName);
+
+    const rows = flushed();
+    const everything = JSON.stringify(rows);
+    for (const leak of [...leaks, ...shapedButUnregistered]) expect(everything).not.toContain(leak);
     expect(everything).toContain('"client_name":"other"');
+    // 모양이 맞는 등록 안 된 이름 셋과 하이픈 이름 하나가 모두 other 한 행으로 합쳐진다.
+    const toolCalls = rows.filter((r) => r.request_kind === 'tools/call');
+    expect(toolCalls.map((r) => r.tool)).toEqual(['other']);
+    expect(toolCalls[0]?.count).toBe(4);
   });
 
   it('집계 표가 없어도(쓰기 실패) 요청 처리는 막히지 않는다 (테스트 6, 7)', async () => {

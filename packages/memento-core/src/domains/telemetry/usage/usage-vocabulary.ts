@@ -61,8 +61,14 @@ export function normalizeErrorCode(code: unknown): UsageErrorCode {
   return typeof code === 'number' && (ERROR_CODES as readonly number[]).includes(code) ? (code as UsageErrorCode) : -1;
 }
 
-/** 새로 알게 된 클라이언트 이름을 로그에 남길 때 쓰는 값: 소문자 영숫자와 `.-_` 만, 40자까지. */
-export function sanitizeClientNameForLog(raw: unknown): string {
+const LOGGABLE_CLIENT_NAME = /^[a-z][a-z-]{0,19}$/;
+
+/**
+ * 새로 알게 된 클라이언트 이름을 로그에 남겨도 되는 모양이면 소문자로 돌려주고 아니면 빈 문자열이다.
+ * 영문자와 하이픈만 있는 20자 이하일 때만 남긴다: 이름 칸에 토큰, 경로, 식별자가 들어와도 로그로 새지 않게 한다.
+ */
+export function loggableClientName(raw: unknown): string {
   if (typeof raw !== 'string') return '';
-  return raw.toLowerCase().replace(/[^a-z0-9._-]/g, '').slice(0, 40);
+  const lowered = raw.trim().toLowerCase();
+  return LOGGABLE_CLIENT_NAME.test(lowered) ? lowered : '';
 }
