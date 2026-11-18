@@ -94,6 +94,7 @@
 - Claude Code 플러그인 `plugins/memento/.claude-plugin/plugin.json` 의 `version` 이 0.1.2 에 머물러 2.3.x 릴리스의 서버 버전이 플러그인 사용자에게 갱신으로 나가지 않았다. 서버 버전(2.3.10)으로 맞추고 `scripts/check-version-sync.ts` 가 이 파일도 같은 버전인지 검사한다.
 - 의존성: hono 4.13.18, @hono/node-server 2.1.8 로 갱신한다(권고 GHSA-qv5m-9pm6-hqp3, GHSA-jpvv-r467-5p4w, GHSA-4m76-xfj5-7975, GHSA-h7mg-cq63-vhpq, GHSA-3gg2-335m-rxc6, GHSA-46wx-v44x-9hh2, GHSA-4h7h-rv7c-7m2v 해소).
 - **새 상류 권고로 Security Check 가 실패하던 것을 푼다** (#1764): 개발 의존성 `picomatch`(수정 버전 없음, 권고 범위 `<=4.0.7`)를 `security/accepted-audit.json` 과 `docs/reference/{ko,en}/security.md` 표에 올린다(운영 트리에는 없다). `minimatch` 권고는 lockfile 에서 `@typescript-eslint/*` 8.73.0, `eslint` 10.15.0, `minimatch` 11.0.9 로 올려 해소한다. `scripts/check-production-audit-fixable.mjs --include-dev` 는 자체 권고 없이 다른 패키지를 거쳐서만 걸린 노드(`tinyglobby`, `fdir`, `vite`, `vitest`, `@vitest/coverage-v8`, `@typescript-eslint/*`)를 원인 패키지가 모두 고칠 수 없으면 고칠 수 없는 것으로 보고 허용 목록 없이 수용한다. npm 이 `vite` 를 낙관적으로 고칠 수 있다고 보고했기 때문이다. 이런 패키지에 자체 권고가 생기면 목록에 없어서 게이트가 막는다.
+- **gemini 실패로 로컬 모델이 대신 임베딩한 벡터의 표기** (#1760): `GeminiEmbeddingService` 가 로컬 모델로 넘어간 결과에 제공자 `minilm` 을 달고, `UnifiedEmbeddingService` 는 제공자 서비스가 단 표기를 덮어쓰지 않습니다(openai 의 TF-IDF 대체도 같습니다). 예전에는 로컬 모델 벡터가 제공자 `gemini` 로 저장돼 native 판정과 재임베딩 대상 판정에서 로컬 모델 벡터로 읽히지 않았습니다. 이미 저장된 행은 고치지 않습니다.
 
 ### Removed
 

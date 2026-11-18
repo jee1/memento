@@ -95,8 +95,9 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
       const result = await embedForRole(selection.service, text, role);
       
       if (result) {
-        // provider 정보 추가
-        result.provider = selection.provider;
+        // 제공자 서비스가 안에서 다른 제공자로 넘어갔으면(gemini 의 로컬 대체, openai 의 TF-IDF 대체) 그 표기를 지킨다 (#1760).
+        result.provider ??= selection.provider;
+        this.currentProviderName = result.provider;
         // 로그는 디버그 모드에서만 출력 (MCP 프로토콜 준수)
         return result;
       }
