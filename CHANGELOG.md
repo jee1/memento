@@ -11,7 +11,6 @@
 
 ### Added
 
-- CLI: `memento doctor --report` 가 환경(Memento 버전, Node 주 버전, OS와 CPU 종류, 설치 방식, 임베딩 제공자, 기억 수 구간)과 최근 7일 이 기기의 오류 집계로 GitHub 이슈 초안 링크를 만든다. `--print` 는 붙여 넣을 내용 전체를 보여 주고, 초안이 2KB 를 넘으면 링크 없이 이 출력만 나온다. 보고서는 `UsageReport` 타입의 칸(열거값, 구간, 정해진 모양의 숫자와 버전)으로만 채워 기억 내용, 검색어, 경로, 토큰, 호스트 이름, 사용자 이름이 들어가지 않고 네트워크 호출이 없다. 서버 시작 실패와 마이그레이션 실패 메시지 끝에 이 명령을 안내하는 한 줄을 붙였다 (#1769).
 - 문서: `docs/operations/ko/db-retention-policy.md` 에 2026-11-18 운영 DB 실측(audit/job/telemetry vs `memory_item`)과 `job_run_log` CASCADE 줄을 보강한다. 기록성 표가 본문보다 큰 것은 purge 실패가 아니라 audit 누적과 90일 창 안 정상 적재다 (#1772).
 - 문서: 임베딩 이중 저장(`memory_embedding` 진실 원본 + `memory_item_vec_*` ANN 인덱스)이 의도된 설계임을 `docs/agents/architecture.md` 와 `GLOSSARY.md` 에 적는다. 운영 DB 측정에서 두 표 행 수가 같고(15,051) 고아는 0이었다. 표 한쪽 삭제는 하지 않는다 (#1773).
 - `npm run ci:local`(`scripts/ci-local.sh`)이 CI `lint-typecheck` 잡과 `security-check.yml` 의 정적 검사 명령을 워크플로에서 읽어 한 번에 돌리고, 실패한 명령을 표시하며 0 이 아닌 값으로 끝난다 (#1761). 워크플로에 모르는 여러 줄 단계가 생기면 실패해 스크립트를 고치게 한다. 끝에 `scripts/check-removed-names.ts` 를 부른다: merge-base 대비 diff 에서 지운 export, 메서드 이름이 코드나 문서에 남으면 목록을 찍고 실패한다(`--allow` 로 이력 언급 허용). CI 게이트는 바꾸지 않았다. 사람이 PR 전에 돌리는 검사다.
