@@ -49,10 +49,10 @@ experimental-assistant-example → @jee1/memento-assistant
 
 | 저장소 | 역할 | 누가 읽나 |
 |--------|------|-----------|
-| `memory_embedding` | 진실 원본. provider, projection_type, model, content_hash, BLOB | 쓰기(`replaceMemoryEmbedding`), 재색인·정합·모델 이주, `loadCurrentNativeVectors` |
+| `memory_embedding` | 진실 원본. provider, projection_type, model, content_hash, BLOB | 쓰기(`replaceMemoryEmbedding`), 재색인/정합/모델 이주, `loadCurrentNativeVectors` |
 | `memory_item_vec_<provider>` | ANN 인덱스(vec0). `memory_embedding.id` = vec `rowid` | KNN / hybrid 벡터 레인 `MATCH` |
 
-`memory_embedding_vec_{insert,update,delete}` 트리거가 BLOB을 vec에 미러한다. 한쪽만 지우면 검색 또는 재임베딩·모델 교체가 깨진다. 용량을 줄이려면 표 삭제가 아니라 양자화 같은 별도 설계가 필요하다.
+`memory_embedding_vec_{insert,update,delete}` 트리거가 BLOB을 vec에 미러한다. 한쪽만 지우면 검색 또는 재임베딩/모델 교체가 깨진다. 용량을 줄이려면 표 삭제가 아니라 양자화 같은 별도 설계가 필요하다.
 
 ## Workspace 의존성 pin 정책
 
