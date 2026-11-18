@@ -75,7 +75,10 @@ export class RecallTool extends BaseTool {
         const typeValidation = validateTypeParam(undefined, 'recall');
 
         if (!typeValidation.isValid) {
-          throw new ToolInputValidationError(typeValidation.message || "type 파라미터는 필수입니다.");
+          const base = typeValidation.message || "type 파라미터는 필수입니다.";
+          throw new ToolInputValidationError(
+            `${base} type 대신 memory_types 배열(core, vault 제외)로 여러 타입을 한 번에 검색해도 됩니다.`
+          );
         }
       }
 

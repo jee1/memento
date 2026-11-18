@@ -10,6 +10,7 @@ import { AuditHashChainMigration, AuditHashChainService } from '@memento/core';
 
 import {
   createHttpAuditMiddleware,
+  exemptFromAuditChain,
   extractHttpAuditToolName,
   resolveHttpAuditKeyId,
   type HttpAuditEntry,
@@ -147,6 +148,64 @@ describe('createHttpAuditMiddleware', () => {
       transport: 'mcp_http', action: 'write', evidenceMode: 'metadata_only', toolArgsState: 'omitted',
     });
     expect(JSON.stringify(new AuditHashChainService(db).list())).not.toContain('must not be audited');
+    db.close();
+  });
+
+  it('keeps the JSONL line but writes no hash-chain row for a response marked exempt (#1776)', async () => {
+    tempDir = await mkdtemp(join(tmpdir(), 'memento-http-audit-'));
+    const logPath = join(tempDir, 'audit.jsonl');
+    const db = new Database(':memory:');
+    db.exec('CREATE TABLE memory_item (id TEXT PRIMARY KEY)');
+    await new AuditHashChainMigration().up(db);
+    const middleware = createHttpAuditMiddleware({ logPath, database: db });
+    const req = {
+      baseUrl: '', path: '/mcp', originalUrl: '/mcp', method: 'GET',
+      headers: { authorization: 'Bearer test-key' },
+      programmaticAuth: { keyId: 'key-1776' },
+    } as Request;
+    const res = createMockResponse();
+    res.locals = {};
+
+    middleware(req, res, vi.fn());
+    exemptFromAuditChain(res);
+    res.status(405);
+    res.emit('finish');
+
+    await vi.waitFor(async () => {
+      expect((await readFile(logPath, 'utf8')).trim().split('\n')).toHaveLength(1);
+    });
+    const entry = JSON.parse((await readFile(logPath, 'utf8')).trim()) as HttpAuditEntry;
+    expect(entry).toMatchObject({ route: '/mcp', status: 405 });
+    expect(new AuditHashChainService(db).list()).toHaveLength(0);
+    db.close();
+  });
+
+  it.each([
+    [401, 'denied'],
+    [405, 'failure'],
+    [500, 'failure'],
+  ])('keeps a hash-chain row for an unmarked %i response (#1776)', async (status, resultStatus) => {
+    tempDir = await mkdtemp(join(tmpdir(), 'memento-http-audit-'));
+    const db = new Database(':memory:');
+    db.exec('CREATE TABLE memory_item (id TEXT PRIMARY KEY)');
+    await new AuditHashChainMigration().up(db);
+    const middleware = createHttpAuditMiddleware({ logPath: join(tempDir, 'audit.jsonl'), database: db });
+    const req = {
+      baseUrl: '', path: '/other', originalUrl: '/other', method: 'GET',
+      headers: { authorization: 'Bearer test-key' },
+      programmaticAuth: { keyId: 'key-1776' },
+    } as Request;
+    const res = createMockResponse();
+    res.locals = {};
+
+    middleware(req, res, vi.fn());
+    res.status(status);
+    res.emit('finish');
+
+    await vi.waitFor(() => {
+      expect(new AuditHashChainService(db).list()).toHaveLength(1);
+    });
+    expect(new AuditHashChainService(db).list()[0]).toMatchObject({ resultStatus });
     db.close();
   });
 

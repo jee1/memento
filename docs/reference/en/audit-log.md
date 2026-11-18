@@ -8,6 +8,8 @@ The table stores metadata only: actor/owner/agent identifiers, transport, tool o
 
 `evidence_mode` is `full`, `redacted`, `metadata_only`, or `unavailable`. Dispatch integrations use `metadata_only` with `tool_args_state=omitted` and `output_state=omitted`. A missing authenticated actor, redacted payload, truncated output, audit write failure, or retention conflict is represented by `coverage_gap` and normally produces `audit_verdict=incomplete`.
 
+`GET` and `DELETE` on `/mcp` that carry an `Mcp-Protocol-Version` header are refused with `405 Allow: POST`, as the protocol allows for a server that offers no standalone SSE stream. That refusal is not an outage, so it is not written to `audit_log` as a failure row. The same request stays in `http-audit.jsonl` with status 405. Authentication runs before this refusal, so anonymous requests are still recorded as 401 `auth_denied`.
+
 ## Modes
 
 - `MEMENTO_AUDIT_MODE=best-effort` is the default. Memento records incomplete coverage when possible and continues a request if the audit write cannot complete.

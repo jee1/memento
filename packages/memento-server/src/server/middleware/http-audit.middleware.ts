@@ -175,6 +175,16 @@ function resolveAuditResultStatus(status: number): 'success' | 'failure' | 'deni
   return status >= 200 && status < 400 ? 'success' : 'failure';
 }
 
+const AUDIT_CHAIN_EXEMPT = 'auditChainExempt';
+
+/**
+ * 규약이 정한 거절(예: 독립 SSE 스트림이 없는 서버의 GET 405)은 장애가 아니므로
+ * 해시 체인의 failure 행으로 세지 않는다. JSONL 에는 그대로 남는다 (#1776).
+ */
+export function exemptFromAuditChain(res: Response): void {
+  res.locals[AUDIT_CHAIN_EXEMPT] = true;
+}
+
 async function appendAuditLine(logPath: string, entry: HttpAuditEntry): Promise<void> {
   const line = `${JSON.stringify(entry)}\n`;
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- log path from env or dataDir default
@@ -209,7 +219,7 @@ export function createHttpAuditMiddleware(config: HttpAuditMiddlewareConfig = {}
         status: res.statusCode,
       };
 
-      if (auditChain) {
+      if (auditChain && !res.locals?.[AUDIT_CHAIN_EXEMPT]) {
         try {
           const tool = entry.tool;
           auditChain.append({
