@@ -8,6 +8,7 @@ import Database from 'better-sqlite3';
 import fs from 'fs';
 import { dirname } from 'path';
 import { CoreMemoryService } from '../../../domains/memory/services/core-memory-service.js';
+import { flushUsageAggregator } from '../../../domains/telemetry/usage/usage-registry.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { initializeMigrationStatusTable, loadMigrationStatusToConfig } from '../../../shared/utils/fts5-migration-status.js';
 import { logger } from '../../../shared/utils/logger.js';
@@ -115,6 +116,7 @@ export function closeDatabase(db: Database.Database): void {
   }
 
   try {
+    flushUsageAggregator(db);
     db.close();
     log('[DB] 데이터베이스 연결 종료');
   } catch (error) {

@@ -33,6 +33,7 @@ import { deleteServerInfo, isServerAlive, readServerInfo, resolveServerInfoConfi
 import { ServerState } from './server-state.js';
 import { releaseLock, tryAcquireLock } from './utils/instance-lock.js';
 import { dispatchTool } from './audit-tool-dispatch.js';
+import { countConnectionSignal, stdioUsageConnection } from './usage-recording.js';
 import { closeHttpServer, startServer as startHttpServer } from './http-server.js';
 import { createMementoMcpServer, MEMENTO_SERVER_INSTRUCTIONS } from './mcp-server-factory.js';
 
@@ -116,9 +117,18 @@ async function startHttpSidecar(): Promise<void> {
  * MCP 요청 핸들러 등록
  */
 function registerHandlers() {
-  server.setRequestHandler(ListToolsRequestSchema, async () => ({
-    tools: getExposedTools(),
-  }));
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    // 연결 신호(#1768). 이 옛 경로는 항상 legacy 이고 클라이언트 정보는 initialize 때 받은 값이다.
+    // DB 가 준비 중일 수 있으므로 응답은 늦추지 않고 준비되는 대로 센다.
+    const connection = stdioUsageConnection(undefined, () => server.getClientVersion());
+    void initPromise.then(
+      () => {
+        if (db) countConnectionSignal(db, connection, 'tools/list');
+      },
+      () => mcpLogger.logServer('warn', '사용 집계 연결 신호를 세지 못했다: 서버 초기화가 실패했다'),
+    );
+    return { tools: getExposedTools() };
+  });
 
   server.setRequestHandler(CallToolRequestSchema, async (request) => {
     await initPromise;
@@ -129,7 +139,7 @@ function registerHandlers() {
       request.params.arguments,
       db,
       serverServices,
-      { transport: 'mcp_stdio' },
+      { transport: 'mcp_stdio', usage: stdioUsageConnection(undefined, () => server.getClientVersion()) },
     );
   });
 
@@ -170,6 +180,16 @@ export async function startServer() {
         },
       );
       server.onclose = () => { void handleShutdown('stdio close'); };
+      // 옛 방식 클라이언트의 initialize 완료(#1768). DB 가 준비 중일 수 있어 준비되는 대로 센다.
+      server.oninitialized = () => {
+        const connection = stdioUsageConnection(undefined, () => server.getClientVersion());
+        void initPromise.then(
+          () => {
+            if (db) countConnectionSignal(db, connection, 'initialize');
+          },
+          () => mcpLogger.logServer('warn', '사용 집계 연결 신호를 세지 못했다: 서버 초기화가 실패했다'),
+        );
+      };
       registerHandlers();
       await server.connect(transport);
     } else {

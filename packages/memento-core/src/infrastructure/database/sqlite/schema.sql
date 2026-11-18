@@ -479,6 +479,29 @@ CREATE INDEX IF NOT EXISTS idx_tdm_date       ON telemetry_daily_metrics(date);
 CREATE INDEX IF NOT EXISTS idx_tdm_event_type ON telemetry_daily_metrics(event_type);
 CREATE INDEX IF NOT EXISTS idx_tdm_owner_id   ON telemetry_daily_metrics(owner_id);
 
+-- 사용 집계 (migration 069, #1768): 접속 클라이언트, 접속 방식, 프로토콜 시대, 도구별 일별 횟수. 로컬에만 둔다.
+-- 이 정의는 069-usage-daily-count.ts 의 usageDailyCountDdl() 과 같아야 한다(spec 이 대조한다).
+CREATE TABLE IF NOT EXISTS usage_daily_count (
+  day               TEXT    NOT NULL CHECK (length(day) = 10),
+  client_name       TEXT    NOT NULL CHECK (client_name IN ('claude-code', 'cursor', 'opencode', 'other', 'unknown')),
+  client_version    TEXT    NOT NULL CHECK (client_version = ''
+                                       OR (length(client_version) <= 24
+                                           AND client_version NOT GLOB '*[^0-9.]*'
+                                           AND client_version NOT GLOB '*..*'
+                                           AND client_version NOT GLOB '.*'
+                                           AND client_version NOT GLOB '*.'
+                                           AND length(client_version) - length(replace(client_version, '.', '')) = 2)),
+  connection_method TEXT    NOT NULL CHECK (connection_method IN ('stdio', 'http-streamable', 'http-sse', 'websocket', 'rest')),
+  era               TEXT    NOT NULL CHECK (era IN ('legacy', 'modern', 'none')),
+  request_kind      TEXT    NOT NULL CHECK (request_kind IN ('initialize', 'tools/list', 'tools/call')),
+  tool              TEXT    NOT NULL CHECK (length(tool) <= 64 AND tool NOT GLOB '*[^a-z0-9_]*'),
+  outcome           TEXT    NOT NULL CHECK (outcome IN ('success', 'error')),
+  error_code        INTEGER NOT NULL CHECK (error_code IN (0, -32602, -32603, -32003, -32009, -32601, -1)),
+  count             INTEGER NOT NULL CHECK (count >= 1),
+  PRIMARY KEY (day, client_name, client_version, connection_method, era, request_kind, tool, outcome, error_code),
+  CHECK ((outcome = 'success') = (error_code = 0))
+) WITHOUT ROWID;
+
 -- Quality assurance (migration 009: 009-quality-assurance-schema.sql)
 -- 품질 측정 이력: measurement_type 'batch'|'test'|'manual', status 'success'|'warning'|'error'
 CREATE TABLE IF NOT EXISTS quality_measurement_history (

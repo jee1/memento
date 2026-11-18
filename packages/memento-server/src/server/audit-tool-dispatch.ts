@@ -19,6 +19,7 @@ import { ErrorCode, McpError } from '@modelcontextprotocol/sdk/types.js';
 import type Database from 'better-sqlite3';
 import { mapToolExecutionErrorToJsonRpc } from './utils/mcp-tool-call-error.js';
 import { OWNER_FILTER_TOOLS } from './owner-filter-tools.js';
+import { countToolCall, defaultConnectionForTransport, type UsageConnection } from './usage-recording.js';
 
 const OPERATOR_ONLY_TOOLS: ReadonlySet<string> = new Set([
   'introspection_heal',
@@ -39,6 +40,11 @@ export type ToolAuditContext = {
   boundProjectId?: string | null;
   projectId?: string | null;
   scopes?: readonly ApiScope[];
+  /**
+   * 사용 집계(#1768)용 연결 정보. 진입점이 채운다. 없으면 `transport` 에서 접속 방식을 짐작하고
+   * 클라이언트는 unknown 으로 센다.
+   */
+  usage?: UsageConnection;
 };
 
 type ToolExecutor = (name: string, args: unknown, context: ToolContext) => Promise<ToolResult>;
@@ -292,7 +298,7 @@ export function createToolDispatcher(options: {
 } = {}): ToolDispatcher {
   const limiter = new Semaphore(options.maxConcurrency ?? 20);
 
-  return async (name, rawArgs, db, services, auditContext) => {
+  const dispatch: ToolDispatcher = async (name, rawArgs, db, services, auditContext) => {
     await limiter.acquire();
     let executionStarted = false;
     let args = rawArgs;
@@ -325,6 +331,28 @@ export function createToolDispatcher(options: {
       limiter.release();
     }
   };
+
+  // 사용 집계(#1768)는 안쪽 try/catch/finally 바깥에서 센다. executionStarted 가 true 가 되기 전에 던지는
+  // 오류(토큰 묶임 위반, 감사 coverage 실패)도 결과로 잡으려는 것이다.
+  return async (name, rawArgs, db, services, auditContext) => {
+    const connection = auditContext.usage ?? defaultConnectionForTransport(auditContext.transport);
+    let result: Awaited<ReturnType<ToolDispatcher>>;
+    try {
+      result = await dispatch(name, rawArgs, db, services, auditContext);
+    } catch (error) {
+      countToolCall(db, connection, name, errorCodeOf(error));
+      throw error;
+    }
+    // 성공은 try 밖에서 센다: 세는 코드가 던져도 같은 호출이 실패로 한 번 더 세이지 않는다.
+    countToolCall(db, connection, name, 0);
+    return result;
+  };
+}
+
+/** mapToolDispatchError 가 던지는 오류의 JSON-RPC 코드. 그 밖의 오류는 -1 로 센다. */
+function errorCodeOf(error: unknown): number {
+  const code = (error as { code?: unknown } | null)?.code;
+  return typeof code === 'number' ? code : -1;
 }
 
 /** Shared tool execution boundary for stdio, HTTP MCP, WebSocket, and REST. */

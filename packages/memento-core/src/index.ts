@@ -41,6 +41,7 @@ export { createToolContext, createServerContext } from './context.js';
 export {
   getToolRegistry,
   getExposedTools,
+  getAllTools,
   CORE_TOOLSET,
   executeTool,
 } from './tools/index.js';
@@ -302,6 +303,22 @@ export type { ToolContext, ToolResult, ToolDefinition } from './tools/types.js';
 export type { TelemetryPeriod, EventType } from './domains/telemetry/types/telemetry.types.js';
 export { TelemetryService } from './domains/telemetry/services/telemetry-service.js';
 export { TelemetryRepository } from './domains/telemetry/repositories/telemetry-repository.js';
+export { getUsageAggregator, flushUsageAggregator } from './domains/telemetry/usage/usage-registry.js';
+export type { UsageCountKey } from './domains/telemetry/usage/usage-aggregator.js';
+export {
+  normalizeClientName,
+  normalizeClientVersion,
+  normalizeTool,
+  normalizeErrorCode,
+  loggableClientName,
+} from './domains/telemetry/usage/usage-vocabulary.js';
+export type {
+  ClientName,
+  ConnectionMethod,
+  ProtocolEra,
+  RequestKind,
+  UsageErrorCode,
+} from './domains/telemetry/usage/usage-vocabulary.js';
 export { pacificDateFromUtcIso } from './shared/services/llm-usage/llm-usage-pacific-date.js';
 export { TelemetryEventsMigration } from './infrastructure/database/sqlite/migration/migrations/027-telemetry-events.js';
 export { TelemetryDailyMetricsMigration } from './infrastructure/database/sqlite/migration/migrations/028-telemetry-daily-metrics.js';

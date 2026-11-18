@@ -23,6 +23,8 @@ import {
 } from './modern-request-validation.js';
 import { applyModernSuccessEnvelope } from './modern-response.js';
 import type { ToolAuditContext } from '../../audit-tool-dispatch.js';
+import { mcpClientSessions, readClientInfo } from '../../mcp-client-sessions.js';
+import { CLIENT_INFO_META_KEY, countConnectionSignal, type UsageConnection } from '../../usage-recording.js';
 import { readProjectIdHeader } from '../../utils/project-id-header.js';
 import type { JsonRpcResponse, SSETransport } from './types.js';
 
@@ -34,9 +36,40 @@ function applyMcpCorsHeaders(req: Request, res: Response): void {
   }
 }
 
-function buildMcpHttpAuditContext(req: Request): ToolAuditContext {
+/**
+ * 이 요청이 어느 클라이언트에서 어떤 길로 왔는지 (#1768).
+ * 새 방식은 요청마다 `_meta` 에 clientInfo 가 실려 오고(Claude Code 실측), 옛 방식은 `initialize` 때 기억해 둔
+ * 세션(streamable 은 `mcp-session-id` 헤더, SSE 는 쿼리 `sessionId`)으로 찾는다.
+ */
+function resolveHttpUsageConnection(
+  req: Request,
+  message: unknown,
+  options: { modern: boolean; sse: boolean; sessionId?: string },
+): UsageConnection {
+  const connectionMethod = options.sse ? 'http-sse' : 'http-streamable';
+  if (options.modern) {
+    const meta = (message as { params?: { _meta?: Record<string, unknown> } } | null)?.params?._meta;
+    const info = readClientInfo(meta?.[CLIENT_INFO_META_KEY]);
+    return { connectionMethod, era: 'modern', clientName: info?.name, clientVersion: info?.version };
+  }
+  // initialize 요청 자신에는 세션 헤더가 없으므로(서버가 응답에서 처음 준다) 호출한 쪽이 방금 정한 ID 를 넘긴다.
+  const sessionId =
+    options.sessionId ?? (options.sse ? (req.query.sessionId as string | undefined) : req.get('mcp-session-id'));
+  const info = mcpClientSessions.recall(sessionId);
+  return { connectionMethod, era: 'legacy', clientName: info?.name, clientVersion: info?.version };
+}
+
+/** initialize, tools/list 는 연결 신호로 센다. 새 방식에는 initialize 가 없어 tools/list 가 「붙었다」의 대용이다. */
+function countHttpConnectionSignal(db: Database.Database, method: unknown, usage: UsageConnection): void {
+  if (method === 'initialize' || method === 'tools/list') {
+    countConnectionSignal(db, usage, method);
+  }
+}
+
+function buildMcpHttpAuditContext(req: Request, usage?: UsageConnection): ToolAuditContext {
   return {
     transport: 'mcp_http',
+    ...(usage ? { usage } : {}),
     actorId: req.programmaticAuth?.keyId,
     scopes: req.programmaticAuth?.scopes,
     agentId: req.programmaticAuth?.agentId ?? req.get('x-memento-agent-id') ?? req.get('x-agent-id'),
@@ -116,6 +149,7 @@ function registerSseCleanup(
   const cleanup = (): void => {
     clearInterval(keepAliveInterval);
     delete transports[sessionId];
+    mcpClientSessions.forget(sessionId);
   };
 
   req.on('close', () => {
@@ -243,19 +277,23 @@ export async function handleStreamableMcpPost(
     return;
   }
 
-  if (
-    !modernClaim &&
-    isInitializeRequest(message) &&
-    !req.get('mcp-session-id')
-  ) {
-    res.setHeader('mcp-session-id', randomUUID());
+  let legacySessionId = req.get('mcp-session-id') ?? undefined;
+  if (!modernClaim && isInitializeRequest(message) && !legacySessionId) {
+    legacySessionId = randomUUID();
+    res.setHeader('mcp-session-id', legacySessionId);
   }
 
   try {
-    const auditContext = buildMcpHttpAuditContext(req);
+    if (!modernClaim && isInitializeRequest(message)) {
+      mcpClientSessions.remember(legacySessionId, (message.params as { clientInfo?: unknown } | undefined)?.clientInfo);
+    }
+    const usage = resolveHttpUsageConnection(req, message, { modern: modernClaim, sse: false, sessionId: legacySessionId });
+    const auditContext = buildMcpHttpAuditContext(req, usage);
     const result = await processMcpMessage(message, db, serverServices, auditContext, {
       modernEra: modernClaim,
     });
+    // 연결 신호는 처리가 오류 없이 끝난 요청만 센다(거부된 요청이 연결로 세이지 않게).
+    if (db && !result.error) countHttpConnectionSignal(db, message.method, usage);
     if (notificationOnly) {
       res.status(202).end();
       return;
@@ -318,8 +356,14 @@ export async function handleSseMessagePost(
 
   const message = req.body;
   try {
-    const auditContext = buildMcpHttpAuditContext(req);
+    // SSE 연결에서는 initialize 도 메시지 POST 로 온다. 세션 ID 는 쿼리의 sessionId 다.
+    if (isInitializeRequest(message)) {
+      mcpClientSessions.remember(sessionId, (message.params as { clientInfo?: unknown } | undefined)?.clientInfo);
+    }
+    const usage = resolveHttpUsageConnection(req, message, { modern: false, sse: true });
+    const auditContext = buildMcpHttpAuditContext(req, usage);
     const result = await processMcpMessage(message, db, serverServices, auditContext);
+    if (db && !result.error) countHttpConnectionSignal(db, message?.method, usage);
     if (!writeSseJson(transport, result)) {
       res.status(500).json({ error: 'SSE transport invalid' });
       return;

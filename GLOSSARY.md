@@ -161,6 +161,22 @@ _Avoid_: typesafe(모델을 가리킬 때), 제공자
 TypeSafe 의 noul 판정 API와 그 전송 클라이언트. 제공자도 모델도 아니고 둘 사이를 잇는 호출 경로다.
 _Avoid_: jev API
 
+## 운영
+
+**Client (접속 클라이언트)**:
+MCP 로 Memento 에 붙는 프로그램(Claude Code, Cursor, opencode 등). 사람이나 에이전트가 아니다. 이름은 알려진 목록 아니면 `other`, 정보가 없으면 `unknown` 으로 센다.
+_Avoid_: user, agent
+
+**Connection method (접속 방식)**:
+클라이언트가 메시지를 나르는 길. `stdio`, `http-streamable`, `http-sse`, `websocket`, `rest` 다.
+
+**Protocol era (프로토콜 시대)**:
+MCP 규약의 세대. `legacy` 는 2025-11-25 까지의 판으로 `initialize` 로 연결을 연다. `modern` 은 2026-07-28 판으로 `initialize` 가 없고 요청마다 `_meta` 에 판과 클라이언트 정보를 싣는다. REST 와 WebSocket 은 MCP 시대가 없어 `none`.
+
+**Usage aggregate (사용 집계)**:
+접속 클라이언트, 접속 방식, 프로토콜 시대, 도구별 호출 결과를 날마다 센 로컬 기록(`usage_daily_count`). 바깥으로 나가지 않는다. 내용, 인자, 경로, 토큰, 프로젝트와 세션 ID 는 담지 않는다.
+_Avoid_: telemetry, analytics, tracking
+
 ## 설정
 
 **Setting override**:
