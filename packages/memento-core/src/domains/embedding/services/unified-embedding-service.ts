@@ -246,14 +246,15 @@ export class UnifiedEmbeddingService implements EmbeddingServiceInterface {
       // fallback 발생 시 currentProvider와 currentProviderName 업데이트
       // 왜 필요한가? getModelInfo()가 정확한 차원을 반환하도록 보장
       this.currentProvider = service;
-      this.currentProviderName = decision.selectedProvider;
-      result.provider = decision.selectedProvider;
+      // 제공자 서비스가 단 표기를 지킨다 (#1760)
+      result.provider ??= decision.selectedProvider;
+      this.currentProviderName = result.provider;
       
       // 차원 정보 검증: 결과의 차원이 제공자 차원과 일치하는지 확인
-      const expectedDimensions = VECTOR_SEARCH.PROVIDER_DIMENSIONS[decision.selectedProvider as keyof typeof VECTOR_SEARCH.PROVIDER_DIMENSIONS];
+      const expectedDimensions = VECTOR_SEARCH.PROVIDER_DIMENSIONS[result.provider as keyof typeof VECTOR_SEARCH.PROVIDER_DIMENSIONS];
       if (expectedDimensions && result.embedding.length !== expectedDimensions) {
         // 차원 불일치 경고 (하지만 결과는 반환)
-        if (!isCliQuiet()) process.stderr.write(`⚠️ 차원 불일치: 예상 ${expectedDimensions}, 실제 ${result.embedding.length} (provider: ${decision.selectedProvider})\n`);
+        if (!isCliQuiet()) process.stderr.write(`⚠️ 차원 불일치: 예상 ${expectedDimensions}, 실제 ${result.embedding.length} (provider: ${result.provider})\n`);
       }
       
       return result;

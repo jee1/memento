@@ -106,6 +106,34 @@ describe('UnifiedEmbeddingService', () => {
       expect(result?.model).toBe(LOCAL_EMBEDDING_MODEL.storedName);
       expect(service.getCurrentProviderName()).toBe('minilm');
     });
+
+    it('다른 제공자가 실패해 폴백 선택이 gemini 로 가도 같은 표기를 지킨다', async () => {
+      const gemini = new GeminiEmbeddingService();
+      const internals = gemini as unknown as { genAI: unknown; localService: unknown };
+      internals.genAI = { models: { embedContent: vi.fn().mockRejectedValue(new Error('quota exceeded')) } };
+      internals.localService = {
+        generateEmbedding: async () => ({
+          embedding: new Array(384).fill(0.1),
+          model: LOCAL_EMBEDDING_MODEL.storedName,
+          usage: { prompt_tokens: 1, total_tokens: 1 },
+        }),
+      };
+      const failing = { generateEmbedding: async () => null } as unknown as EmbeddingServiceInterface;
+      const select = vi
+        .fn()
+        .mockResolvedValueOnce({ service: failing, decision: { selectedProvider: 'openai' } })
+        .mockResolvedValueOnce({ service: gemini, decision: { selectedProvider: 'gemini' } });
+      (service as unknown as { factory: unknown }).factory = {
+        selectProviderWithHealthCheck: select,
+        getAvailableProviders: () => [],
+        handleProviderFailure: () => undefined,
+      };
+
+      const result = await service.generateEmbedding('memory');
+
+      expect(result?.provider).toBe('minilm');
+      expect(service.getCurrentProviderName()).toBe('minilm');
+    });
   });
 
   describe('embedQuery (#1729)', () => {
