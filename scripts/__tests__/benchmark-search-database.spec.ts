@@ -25,7 +25,7 @@ describe('createSeededBenchmarkDatabase', () => {
   let dir: string;
 
   beforeAll(() => {
-    dir = join(tmpdir(), `bench-seed-${Date.now()}`);
+    dir = join(tmpdir(), `bench-seed-${process.pid}-${Date.now()}`);
     mkdirSync(dir, { recursive: true });
     writeFileSync(
       join(dir, 'manifest.json'),
@@ -164,8 +164,8 @@ describe('#973 시더 메타데이터는 정답 라벨과 무관하다', () => {
   it('정답으로 라벨된 문서가 바뀌어도 메타데이터는 그대로다', async () => {
     const previousProvider = process.env.EMBEDDING_PROVIDER;
     process.env.EMBEDDING_PROVIDER = 'tfidf';
-    const dirA = join(tmpdir(), `bench-973-a-${Date.now()}`);
-    const dirB = join(tmpdir(), `bench-973-b-${Date.now()}`);
+    const dirA = join(tmpdir(), `bench-973-a-${process.pid}-${Date.now()}`);
+    const dirB = join(tmpdir(), `bench-973-b-${process.pid}-${Date.now()}`);
     try {
       writeFixture(dirA, 'bench_mem_000001');
       writeFixture(dirB, 'bench_mem_000002');
@@ -187,8 +187,8 @@ describe('#973 시더 메타데이터는 정답 라벨과 무관하다', () => {
   it('ground-truth.json 이 아예 없어도 같은 메타데이터가 나온다', async () => {
     const previousProvider = process.env.EMBEDDING_PROVIDER;
     process.env.EMBEDDING_PROVIDER = 'tfidf';
-    const withGt = join(tmpdir(), `bench-973-gt-${Date.now()}`);
-    const without = join(tmpdir(), `bench-973-nogt-${Date.now()}`);
+    const withGt = join(tmpdir(), `bench-973-gt-${process.pid}-${Date.now()}`);
+    const without = join(tmpdir(), `bench-973-nogt-${process.pid}-${Date.now()}`);
     try {
       writeFixture(withGt, 'bench_mem_000001');
       writeFixture(without, null);
@@ -344,8 +344,8 @@ describe('#973 메타데이터는 코퍼스 안에서의 위치와 무관하다'
   it('앞에 문서를 하나 끼워 넣어도 기존 문서의 메타데이터가 그대로다', async () => {
     const previousProvider = process.env.EMBEDDING_PROVIDER;
     process.env.EMBEDDING_PROVIDER = 'tfidf';
-    const plain = join(tmpdir(), `bench-973-order-a-${Date.now()}`);
-    const shifted = join(tmpdir(), `bench-973-order-b-${Date.now()}`);
+    const plain = join(tmpdir(), `bench-973-order-a-${process.pid}-${Date.now()}`);
+    const shifted = join(tmpdir(), `bench-973-order-b-${process.pid}-${Date.now()}`);
     try {
       writeCorpus(plain, [DOC_A, DOC_B]);
       writeCorpus(shifted, [DOC_INSERTED, DOC_A, DOC_B]);

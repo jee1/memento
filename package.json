@@ -36,6 +36,7 @@
     "start:http": "npm run start:http -w memento-server",
     "test": "npm run test:prepare && vitest --run",
     "test:watch": "vitest",
+    "test:changed": "vitest --run --changed origin/main",
     "test:ci": "vitest --run",
     "test:ci:root": "vitest --run tests/ apps/",
     "test:ci:core": "vitest --run packages/memento-core/src/",

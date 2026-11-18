@@ -87,7 +87,7 @@ describe('QualityMetricsCollector', () => {
     });
 
     it('fails in strict benchmark mode when no human-labeled ground truth exists', async () => {
-      const fixtureDir = join(tmpdir(), `memento-strict-bench-${Date.now()}`);
+      const fixtureDir = join(tmpdir(), `memento-strict-bench-${process.pid}-${Date.now()}`);
       mkdirSync(fixtureDir, { recursive: true });
       try {
         writeFileSync(
@@ -131,7 +131,7 @@ describe('QualityMetricsCollector', () => {
     });
 
     it('fails when benchmarkDir is set but corpus is missing', async () => {
-      const fixtureDir = join(tmpdir(), `memento-bench-missing-corpus-${Date.now()}`);
+      const fixtureDir = join(tmpdir(), `memento-bench-missing-corpus-${process.pid}-${Date.now()}`);
       mkdirSync(fixtureDir, { recursive: true });
 
       try {
@@ -181,7 +181,7 @@ describe('QualityMetricsCollector', () => {
     });
 
     it('remaps caller-provided query results to benchmark ids when benchmarkDir is set', async () => {
-      const fixtureDir = join(tmpdir(), `memento-bench-remap-${Date.now()}`);
+      const fixtureDir = join(tmpdir(), `memento-bench-remap-${process.pid}-${Date.now()}`);
       mkdirSync(fixtureDir, { recursive: true });
 
       try {
@@ -246,7 +246,7 @@ describe('QualityMetricsCollector', () => {
     });
 
     it('fails when caller-provided query results are used without benchmark corpus', async () => {
-      const fixtureDir = join(tmpdir(), `memento-bench-query-key-${Date.now()}`);
+      const fixtureDir = join(tmpdir(), `memento-bench-query-key-${process.pid}-${Date.now()}`);
       mkdirSync(fixtureDir, { recursive: true });
 
       try {
@@ -1037,7 +1037,7 @@ describe('QualityMetricsCollector', () => {
 
     it('category-mapping에 없는 category면 에러', async () => {
       const benchmarkDir = join(process.cwd(), 'tests/fixtures/search-quality/benchmark-v3');
-      const dir = join(tmpdir(), `bm-cat-${Date.now()}`);
+      const dir = join(tmpdir(), `bm-cat-${process.pid}-${Date.now()}`);
       mkdirSync(dir, { recursive: true });
       const mapPath = join(dir, 'bad-map.json');
       writeFileSync(
@@ -1056,7 +1056,7 @@ describe('QualityMetricsCollector', () => {
 
     it('query_overrides 값이 알 수 없는 macro면 에러', async () => {
       const benchmarkDir = join(process.cwd(), 'tests/fixtures/search-quality/benchmark-v3');
-      const dir = join(tmpdir(), `bm-cat-ov-${Date.now()}`);
+      const dir = join(tmpdir(), `bm-cat-ov-${process.pid}-${Date.now()}`);
       mkdirSync(dir, { recursive: true });
       const mapPath = join(dir, 'bad-override.json');
       const base = JSON.parse(

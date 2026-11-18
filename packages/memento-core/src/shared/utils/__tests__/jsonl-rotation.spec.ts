@@ -14,7 +14,7 @@ describe('rotateJsonlIfNeeded', () => {
   });
 
   it('does nothing when the file is below maxBytes', async () => {
-    dir = join(tmpdir(), `jsonl-rotation-${Date.now()}`);
+    dir = join(tmpdir(), `jsonl-rotation-${process.pid}-${Date.now()}`);
     await mkdir(dir, { recursive: true });
     const filePath = join(dir, 'sample.jsonl');
     await writeFile(filePath, '{"a":1}\n', 'utf8');
@@ -24,7 +24,7 @@ describe('rotateJsonlIfNeeded', () => {
   });
 
   it('rotates numbered backups when maxBytes is exceeded', async () => {
-    dir = join(tmpdir(), `jsonl-rotation-${Date.now()}`);
+    dir = join(tmpdir(), `jsonl-rotation-${process.pid}-${Date.now()}`);
     await mkdir(dir, { recursive: true });
     const filePath = join(dir, 'sample.jsonl');
     await writeFile(filePath, 'x'.repeat(20), 'utf8');

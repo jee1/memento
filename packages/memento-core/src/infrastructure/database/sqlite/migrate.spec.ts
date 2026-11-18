@@ -402,7 +402,7 @@ describe('Database Migration', () => {
 
     beforeEach(() => {
       // Given: 테스트 데이터베이스 설정
-      const testDir = join(tmpdir(), `memento-test-${Date.now()}`);
+      const testDir = join(tmpdir(), `memento-test-${process.pid}-${Date.now()}`);
       mkdirSync(testDir, { recursive: true });
       testDbPath = join(testDir, 'memory.db');
 
@@ -515,7 +515,7 @@ describe('Database Migration', () => {
      */
     it('마이그레이션 실패 시 logger.error를 사용해야 함', () => {
       // Given: 마이그레이션이 실패하는 상황 (잘못된 데이터베이스 경로)
-      const invalidDbPath = join(tmpdir(), `memento-test-invalid-${Date.now()}.db`);
+      const invalidDbPath = join(tmpdir(), `memento-test-invalid-${process.pid}-${Date.now()}.db`);
       process.env.DB_PATH = invalidDbPath;
 
       // When: 마이그레이션 실행 (실패 예상)

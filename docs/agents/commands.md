@@ -76,8 +76,11 @@ stale 회수 때 남는 `.stale-*` 잔재도 모든 관련 프로세스가 중�
 
 코드를 커밋하기 전에는 `lint`, `type-check`, `test` 세 가지가 모두 통과해야 합니다. 검색 관련 변경이 있다면 `npm run test:ci:core`로 core 검색 테스트를 별도로 돌려 봅니다.
 
+테스트 병렬 수는 CI 에서 2개, 로컬에서는 코어 수의 1/4(2~6개)입니다. `VITEST_MAX_WORKERS=<n>` 으로 바꿉니다(다른 에이전트가 같은 기계를 쓰면 줄이세요). `*.nightly.spec.ts` 는 로컬에서도 기본 제외이고 `VITEST_INCLUDE_NIGHTLY=1` 로 포함합니다. 임시 경로를 만드는 테스트는 `process.pid` 나 `mkdtempSync` 로 이름을 구분해야 병렬에서 충돌하지 않습니다.
+
 ```bash
-npm test             # 전체 테스트
+npm test             # 전체 테스트 (로컬은 코어의 1/4 만큼 병렬, nightly 제외)
+npm run test:changed # origin/main 과 달라진 파일에 닿는 테스트만 (전체는 CI 가 본다)
 npm run lint         # 린트
 npm run type-check   # 타입 체크
 npm run test:ci:core # core 검색·메모리 테스트

@@ -20,7 +20,7 @@ describe('check-db-integrity 통합 테스트', () => {
 
   beforeEach(() => {
     // 테스트용 임시 디렉토리 생성
-    const testDir = join(tmpdir(), `memento-test-${Date.now()}`);
+    const testDir = join(tmpdir(), `memento-test-${process.pid}-${Date.now()}`);
     mkdirSync(testDir, { recursive: true });
     
     testDbPath = join(testDir, 'memory.db');
@@ -94,7 +94,7 @@ describe('check-db-integrity 통합 테스트', () => {
    */
   it('should handle missing database file', async () => {
     // Given: DB_PATH를 존재하지 않는 경로로 설정
-    const nonExistentPath = join(tmpdir(), `non-existent-${Date.now()}.db`);
+    const nonExistentPath = join(tmpdir(), `non-existent-${process.pid}-${Date.now()}.db`);
     process.env.DB_PATH = nonExistentPath;
     
     // When: initializeDatabase 호출 (DB_PATH는 mementoConfig에 스냅샷되므로 경로는 인자로 전달)

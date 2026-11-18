@@ -6,7 +6,7 @@ import { buildReviewChecklistMarkdown } from '../lib/search-quality-review-check
 
 describe('buildReviewChecklistMarkdown', () => {
   it('query 메타데이터, 현재 ground truth, 후보 기억 요약을 markdown으로 만든다', () => {
-    const fixtureDir = join(tmpdir(), `memento-review-checklist-${Date.now()}`);
+    const fixtureDir = join(tmpdir(), `memento-review-checklist-${process.pid}-${Date.now()}`);
     mkdirSync(fixtureDir, { recursive: true });
 
     try {
