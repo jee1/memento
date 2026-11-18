@@ -9,10 +9,25 @@
 | `memory_forgetting_event` | soft, hard 90일. review 행은 정리 때마다 삭제 | `FORGETTING_EVENT_RETENTION_DAYS` | `forgetting_event_cleanup_batch` |
 | `telemetry_events` | 90일 | `TELEMETRY_RETENTION_DAYS` | `telemetry_cleanup_batch` |
 | `job_run` | 90일 + 잡별 성공 실행 최신 3000건 | `JOB_RUN_RETENTION_DAYS` | `job_run_cleanup_batch` |
+| `job_run_log` | `job_run` 과 함께 (FK `ON DELETE CASCADE`) | — | `job_run_cleanup_batch` |
 | `quality_measurement_history` | 90일 | `QUALITY_MEASUREMENT_HISTORY_RETENTION_DAYS` | `quality_measurement_batch` 안에서 정리 |
 | `audit_log` | **지우지 않습니다** | — | 없음 — [아래 이유](#audit_log-을-지우지-않는-이유) |
 
 네 잡 모두 배치 스케줄러에 등록되어 있고, 실행 기록은 `job_run` 테이블에 남습니다.
+
+### 2026-11-18 운영 DB 실측 (#1772)
+
+읽기 전용(`mode=ro&immutable=1`). 파일 약 243MB. `dbstat` 표 크기와 행 수.
+
+| 표 | MB | 행 | 90일 초과 |
+|---|---:|---:|---:|
+| `audit_log` | 28.91 | 102,348 | 2,846 (자동 purge 없음) |
+| `memory_item` (활성) | 16.71 | 13,678 | — |
+| `job_run` | 13.73 | 29,616 | 0 |
+| `telemetry_events` | 13.16 | 52,423 | 5 |
+| `job_run_log` | 10.97 | 59,116 | (job_run 과 같은 기간) |
+
+기록성 표 합이 기억 본문보다 큰 것은 **정리가 멈춘 것이 아니라** `audit_log` 가 쌓이고, job/telemetry 가 90일 창 안에서 정상 누적된 결과다. `job_run`·`telemetry` 배치는 돌아가고 있다.
 
 `quality_measurement_history` 만 전용 cleanup 잡이 아니라 측정 배치 안에서 정리합니다. 이 테이블의 유일한 기록자가 그 배치이고, DELETE 한 줄 때문에 스케줄러 등록 지점을 여섯 군데 더 만들 이유가 없기 때문입니다.
 

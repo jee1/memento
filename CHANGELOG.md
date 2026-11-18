@@ -11,6 +11,7 @@
 
 ### Added
 
+- 문서: `docs/operations/ko/db-retention-policy.md` 에 2026-11-18 운영 DB 실측(audit/job/telemetry vs `memory_item`)과 `job_run_log` CASCADE 줄을 보강한다. 기록성 표가 본문보다 큰 것은 purge 실패가 아니라 audit 누적과 90일 창 안 정상 적재다 (#1772).
 - `npm run ci:local`(`scripts/ci-local.sh`)이 CI `lint-typecheck` 잡과 `security-check.yml` 의 정적 검사 명령을 워크플로에서 읽어 한 번에 돌리고, 실패한 명령을 표시하며 0 이 아닌 값으로 끝난다 (#1761). 워크플로에 모르는 여러 줄 단계가 생기면 실패해 스크립트를 고치게 한다. 끝에 `scripts/check-removed-names.ts` 를 부른다: merge-base 대비 diff 에서 지운 export, 메서드 이름이 코드나 문서에 남으면 목록을 찍고 실패한다(`--allow` 로 이력 언급 허용). CI 게이트는 바꾸지 않았다. 사람이 PR 전에 돌리는 검사다.
 - **모델 이주 반복** (#1729 PR 6b): 로컬 임베딩 모델이 바뀌면 기동 뒤 `embedding_reconciliation` 실행(1,000건)을 잇달아 돌려 native 나 창 행이 옛 모델인 기억을 다시 만든다. `BatchScheduler.startModelMigration()` 이 HTTP 서버를 띄운 프로세스에서만 돈다(stdio 는 sidecar 잠금을 얻었을 때). 정합 잡은 옛 모델 행도 후보로 보고, 실행당 4분 예산이 지나면 남은 수를 돌려주며, 연속 실패 20건이면 멈춘다. 옛 모델 기억이 활성 기억의 1% 를 넘는 동안 Sleep consolidation 은 건너뛰고 warnings 에 이유를 남긴다. 이주나 정합 잡이 도는 동안 `POST /api/v1/maintenance/reindex` 는 409 다. 지금 모델에서는 옛 모델 행이 없어 이주가 시작하지 않는다. 끄기는 잡 일시정지나 `BATCH_SCHEDULER_ENABLED=false` 다. 설정 키는 더하지 않았다.
 
