@@ -11,6 +11,7 @@ import { RetryManager } from '../../../shared/utils/retry-manager.js';
 import type { RetryConfig } from '../../../shared/utils/retry-manager.js';
 import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
 import { logger, isCliQuiet } from '../../../shared/utils/logger.js';
+import type { EmbeddingProvider } from '../../../shared/types/embedding.types.js';
 import { LocalEmbeddingService } from './local-embedding-service.js';
 import {
   cleanupEmbeddingCache,
@@ -22,6 +23,7 @@ import {
 interface GeminiEmbeddingResult {
   embedding: number[];
   model: string;
+  provider?: EmbeddingProvider;
   usage: {
     prompt_tokens: number;
     total_tokens: number;
@@ -174,9 +176,10 @@ export class GeminiEmbeddingService {
         return null;
       }
 
-      const result = {
+      const result: GeminiEmbeddingResult = {
         embedding: localResult.embedding,
         model: localResult.model,
+        provider: 'minilm',
         usage: localResult.usage,
       };
 

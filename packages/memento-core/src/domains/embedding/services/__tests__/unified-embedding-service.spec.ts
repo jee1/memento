@@ -6,6 +6,8 @@
 import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { UnifiedEmbeddingService } from '../unified-embedding-service.js';
 import { LocalEmbeddingService } from '../local-embedding-service.js';
+import { GeminiEmbeddingService } from '../gemini-embedding-service.js';
+import { LOCAL_EMBEDDING_MODEL } from '../../../../shared/config/embedding-models.js';
 import type { EmbeddingServiceInterface } from '../../../../shared/types/embedding.types.js';
 import { VECTOR_SEARCH } from '../../../../shared/config/constants.js';
 
@@ -74,6 +76,63 @@ describe('UnifiedEmbeddingService', () => {
           expect(modelInfo.dimensions).toBe(expectedDimensions);
         }
       }
+    });
+  });
+
+  describe('gemini 실패 뒤 로컬 모델 대체 (#1760)', () => {
+    it('대체로 만든 벡터는 gemini 가 아니라 로컬 제공자와 로컬 모델로 표기된다', async () => {
+      const gemini = new GeminiEmbeddingService();
+      const internals = gemini as unknown as {
+        genAI: unknown;
+        localService: { generateEmbedding: () => Promise<unknown> };
+      };
+      internals.genAI = { models: { embedContent: vi.fn().mockRejectedValue(new Error('quota exceeded')) } };
+      internals.localService = {
+        generateEmbedding: async () => ({
+          embedding: [0.1],
+          model: LOCAL_EMBEDDING_MODEL.storedName,
+          usage: { prompt_tokens: 1, total_tokens: 1 },
+        }),
+      };
+      (service as unknown as { factory: unknown }).factory = {
+        selectProviderWithHealthCheck: async () => ({ service: gemini, decision: { selectedProvider: 'gemini' } }),
+        getAvailableProviders: () => [],
+        handleProviderFailure: () => undefined,
+      };
+
+      const result = await service.generateEmbedding('memory');
+
+      expect(result?.provider).toBe('minilm');
+      expect(result?.model).toBe(LOCAL_EMBEDDING_MODEL.storedName);
+      expect(service.getCurrentProviderName()).toBe('minilm');
+    });
+
+    it('다른 제공자가 실패해 폴백 선택이 gemini 로 가도 같은 표기를 지킨다', async () => {
+      const gemini = new GeminiEmbeddingService();
+      const internals = gemini as unknown as { genAI: unknown; localService: unknown };
+      internals.genAI = { models: { embedContent: vi.fn().mockRejectedValue(new Error('quota exceeded')) } };
+      internals.localService = {
+        generateEmbedding: async () => ({
+          embedding: new Array(384).fill(0.1),
+          model: LOCAL_EMBEDDING_MODEL.storedName,
+          usage: { prompt_tokens: 1, total_tokens: 1 },
+        }),
+      };
+      const failing = { generateEmbedding: async () => null } as unknown as EmbeddingServiceInterface;
+      const select = vi
+        .fn()
+        .mockResolvedValueOnce({ service: failing, decision: { selectedProvider: 'openai' } })
+        .mockResolvedValueOnce({ service: gemini, decision: { selectedProvider: 'gemini' } });
+      (service as unknown as { factory: unknown }).factory = {
+        selectProviderWithHealthCheck: select,
+        getAvailableProviders: () => [],
+        handleProviderFailure: () => undefined,
+      };
+
+      const result = await service.generateEmbedding('memory');
+
+      expect(result?.provider).toBe('minilm');
+      expect(service.getCurrentProviderName()).toBe('minilm');
     });
   });
 
