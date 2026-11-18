@@ -86,8 +86,9 @@ const DEFAULT_CONFIG: RankingWeightsConfig = {
   recency_signal: {
     scale: 0.30
   },
+  // 배포 config/ranking-weights.toml 과 같은 값(#1729, #1759). toml 이 없는 설치도 같은 순위를 낸다.
   relevance_signal: {
-    scale: 2.0
+    scale: 1.5
   }
 };
 

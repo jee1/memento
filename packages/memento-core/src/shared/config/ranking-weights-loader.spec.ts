@@ -374,7 +374,7 @@ scale = 0.77
       expect(config.recency_signal.scale).toBe(0.77);
     });
 
-    it('defaults relevance_signal.scale when section is absent (#1180)', () => {
+    it('defaults relevance_signal.scale to the shipped toml value when section is absent (#1180, #1759)', () => {
       const toml = `[ranking_weights]
 alpha = 0.45
 beta = 0.20
@@ -386,7 +386,7 @@ max_relations = 5
 `;
       writeFileSync(tempConfigPath, toml, 'utf-8');
       const config = loadRankingWeights(tempConfigPath);
-      expect(config.relevance_signal.scale).toBe(2.0);
+      expect(config.relevance_signal.scale).toBe(1.5);
     });
 
     it('rejects relevance_signal.scale outside [0, 5] (#1180)', () => {
