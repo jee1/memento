@@ -8,6 +8,7 @@
 |---|---|---|---|
 | `memory_forgetting_event` | soft, hard 90일. review 행은 정리 때마다 삭제 | `FORGETTING_EVENT_RETENTION_DAYS` | `forgetting_event_cleanup_batch` |
 | `telemetry_events` | 90일 | `TELEMETRY_RETENTION_DAYS` | `telemetry_cleanup_batch` |
+| `usage_daily_count` | 365일 (상수, 설정 키 없음) | — | `telemetry_cleanup_batch` 안에서 따로 정리 |
 | `job_run` | 90일 + 잡별 성공 실행 최신 3000건 | `JOB_RUN_RETENTION_DAYS` | `job_run_cleanup_batch` |
 | `job_run_log` | `job_run` 과 함께 (FK `ON DELETE CASCADE`) | — | `job_run_cleanup_batch` |
 | `quality_measurement_history` | 90일 | `QUALITY_MEASUREMENT_HISTORY_RETENTION_DAYS` | `quality_measurement_batch` 안에서 정리 |
@@ -30,6 +31,32 @@
 기록성 표 합이 기억 본문보다 큰 것은 **정리가 멈춘 것이 아니라** `audit_log` 가 쌓이고, job/telemetry 가 90일 창 안에서 정상 누적된 결과다. `job_run`·`telemetry` 배치는 돌아가고 있다.
 
 `quality_measurement_history` 만 전용 cleanup 잡이 아니라 측정 배치 안에서 정리합니다. 이 테이블의 유일한 기록자가 그 배치이고, DELETE 한 줄 때문에 스케줄러 등록 지점을 여섯 군데 더 만들 이유가 없기 때문입니다.
+
+## 사용 집계 (usage_daily_count, #1768)
+
+서버가 접속 클라이언트, 접속 방식, 프로토콜 시대, 도구별 호출 결과를 날마다 센 로컬 기록입니다. 바깥으로 보내는 코드는 없습니다. 기억 내용, 검색어, 도구 인자, 파일 경로, 토큰, 프로젝트와 세션 ID 는 들어가지 않습니다. 칸은 열거값, 등록된 도구 이름, `major.minor.patch` 모양의 버전뿐입니다.
+
+- 호출 경로는 메모리에만 모으고 30초마다와 종료 때 한 번에 씁니다. 비정상 종료(`SIGKILL`, 전원)에서는 최대 30초치를 잃습니다.
+- 하루 서로 다른 열쇠가 2,000개에 닿으면 새 열쇠는 버전을 비우고, 그래도 새 열쇠면 클라이언트 이름을 `other` 로 합칩니다. 닿은 날 경고 로그가 한 줄 남습니다.
+- 정리 잡은 이 표를 지우다 실패해도(표가 없는 경우 등) 기존 90일 텔레메트리 정리를 실패로 기록하지 않습니다.
+
+운영 DB 를 읽기 전용으로 열어 최근 7일을 봅니다.
+
+```sql
+-- 접속 방식 x 프로토콜 시대 x 클라이언트별 연결 신호 (옛 방식 경로를 지워도 되는지 볼 때)
+SELECT connection_method, era, client_name, client_version, SUM(count) AS n
+FROM usage_daily_count
+WHERE request_kind IN ('initialize', 'tools/list') AND day >= date('now', '-7 days')
+GROUP BY 1, 2, 3, 4 ORDER BY n DESC;
+
+-- 도구 x 오류 코드별 호출 수
+SELECT tool, outcome, error_code, SUM(count) AS n
+FROM usage_daily_count
+WHERE request_kind = 'tools/call' AND day >= date('now', '-7 days')
+GROUP BY 1, 2, 3 ORDER BY n DESC;
+```
+
+`client_version` 은 클라이언트가 스스로 소개한 값입니다. cursor-agent 는 도구 버전이 아니라 `1.0.0` 을 보내므로 이 칸으로 cursor 의 버전별 차이를 가를 수 없습니다.
 
 ## job_run 성공 실행 상한
 

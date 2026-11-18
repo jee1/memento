@@ -41,7 +41,7 @@ experimental-assistant-example → @jee1/memento-assistant
 
 ## 도메인 구조
 
-`packages/memento-core/src/domains/` 아래 최상위는 `memory/`, `search/`, `embedding/`, `forgetting/`, `anchor/`, `relation/`, `monitoring/`, `consolidation/`, `telemetry/`, `personal-agent/`, `agent-integration/`, `settings/`(런타임 설정 override, #1582)이다. 절차 메모리 도구·서비스는 형제 도메인이 아니라 `memory/procedural/`에 있다. `embedding/`에는 TF-IDF·lightweight·MiniLM·OpenAI·Gemini가 있다. `monitoring/`의 `PerformanceMonitor`(`performance-monitor.ts`)는 types·CPU·알림·검색통계·DB·analytics 서브모듈(#594)로 나뉜다.
+`packages/memento-core/src/domains/` 아래 최상위는 `memory/`, `search/`, `embedding/`, `forgetting/`, `anchor/`, `relation/`, `monitoring/`, `consolidation/`, `telemetry/`, `personal-agent/`, `agent-integration/`, `settings/`(런타임 설정 override, #1582)이다. 절차 메모리 도구·서비스는 형제 도메인이 아니라 `memory/procedural/`에 있다. `embedding/`에는 TF-IDF·lightweight·MiniLM·OpenAI·Gemini가 있다. `monitoring/`의 `PerformanceMonitor`(`performance-monitor.ts`)는 types·CPU·알림·검색통계·DB·analytics 서브모듈(#594)로 나뉜다. `telemetry/usage/` 는 접속 클라이언트와 도구 호출 결과를 로컬 표 `usage_daily_count` 에만 일별로 세는 집계기다(#1768). 호출 경로는 메모리 `Map` 만 만지고 30초마다와 `closeDatabase` 직전에 쓴다. 허용 값 목록은 `usage-vocabulary.ts` 한 곳이고 마이그레이션 069 의 `CHECK` 가 같은 목록을 쓴다.
 
 ### 임베딩 이중 저장 (#1773)
 

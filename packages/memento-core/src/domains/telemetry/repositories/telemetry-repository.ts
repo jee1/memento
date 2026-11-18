@@ -188,6 +188,15 @@ export class TelemetryRepository {
       .run(metricId, dateKey, event.eventType, ownerKey, latForAvg, errInc);
   }
 
+  /**
+   * 사용 집계(usage_daily_count, #1768)에서 보관 기간이 지난 행을 지운다. day 는 UTC 날짜 문자열이라 사전순이 날짜순이다.
+   * 표가 없으면(마이그레이션 069 전, 또는 되돌린 뒤) 던진다. 호출한 쪽이 따로 try/catch 한다.
+   */
+  deleteExpiredUsageCounts(retentionDays: number, now: Date = new Date()): number {
+    const cutoff = new Date(now.getTime() - retentionDays * 86_400_000).toISOString().slice(0, 10);
+    return this.db.prepare('DELETE FROM usage_daily_count WHERE day < ?').run(cutoff).changes;
+  }
+
   deleteExpiredEvents(retentionDays: number): number {
     const cutoff = new Date(Date.now() - retentionDays * 86_400_000).toISOString();
     const r = this.db.prepare(`DELETE FROM telemetry_events WHERE created_at < ?`).run(cutoff);

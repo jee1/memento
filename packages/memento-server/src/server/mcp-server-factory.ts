@@ -3,6 +3,8 @@ import { Server, type ListToolsResult } from '@modelcontextprotocol/server';
 import type Database from 'better-sqlite3';
 import packageJson from '../../package.json' with { type: 'json' };
 import { dispatchTool } from './audit-tool-dispatch.js';
+import { mcpLogger } from './mcp-logger.js';
+import { countConnectionSignal, stdioUsageConnection } from './usage-recording.js';
 
 export const MEMENTO_SERVER_INSTRUCTIONS = `Memento MCP provides persistent memory for AI agents (recall, remember, feedback, memory_injection, search_local, anchors).`;
 
@@ -26,14 +28,36 @@ export function createMementoMcpServer(deps: McpServerFactoryDeps): Server {
     },
   );
 
+  // 옛 방식 클라이언트의 initialize 완료(#1768). 새 방식에는 initialize 가 없어 이 훅이 불리지 않는다.
+  server.oninitialized = () => {
+    const connection = stdioUsageConnection(undefined, () => server.getClientVersion());
+    void deps.readyPromise.then(
+      () => {
+        const db = deps.getDb();
+        if (db) countConnectionSignal(db, connection, 'initialize');
+      },
+      () => mcpLogger.logServer('warn', '사용 집계 연결 신호를 세지 못했다: 서버 초기화가 실패했다'),
+    );
+  };
+
   // getExposedTools()는 registry 항목을 그대로 반환하며 handler·Zod inputSchema가 남아 있다.
   // HTTP modern 경로(routes/mcp/message-processor.ts 243행)도 동일 객체를 내보내므로,
   // 여기서 형태를 좁히면 stdio/HTTP parity가 깨진다. 의도적 캐스트이며 객체 매핑으로 "수정" 금지.
-  server.setRequestHandler('tools/list', async (): Promise<ListToolsResult> => ({
-    tools: getExposedTools() as unknown as ListToolsResult['tools'],
-  }));
+  server.setRequestHandler('tools/list', async (_request, ctx): Promise<ListToolsResult> => {
+    // 연결 신호(#1768). 새 방식 클라이언트는 연결 직후 tools/list 를 먼저 보내는데 그때 DB 는 아직 준비 중일 수 있다.
+    // 응답은 늦추지 않고, 준비되는 대로 백그라운드에서 센다. 연결 정보는 지금 읽어 둬야 한다(ctx 는 요청이 끝나면 쓸 수 없다).
+    const connection = stdioUsageConnection(ctx.mcpReq.envelope, () => server.getClientVersion());
+    void deps.readyPromise.then(
+      () => {
+        const db = deps.getDb();
+        if (db) countConnectionSignal(db, connection, 'tools/list');
+      },
+      () => mcpLogger.logServer('warn', '사용 집계 연결 신호를 세지 못했다: 서버 초기화가 실패했다'),
+    );
+    return { tools: getExposedTools() as unknown as ListToolsResult['tools'] };
+  });
 
-  server.setRequestHandler('tools/call', async (request) => {
+  server.setRequestHandler('tools/call', async (request, ctx) => {
     await deps.readyPromise;
     const db = deps.getDb();
     const services = deps.getServices();
@@ -44,7 +68,7 @@ export function createMementoMcpServer(deps: McpServerFactoryDeps): Server {
       request.params.arguments,
       db,
       services,
-      { transport: 'mcp_stdio' },
+      { transport: 'mcp_stdio', usage: stdioUsageConnection(ctx.mcpReq.envelope, () => server.getClientVersion()) },
     );
   });
 
