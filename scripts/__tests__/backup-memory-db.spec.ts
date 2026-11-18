@@ -54,7 +54,11 @@ function runBackupScript(dbPath: string, scriptArgs: string[], extraNodeArgs: st
 }
 
 function parseJson(text: string): Record<string, unknown> {
-  return JSON.parse(text);
+  try {
+    return JSON.parse(text);
+  } catch (error) {
+    throw new Error(`child stderr is not JSON: ${text.slice(0, 1500)}`, { cause: error });
+  }
 }
 
 function writeBackupArtifact(backupsDir: string, name: string, content: string): void {

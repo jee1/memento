@@ -92,7 +92,7 @@ describe('resolveDockerLogsRef', () => {
 
 describe('readJsonlFiles', () => {
   it('uses only the last line of docker-inspect.jsonl under docker-diagnostics', async () => {
-    const root = join(tmpdir(), `memento-sources-test-${Date.now()}`);
+    const root = join(tmpdir(), `memento-sources-test-${process.pid}-${Date.now()}`);
     const dockerDiag = join(root, 'docker-diagnostics');
     await mkdir(dockerDiag, { recursive: true });
 
@@ -114,7 +114,7 @@ describe('readJsonlFiles', () => {
   });
 
   it('still reads all lines from diagnostics jsonl', async () => {
-    const root = join(tmpdir(), `memento-sources-test-diag-${Date.now()}`);
+    const root = join(tmpdir(), `memento-sources-test-diag-${process.pid}-${Date.now()}`);
     const diag = join(root, 'diagnostics');
     await mkdir(diag, { recursive: true });
     await writeFile(join(diag, 'events.jsonl'), '{"x":1}\n{"x":2}\n', 'utf8');
@@ -126,7 +126,7 @@ describe('readJsonlFiles', () => {
   });
 
   it('reads only appended lines on subsequent calls using byte cursors', async () => {
-    const root = join(tmpdir(), `memento-sources-test-cursor-${Date.now()}`);
+    const root = join(tmpdir(), `memento-sources-test-cursor-${process.pid}-${Date.now()}`);
     const diag = join(root, 'diagnostics');
     await mkdir(diag, { recursive: true });
     const filePath = join(diag, 'events.jsonl');
@@ -144,7 +144,7 @@ describe('readJsonlFiles', () => {
   });
 
   it('skips oversized unread JSONL without throwing', async () => {
-    const root = join(tmpdir(), `memento-sources-test-skip-${Date.now()}`);
+    const root = join(tmpdir(), `memento-sources-test-skip-${process.pid}-${Date.now()}`);
     const diag = join(root, 'diagnostics');
     await mkdir(diag, { recursive: true });
     await writeFile(join(diag, 'huge.jsonl'), '{"x":1}\n', 'utf8');
@@ -159,7 +159,7 @@ describe('readJsonlFiles', () => {
   });
 
   it('concatenates many lines without spread stack overflow', async () => {
-    const root = join(tmpdir(), `memento-sources-test-many-${Date.now()}`);
+    const root = join(tmpdir(), `memento-sources-test-many-${process.pid}-${Date.now()}`);
     const diag = join(root, 'diagnostics');
     await mkdir(diag, { recursive: true });
     const payload = `${'{"n":1}\n'.repeat(20_000)}`;

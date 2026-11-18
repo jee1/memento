@@ -1,9 +1,13 @@
+import os from 'os';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import { defineConfig } from 'vitest/config';
 import { baseTestConfig } from './vitest.base.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+
+// CI 러너(4 vCPU)는 job 을 나눠 돌리므로 2개를 유지한다. 로컬은 코어의 1/4(2~6개)를 쓴다. VITEST_MAX_WORKERS 로 바꾼다.
+const maxWorkers = Number(process.env.VITEST_MAX_WORKERS) || (process.env.CI ? 2 : Math.min(6, Math.max(2, Math.floor(os.cpus().length / 4))));
 
 export default defineConfig({
   resolve: {
@@ -26,7 +30,7 @@ export default defineConfig({
     ...baseTestConfig,
     globals: true,
     pool: 'forks',
-    maxWorkers: 2,
+    maxWorkers,
     include: [
       '{tests,scripts,apps}/**/*.{test,spec}.{js,ts}',
       'packages/{memento-core,memento-client,memento-server}/src/**/*.{test,spec}.{js,ts}',

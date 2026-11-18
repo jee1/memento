@@ -46,7 +46,7 @@ GitHub Actions에서 테스트가 오래 걸리거나 타임아웃으로 통과�
 
 ### 4. Vitest CI exclude inventory (`vitest.base.ts`)
 
-공통 설정은 일반 CI에서 **`**/*.nightly.spec.ts`만 자동 제외**합니다. `VITEST_INCLUDE_NIGHTLY=1`이면 이 제외도 해제됩니다. 파일명에 `db`, `database`, `integration`, `performance`, `m1`, `error-handling`이 들어간 일반 spec은 별도 패턴으로 제외하지 않으며 PR의 해당 영역 job에서 수집됩니다.
+공통 설정은 CI와 로컬 모두 **`**/*.nightly.spec.ts`만 자동 제외**합니다(로컬은 2026-11-18 #1775 부터). `VITEST_INCLUDE_NIGHTLY=1`이면 이 제외도 해제됩니다. 파일명에 `db`, `database`, `integration`, `performance`, `m1`, `error-handling`이 들어간 일반 spec은 별도 패턴으로 제외하지 않으며 PR의 해당 영역 job에서 수집됩니다.
 
 `ci.yml`은 현재 `SKIP_DB_TESTS=true`, `SKIP_INTEGRATION_TESTS=true`를 환경 변수로 제공하지만, 이는 Vitest 수집 제외 패턴이 아닙니다. 개별 spec이 그 변수를 명시적으로 읽어 skip하도록 작성된 경우에만 해당 spec 내부 동작에 영향을 줍니다.
 
@@ -78,9 +78,9 @@ GitHub Actions에서 테스트가 오래 걸리거나 타임아웃으로 통과�
 
 ## 보조적 대안 (추가로 필요할 때)
 
-- **Vitest CI 최적화**: OOM이 나면 `maxWorkers` 축소, `pool: 'threads'` 유지.
+- **Vitest 병렬 수**: `vitest.config.ts` 가 CI 는 2개, 로컬은 코어 수의 1/4(2~6개)로 정합니다. OOM이 나면 `VITEST_MAX_WORKERS` 로 줄이고, `pool: 'threads'` 는 유지합니다.
 - **CI 전용 exclude 확대**: 벤치마크·매우 무거운 스위트만 CI에서 추가 제외 (가능하면 최소한으로).
-- **변경 기반 선택 테스트**: `vitest --changed` 또는 turbo/Nx로 변경된 패키지·파일만 테스트 (도입 시 문서/스크립트 정리 필요).
+- **변경 기반 선택 테스트**: 로컬 커밋 전에는 `npm run test:changed`(`vitest --changed origin/main`)를 쓴다. CI 는 전체를 그대로 돌린다. turbo/Nx 는 쓰지 않는다.
 
 ---
 

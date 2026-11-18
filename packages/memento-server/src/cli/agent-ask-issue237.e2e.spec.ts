@@ -86,7 +86,7 @@ afterEach(async () => {
 
 describe('agent ask #237 hooks E2E', () => {
   it('project scope: --project-id 가 run에 전달되고 컨텍스트가 비어 있지 않다', async () => {
-    const dbPath = path.join(os.tmpdir(), `memento-i237-ctx-${Date.now()}.db`);
+    const dbPath = path.join(os.tmpdir(), `memento-i237-ctx-${process.pid}-${Date.now()}.db`);
     await seedTwoProjectMemories(dbPath);
     const { chunks, restore } = captureStdoutWrite();
     try {
@@ -117,7 +117,7 @@ describe('agent ask #237 hooks E2E', () => {
   }, 60_000);
 
   it('후보 승인 시 persistence 시도·저장 성공', async () => {
-    const dbPath = path.join(os.tmpdir(), `memento-i237-y-${Date.now()}.db`);
+    const dbPath = path.join(os.tmpdir(), `memento-i237-y-${process.pid}-${Date.now()}.db`);
     await seedTwoProjectMemories(dbPath);
     const { chunks, restore } = captureStdoutWrite();
     try {
@@ -148,7 +148,7 @@ describe('agent ask #237 hooks E2E', () => {
   }, 60_000);
 
   it('후보 거절 시 persistence 미시도', async () => {
-    const dbPath = path.join(os.tmpdir(), `memento-i237-n-${Date.now()}.db`);
+    const dbPath = path.join(os.tmpdir(), `memento-i237-n-${process.pid}-${Date.now()}.db`);
     await seedTwoProjectMemories(dbPath);
     const { chunks, restore } = captureStdoutWrite();
     try {

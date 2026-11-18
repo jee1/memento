@@ -10,7 +10,7 @@ describe('createSeededBenchmarkDatabase seed modes', () => {
 
   beforeAll(() => {
     process.env.EMBEDDING_PROVIDER = 'tfidf';
-    dir = join(tmpdir(), `bench-seed-mode-${Date.now()}`);
+    dir = join(tmpdir(), `bench-seed-mode-${process.pid}-${Date.now()}`);
     mkdirSync(dir, { recursive: true });
     writeFileSync(
       join(dir, 'corpus.jsonl'),

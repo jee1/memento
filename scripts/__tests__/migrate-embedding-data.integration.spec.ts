@@ -21,7 +21,7 @@ describe('migrate-embedding-data 통합 테스트', () => {
 
   beforeEach(() => {
     // 테스트용 임시 디렉토리 생성
-    const testDir = join(tmpdir(), `memento-test-${Date.now()}`);
+    const testDir = join(tmpdir(), `memento-test-${process.pid}-${Date.now()}`);
     mkdirSync(testDir, { recursive: true });
     
     testDbPath = join(testDir, 'memory.db');

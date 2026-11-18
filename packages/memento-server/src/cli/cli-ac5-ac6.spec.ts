@@ -139,7 +139,7 @@ function createReviewQueueDatabase(dbPath: string): void {
 
 describe('CLI AC5/AC6', () => {
   it('AC5: --db-path 지정 시 deprecated 경고 출력 후 exit 1 (서버 미실행)', async () => {
-    const dbPath = path.join(os.tmpdir(), `memento-cli-ac5-${Date.now()}.db`);
+    const dbPath = path.join(os.tmpdir(), `memento-cli-ac5-${process.pid}-${Date.now()}.db`);
     const { stderr, code } = await runCli([
       '--db-path', dbPath,
       'recall', '--query', 'test', '--limit', '1',
@@ -185,7 +185,7 @@ describe('CLI AC5/AC6', () => {
   });
 
   it('review-queue cleanup routes to a dry-run without starting the server', async () => {
-    const dbPath = path.join(os.tmpdir(), `memento-cli-review-${Date.now()}.db`);
+    const dbPath = path.join(os.tmpdir(), `memento-cli-review-${process.pid}-${Date.now()}.db`);
     createReviewQueueDatabase(dbPath);
     try {
       const { stdout, stderr, code } = await runCli([
@@ -209,7 +209,7 @@ describe('CLI AC5/AC6', () => {
   });
 
   it('review-queue cleanup rejects execute mode without --yes', async () => {
-    const dbPath = path.join(os.tmpdir(), `memento-cli-review-confirm-${Date.now()}.db`);
+    const dbPath = path.join(os.tmpdir(), `memento-cli-review-confirm-${process.pid}-${Date.now()}.db`);
     createReviewQueueDatabase(dbPath);
     try {
       const { stderr, code } = await runCli([
@@ -226,7 +226,7 @@ describe('CLI AC5/AC6', () => {
   });
 
   it('issue #236: agent ask --json --no-save prints JSON only on stdout', async () => {
-    const dbPath = path.join(os.tmpdir(), `memento-cli-agent236-${Date.now()}.db`);
+    const dbPath = path.join(os.tmpdir(), `memento-cli-agent236-${process.pid}-${Date.now()}.db`);
     const { stdout, stderr, code } = await runCli([
       '--db-path', dbPath,
       'agent',
@@ -253,7 +253,7 @@ describe('CLI AC5/AC6', () => {
   }, 30_000);
 
   it('issue #236: agent ask 알 수 없는 옵션 + --json → exit 1, stdout에 JSON 오류', async () => {
-    const dbPath = path.join(os.tmpdir(), `memento-cli-agent236-bad-${Date.now()}.db`);
+    const dbPath = path.join(os.tmpdir(), `memento-cli-agent236-bad-${process.pid}-${Date.now()}.db`);
     const { stdout, stderr, code } = await runCli([
       '--db-path', dbPath,
       'agent',
