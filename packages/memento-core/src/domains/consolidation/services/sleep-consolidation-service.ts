@@ -237,7 +237,8 @@ export class SleepConsolidationService {
       const candidates = this.repo.findEpisodicCandidates(ownerFilter, lookback);
       const provider = this.memoryEmbedding.getUnifiedEmbeddingService?.()?.getCurrentProviderName?.() ?? undefined;
       const embMap = this.repo.loadEmbeddingsMap(candidates.map(c => c.id), provider ? { provider } : {});
-      await this.useLabelFreeEmbeddings(candidates, embMap, provider);
+      const fullCandidateSet = ownerFilter === null && options.lookbackDays === undefined;
+      await this.useLabelFreeEmbeddings(candidates, embMap, provider, fullCandidateSet);
       const clusters = await this.verifyClustersWithJudge(
         this.clustering.buildClusters(candidates, embMap),
         candidates
@@ -516,18 +517,23 @@ export class SleepConsolidationService {
   private async useLabelFreeEmbeddings(
     candidates: Array<{ id: string; content: string }>,
     embMap: Map<string, number[]>,
-    provider: string | undefined
+    provider: string | undefined,
+    fullCandidateSet: boolean
   ): Promise<void> {
     const uni = this.memoryEmbedding.getUnifiedEmbeddingService?.();
     if (!uni) {
       return;
     }
-    const candidateIds = new Set(candidates.map(c => c.id));
-    for (const id of this.labelFreeVectors.keys()) {
-      if (!candidateIds.has(id)) {
-        this.labelFreeVectors.delete(id);
+    // owner 나 룩백을 좁힌 실행(관리 화면)은 후보 일부만 보므로 다른 기억의 벡터를 지우지 않는다.
+    if (fullCandidateSet) {
+      const candidateIds = new Set(candidates.map(c => c.id));
+      for (const id of this.labelFreeVectors.keys()) {
+        if (!candidateIds.has(id)) {
+          this.labelFreeVectors.delete(id);
+        }
       }
     }
+    const model = uni.getModelInfo?.().model ?? '';
     for (const candidate of candidates) {
       const stored = embMap.get(candidate.id);
       if (!stored) {
@@ -535,9 +541,10 @@ export class SleepConsolidationService {
       }
       const stripped = stripMemoryTemplateLabels(candidate.content);
       if (stripped === candidate.content || stripped.trim() === '') {
+        this.labelFreeVectors.delete(candidate.id);
         continue;
       }
-      const key = `${provider ?? ''}:${hashMemoryContent(stripped)}`;
+      const key = `${provider ?? ''}:${model}:${hashMemoryContent(stripped)}`;
       const kept = this.labelFreeVectors.get(candidate.id);
       if (kept?.key === key && kept.vector.length === stored.length) {
         embMap.set(candidate.id, kept.vector);
@@ -552,7 +559,10 @@ export class SleepConsolidationService {
           (!provider || res?.provider === provider)
         ) {
           embMap.set(candidate.id, vec as number[]);
-          this.labelFreeVectors.set(candidate.id, { key, vector: vec as number[] });
+          // 제공자를 모르면 위 확인이 꺼져 다른 공간의 벡터일 수 있다. 이번 실행에만 쓴다.
+          if (provider) {
+            this.labelFreeVectors.set(candidate.id, { key, vector: vec as number[] });
+          }
         }
       } catch {
         // keep the stored vector
