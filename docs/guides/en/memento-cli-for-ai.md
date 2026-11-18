@@ -11,7 +11,7 @@ For agents that run **`memento` in the shell** without MCP, use the project skil
 ## MCP vs CLI Roles
 
 - **MCP**: Host tools for AI agents. MCP hosts (Claude, Cursor, Codex, etc.) call tools over stdio or HTTP to maintain conversation context.
-- **CLI**: A lightweight HTTP client that relays memory tool subcommands (`recall`, `remember`, `forget`, `memory_injection`) to a running Memento HTTP server. It also executes ops commands (`doctor`, `status`, `demo`, `connect`, `hook`, `agent ask`, `review-queue cleanup`).
+- **CLI**: A lightweight HTTP client that relays memory tool subcommands (`recall`, `remember`, `forget`, `memory_injection`) to a running Memento HTTP server. It also executes ops commands (`doctor` — `doctor --report` drafts a GitHub issue from the environment and local error counts, #1769 —, `status`, `demo`, `connect`, `hook`, `agent ask`, `review-queue cleanup`).
 
 ## Workflow
 

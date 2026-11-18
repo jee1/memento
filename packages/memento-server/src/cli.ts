@@ -166,6 +166,7 @@ const HELP_TEXT = [
   '  review-queue cleanup 검토 큐를 dry-run 후 일괄 정리\n',
   '  agent ask           개인 지식 Agent 한 턴 (in-process, #236)\n',
   '  doctor              Agent endpoint/auth/schema/redaction 진단\n',
+  '  doctor --report     환경과 최근 오류 집계로 GitHub 이슈 초안 생성 (자동 전송 없음, --print 로 전체 보기)\n',
   '  status              최근 capture/injection/drop/degraded 요약\n',
   '  demo                두 session 자동 기억 주입 E2E 검증\n',
   '  connect codex       Codex lifecycle hook 연결\n',
@@ -185,6 +186,10 @@ const HELP_TEXT = [
 /** 서버 도구가 아닌 명령(doctor·connect·hook·agent·review-queue)을 실행한다. 해당 없으면 undefined. */
 async function runAgentCommand(agentTokens: string[]): Promise<number | undefined> {
   const [first, second] = agentTokens;
+  if (first === 'doctor' && agentTokens.includes('--report')) {
+    const { runDoctorReport } = await import('./cli/doctor-report.js');
+    return runDoctorReport(agentTokens.slice(1), { dbPath: preOptions.dbPath });
+  }
   if (first === 'doctor' || first === 'status' || first === 'demo') {
     const { runAgentOpsCommand } = await import('./cli/agent-ops.js');
     return runAgentOpsCommand(first, agentTokens.slice(1));

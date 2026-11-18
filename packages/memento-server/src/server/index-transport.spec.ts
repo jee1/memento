@@ -28,6 +28,7 @@ describe('server entrypoint transport selection', () => {
       // Invalid startup settings prove the entrypoint ran without opening a DB or listener.
       expect(result.status, result.stderr).toBe(1);
       expect(result.stderr).toContain('[FATAL ERROR] Unhandled start failure:');
+      expect(result.stderr).toContain('memento doctor --report');
       expect(result.stderr).toContain(entry === 'index.ts' ? 'websocket' : 'MEMENTO_HTTP_BIND_HOST');
     } finally {
       rmSync(binDir, { recursive: true, force: true });

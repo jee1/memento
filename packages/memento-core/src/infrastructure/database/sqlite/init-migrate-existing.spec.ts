@@ -44,6 +44,7 @@ vi.mock('./migration/backup-manager.js', () => ({
   BackupManager: mocks.BackupManager,
 }));
 
+import { DOCTOR_REPORT_HINT } from '../../../domains/telemetry/usage/usage-report.js';
 import { migrateExistingDatabaseIfNeeded } from './init-migrate-existing.js';
 
 describe('migrateExistingDatabaseIfNeeded', () => {
@@ -68,5 +69,21 @@ describe('migrateExistingDatabaseIfNeeded', () => {
     expect(mocks.runMigrations).not.toHaveBeenCalled();
     expect(mocks.BackupManager).not.toHaveBeenCalled();
     expect(mocks.createBackup).not.toHaveBeenCalled();
+  });
+
+  it('마이그레이션이 실패하면 오류 메시지 끝에 doctor --report 안내가 붙는다 (#1769)', async () => {
+    mocks.detectPendingMigrations.mockResolvedValue({
+      appliedMigrations: [],
+      currentVersion: null,
+      pendingMigrations: [{ migration: { version: '70.0', name: 'broken' } }],
+    });
+    mocks.runMigrations.mockResolvedValue([{ success: false, name: 'broken', version: '70.0', error: 'boom' }]);
+
+    const error = await migrateExistingDatabaseIfNeeded({} as Database.Database).catch((e: unknown) => e);
+
+    expect(error).toBeInstanceOf(Error);
+    expect((error as Error).message).toContain('broken (v70.0): boom');
+    expect((error as Error).message.endsWith(DOCTOR_REPORT_HINT)).toBe(true);
+    expect(DOCTOR_REPORT_HINT).toContain('memento doctor --report');
   });
 });

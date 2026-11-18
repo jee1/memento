@@ -46,6 +46,11 @@ export function normalizeClientName(raw: unknown): ClientName {
  */
 export function normalizeClientVersion(raw: unknown, name: ClientName): string {
   if (name === OTHER_CLIENT || name === UNKNOWN_CLIENT) return '';
+  return normalizeSemverCore(raw);
+}
+
+/** major.minor.patch 세 조각만 남긴다(접미사는 버림). 모양이 맞지 않으면 빈 문자열. */
+export function normalizeSemverCore(raw: unknown): string {
   if (typeof raw !== 'string') return '';
   const m = SEMVER_CORE.exec(raw.trim());
   return m ? `${Number(m[1])}.${Number(m[2])}.${Number(m[3])}` : '';

@@ -9,6 +9,7 @@ import {
   AgentContextRecallService,
   canonicalizeHttpBindHostForListen,
   createMementoCore,
+  DOCTOR_REPORT_HINT,
   expandHomeDirPath,
   formatHttpBindHostForUrl,
   getBatchScheduler,
@@ -640,7 +641,7 @@ export async function startServer(deps?: HttpServerDependencies): Promise<Server
     return server;
   } catch (error) {
     if (!isSidecarPortConflict(error)) {
-      logger.error('서버 시작 실패 — 리소스 정리 시도', { error });
+      logger.error(`서버 시작 실패 — 리소스 정리 시도. ${DOCTOR_REPORT_HINT}`, { error });
     }
     await cleanup();
     throw error instanceof Error ? error : new Error(String(error));
@@ -677,7 +678,7 @@ const entryScriptPath = process.argv[1] || '';
 if (entryScriptPath !== '' && currentFile === realpathSync(entryScriptPath)) {
   startServer().catch((error: unknown) => {
     const err = error instanceof Error ? error : new Error(String(error));
-    process.stderr.write(`\n[FATAL ERROR] Unhandled start failure: ${err.message}\n`);
+    process.stderr.write(`\n[FATAL ERROR] Unhandled start failure: ${err.message}\n${DOCTOR_REPORT_HINT}\n`);
     process.exit(1);
   });
 }

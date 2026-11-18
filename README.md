@@ -132,6 +132,10 @@ const results = await client.callTool({
 - **M1 개인용 (현재)**: 로컬 SQLite, MCP + HTTP 관리 API. **인증**: 브라우저 세션 + 헤더 기반 분리 신뢰 모델(`/auth/session` 쿠키 세션, `/admin`·`/api` 브라우저 세션 요구, `/tools`·`/mcp`는 Bearer/API-Key 요구).
 - M2 팀, M3 조직(공유 백엔드, PostgreSQL + pgvector, JWT) 계획은 2026-11-13 방향 결정([docs/DIRECTION.md](docs/DIRECTION.md))으로 제외했다. 이전 계획은 [Memento-Milestones](docs/reference/ko/Memento-Milestones.md)에 이력으로 남아 있다.
 
+## 문제가 생겼을 때
+
+설치나 실행이 막히거나 이상하게 동작하면 `memento doctor --report` 를 실행하십시오. 환경(Memento 버전, Node 주 버전, OS, 설치 방식, 임베딩 제공자, 기억 수 구간)과 최근 7일 이 기기의 오류 집계로 GitHub 이슈 초안 링크를 만듭니다. `--print` 를 붙이면 붙여 넣을 내용 전체를 그대로 보여 줍니다. 기억 내용, 검색어, 경로, 토큰, 호스트 이름, 사용자 이름은 들어가지 않고, 아무것도 자동으로 전송하지 않습니다. 내용을 확인한 뒤 링크를 직접 여십시오.
+
 ## 기여 · 라이선스 · 지원
 
 기여는 [CONTRIBUTING.md](CONTRIBUTING.md)를 따라 주세요. 라이선스는 [MIT](LICENSE)입니다.
