@@ -9,7 +9,7 @@ MCP 없이 셸에서 `memento`만 쓰는 에이전트는 프로젝트 스킬 [`d
 ## MCP와 CLI의 역할
 
 - **MCP**: 에이전트 호스트 도구. Claude, Cursor, Codex 등 MCP 호스트가 stdio·HTTP 프로토콜로 도구를 호출해 대화 맥락을 유지합니다.
-- **CLI**: 도구 서브커맨드(`recall`, `remember`, `forget`, `memory_injection`)를 HTTP 서버로 중계하는 씬 클라이언트(thin client)입니다. 진단·연결·정리(`doctor`, `status`, `demo`, `connect`, `hook`, `agent ask`, `review-queue cleanup`) 같은 운영 명령도 수행합니다.
+- **CLI**: 도구 서브커맨드(`recall`, `remember`, `forget`, `memory_injection`)를 HTTP 서버로 중계하는 씬 클라이언트(thin client)입니다. 진단·연결·정리(`doctor`(`doctor --report` 는 환경과 오류 집계로 이슈 초안 생성, #1769), `status`, `demo`, `connect`, `hook`, `agent ask`, `review-queue cleanup`) 같은 운영 명령도 수행합니다.
 
 ## 워크플로
 

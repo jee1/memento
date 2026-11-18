@@ -1,6 +1,7 @@
 import type Database from 'better-sqlite3';
 import { applySchema } from './apply-schema.js';
 import { populateVecTables } from './init-legacy-schema.js';
+import { DOCTOR_REPORT_HINT } from '../../../domains/telemetry/usage/usage-report.js';
 import { log } from './init-log.js';
 import { recordBundledSchemaSqlMigrationBaseline } from './init-migration-baseline.js';
 import { MigrationDetector } from './migration/migration-detector.js';
@@ -44,7 +45,7 @@ export async function bootstrapNewDatabaseSchema(db: Database.Database): Promise
         db,
         detectionResult.pendingMigrations.map(d => d.migration),
         (failCount, detail) =>
-          `신규 DB 마이그레이션 실패 (${failCount}건). schema.sql 폴백 없이 중단합니다. ${detail}`
+          `신규 DB 마이그레이션 실패 (${failCount}건). schema.sql 폴백 없이 중단합니다. ${detail} ${DOCTOR_REPORT_HINT}`
       );
 
       populateVecTables(db, []);

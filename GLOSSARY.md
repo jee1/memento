@@ -177,6 +177,10 @@ MCP 규약의 세대. `legacy` 는 2025-11-25 까지의 판으로 `initialize` �
 접속 클라이언트, 접속 방식, 프로토콜 시대, 도구별 호출 결과를 날마다 센 로컬 기록(`usage_daily_count`). 바깥으로 나가지 않는다. 내용, 인자, 경로, 토큰, 프로젝트와 세션 ID 는 담지 않는다.
 _Avoid_: telemetry, analytics, tracking
 
+**Doctor report (환경 보고서)**:
+`memento doctor --report` 가 만드는 GitHub 이슈 초안. 환경과 최근 7일 이 기기의 사용 집계를 `UsageReport` 타입의 칸으로만 채운다. 모든 칸이 열거값, 구간, 정해진 모양의 숫자와 버전이라 자유 문자열이 없다. 링크를 여는 것은 사용자이고 자동 전송은 없다.
+_Avoid_: telemetry, crash report, analytics
+
 ## 설정
 
 **Setting override**:

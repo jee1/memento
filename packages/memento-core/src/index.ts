@@ -306,6 +306,15 @@ export { TelemetryRepository } from './domains/telemetry/repositories/telemetry-
 export { getUsageAggregator, flushUsageAggregator } from './domains/telemetry/usage/usage-registry.js';
 export type { UsageCountKey } from './domains/telemetry/usage/usage-aggregator.js';
 export {
+  DOCTOR_REPORT_HINT,
+  buildIssueDraft,
+  buildUsageReport,
+  validateUsageReport,
+} from './domains/telemetry/usage/usage-report.js';
+export type { UsageReport, UsageReportInput, IssueDraft } from './domains/telemetry/usage/usage-report.js';
+export { readUsageRows } from './domains/telemetry/usage/usage-report-reader.js';
+export { countActiveMemoryItems } from './domains/memory/repositories/memory-item-repository.js';
+export {
   normalizeClientName,
   normalizeClientVersion,
   normalizeTool,

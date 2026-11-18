@@ -6,6 +6,7 @@
 import {
 closeDatabase,
 createMementoCore,
+DOCTOR_REPORT_HINT,
 expandHomeDirPath,
 getExposedTools,
 mementoConfig,
@@ -213,7 +214,7 @@ export async function startServer() {
     return shutdown;
   } catch (error) {
     const err = error instanceof Error ? error : new Error(String(error));
-    process.stderr.write(`\n[ERROR] MCP Server Start Failed: ${err.message}\n`);
+    process.stderr.write(`\n[ERROR] MCP Server Start Failed: ${err.message}\n${DOCTOR_REPORT_HINT}\n`);
     process.exit(1);
   }
 }
@@ -321,7 +322,7 @@ if (isMainModule) {
     .then(async () => { await resolveServerStart()(); })
     .catch((error: unknown) => {
       const err = error instanceof Error ? error : new Error(String(error));
-      process.stderr.write(`\n[FATAL ERROR] Unhandled start failure: ${err.message}\n`);
+      process.stderr.write(`\n[FATAL ERROR] Unhandled start failure: ${err.message}\n${DOCTOR_REPORT_HINT}\n`);
       process.exit(1);
     });
 }

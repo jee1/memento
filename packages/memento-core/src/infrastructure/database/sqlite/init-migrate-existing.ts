@@ -1,4 +1,5 @@
 import type Database from 'better-sqlite3';
+import { DOCTOR_REPORT_HINT } from '../../../domains/telemetry/usage/usage-report.js';
 import { log } from './init-log.js';
 import { MigrationDetector } from './migration/migration-detector.js';
 import { MigrationRunner } from './migration/migration-runner.js';
@@ -16,7 +17,7 @@ export async function migrateExistingDatabaseIfNeeded(db: Database.Database): Pr
         db,
         detectionResult.pendingMigrations.map(d => d.migration),
         (failCount, detail) =>
-          `기존 DB 마이그레이션 실패 (${failCount}건). \`npm run db:migrate -w @memento/core\`로 점검하세요. ${detail}`
+          `기존 DB 마이그레이션 실패 (${failCount}건). \`npm run db:migrate -w @memento/core\`로 점검하세요. ${detail} ${DOCTOR_REPORT_HINT}`
       );
     } else {
       log('[OK] 실행해야 할 마이그레이션이 없습니다.');
