@@ -9,6 +9,7 @@ import {
   logger,
   mementoConfig,
 } from '@memento/core';
+import { exemptFromAuditChain } from '../../middleware/http-audit.middleware.js';
 import { buildMcpManualCorsHeaders } from '../../utils/cors-policy.js';
 import { createJsonRpcError, isInitializeRequest, isJsonRpcNotification } from './json-rpc.js';
 import {
@@ -205,6 +206,7 @@ function sendInvalidJsonRpcBody(req: Request, res: Response, body: unknown): voi
 }
 
 function sendModernHttpMethodNotAllowed(res: Response): void {
+  exemptFromAuditChain(res);
   res.setHeader('Allow', 'POST');
   res.status(405).end();
 }

@@ -8,6 +8,8 @@
 
 `evidence_mode`는 `full`, `redacted`, `metadata_only`, `unavailable` 중 하나입니다. dispatch 통합은 `metadata_only`, `tool_args_state=omitted`, `output_state=omitted`를 사용합니다. 인증된 actor 부재, payload redaction, output truncation, audit write 실패, retention 충돌은 `coverage_gap`으로 남고 보통 `audit_verdict=incomplete`가 됩니다.
 
+`/mcp` 의 `GET`, `DELETE` 가 `Mcp-Protocol-Version` 헤더와 함께 오면 서버는 규약대로 `405 Allow: POST` 로 거절합니다(독립 SSE 스트림을 제공하지 않습니다). 이 거절은 장애가 아니므로 `audit_log` 에 failure 행으로 남기지 않습니다. 같은 요청은 `http-audit.jsonl` 에 상태 405 로 그대로 남습니다. 인증은 이 거절보다 앞서므로 익명 요청은 이전처럼 401 `auth_denied` 로 기록됩니다.
+
 ## 모드
 
 - 기본값 `MEMENTO_AUDIT_MODE=best-effort`: 가능한 경우 불완전 coverage를 남기고 audit write가 실패해도 요청은 계속 처리합니다.

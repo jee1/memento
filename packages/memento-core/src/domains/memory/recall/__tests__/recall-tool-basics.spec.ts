@@ -78,6 +78,8 @@ describeRecallTool("basics and search", () => {
       await expect(tool.handle({ query: 'q', limit: 5 }, context)).rejects.toThrow(
         "type' 파라미터는 필수입니다",
       );
+      // #1776: memory_types 만 줘도 된다는 대안을 문구에 담는다.
+      await expect(tool.handle({ query: 'q', limit: 5 }, context)).rejects.toThrow(/memory_types/);
 
       expect(logWarningSpy).toHaveBeenCalledWith(
         'Recall 도구 실행 실패 (입력 검증)',

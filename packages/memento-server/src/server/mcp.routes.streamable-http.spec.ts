@@ -975,6 +975,47 @@ describe('#840 Phase 1b HTTP dual-era', () => {
     }
   });
 
+  it('GET/DELETE 405 leaves no audit_log failure row while a handled POST does (#1776)', async () => {
+    const { mkdtemp, rm } = await import('node:fs/promises');
+    const { tmpdir } = await import('node:os');
+    const { join } = await import('node:path');
+    const { default: Database } = await import('better-sqlite3');
+    const { AuditHashChainMigration, AuditHashChainService } = await import('@memento/core');
+    const { createHttpAuditMiddleware } = await import('./middleware/http-audit.middleware.js');
+    const { createMcpRouter } = await import('./routes/mcp.routes.js');
+
+    const tempDir = await mkdtemp(join(tmpdir(), 'memento-mcp-405-'));
+    const db = new Database(':memory:');
+    db.exec('CREATE TABLE memory_item (id TEXT PRIMARY KEY)');
+    await new AuditHashChainMigration().up(db);
+    const app = express();
+    app.use(express.json());
+    app.use('/mcp', createHttpAuditMiddleware({ logPath: join(tempDir, 'audit.jsonl'), database: db }));
+    app.use(createMcpRouter(null, null, {} as any));
+    const server = http.createServer(app);
+    await new Promise<void>(resolve => server.listen(0, '127.0.0.1', () => resolve()));
+    const port = (server.address() as AddressInfo).port;
+    try {
+      const headers = { 'MCP-Protocol-Version': MODERN_PROTOCOL_VERSION };
+      expect((await requestHttp(port, { path: '/mcp', method: 'GET', headers })).statusCode).toBe(405);
+      expect((await requestHttp(port, { path: '/mcp', method: 'DELETE', headers })).statusCode).toBe(405);
+      const post = await postJsonRpc(
+        port,
+        '/mcp',
+        { jsonrpc: '2.0', id: 1, method: 'server/discover', params: { _meta: modernMeta() } },
+        modernHeaders('server/discover')
+      );
+      expect(post.statusCode).toBe(200);
+      await vi.waitFor(() => {
+        expect(new AuditHashChainService(db).list()).toHaveLength(1);
+      });
+    } finally {
+      await new Promise<void>(resolve => server.close(() => resolve()));
+      db.close();
+      await rm(tempDir, { recursive: true, force: true });
+    }
+  });
+
   it('legacy null JSON body returns -32600/200 without HTML 500', async () => {
     const { port, close } = await listenWithMcpRouterPermissiveJson();
     try {
