@@ -78,6 +78,9 @@ _Avoid_: MiniLM(모델을 가리킬 때)
 
 **Embedding provider value (임베딩 제공자 값)**:
 `memory_embedding.embedding_provider` 와 `EMBEDDING_PROVIDER` 의 값(tfidf, minilm, openai, gemini). LLM 제공자(typesafe 등)와 다르다.
+
+**Embedding dual store (임베딩 이중 저장)**:
+같은 벡터의 float 를 `memory_embedding`(진실 원본·메타·BLOB)과 `memory_item_vec_*`(sqlite-vec ANN 인덱스)에 함께 둔다. 트리거가 미러한다. 검색은 vec, 재색인·모델 이주·직접 유사도는 `memory_embedding`을 쓴다 (#1773).
 _Avoid_: embedding model(값을 가리킬 때)
 
 **Query vector, passage vector (질의 벡터, 기억 벡터)**:
