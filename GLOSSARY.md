@@ -80,6 +80,9 @@ _Avoid_: MiniLM(모델을 가리킬 때)
 `memory_embedding.embedding_provider` 와 `EMBEDDING_PROVIDER` 의 값(tfidf, minilm, openai, gemini). LLM 제공자(typesafe 등)와 다르다.
 _Avoid_: embedding model(값을 가리킬 때)
 
+**Embedding dual store (임베딩 이중 저장)**:
+같은 벡터의 float 를 `memory_embedding`(진실 원본, 메타, BLOB)과 `memory_item_vec_*`(sqlite-vec ANN 인덱스)에 함께 둔다. 트리거가 미러한다. 검색은 vec, 재색인, 모델 이주, 직접 유사도는 `memory_embedding`을 쓴다 (#1773).
+
 **Query vector, passage vector (질의 벡터, 기억 벡터)**:
 같은 모델이 역할 접두를 달리 붙여 만든 벡터. 검색어는 질의 벡터(`embedQuery`), 저장하는 글은 기억 벡터(`generateEmbedding`)다. 저장하는 것은 기억 벡터뿐이고 기억끼리 비교도 기억 벡터를 쓴다.
 _Avoid_: search embedding, document embedding

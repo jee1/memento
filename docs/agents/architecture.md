@@ -43,6 +43,17 @@ experimental-assistant-example → @jee1/memento-assistant
 
 `packages/memento-core/src/domains/` 아래 최상위는 `memory/`, `search/`, `embedding/`, `forgetting/`, `anchor/`, `relation/`, `monitoring/`, `consolidation/`, `telemetry/`, `personal-agent/`, `agent-integration/`, `settings/`(런타임 설정 override, #1582)이다. 절차 메모리 도구·서비스는 형제 도메인이 아니라 `memory/procedural/`에 있다. `embedding/`에는 TF-IDF·lightweight·MiniLM·OpenAI·Gemini가 있다. `monitoring/`의 `PerformanceMonitor`(`performance-monitor.ts`)는 types·CPU·알림·검색통계·DB·analytics 서브모듈(#594)로 나뉜다.
 
+### 임베딩 이중 저장 (#1773)
+
+같은 float 벡터가 두 곳에 있다. 버그가 아니라 sqlite-vec 구조다.
+
+| 저장소 | 역할 | 누가 읽나 |
+|--------|------|-----------|
+| `memory_embedding` | 진실 원본. provider, projection_type, model, content_hash, BLOB | 쓰기(`replaceMemoryEmbedding`), 재색인/정합/모델 이주, `loadCurrentNativeVectors` |
+| `memory_item_vec_<provider>` | ANN 인덱스(vec0). `memory_embedding.id` = vec `rowid` | KNN / hybrid 벡터 레인 `MATCH` |
+
+`memory_embedding_vec_{insert,update,delete}` 트리거가 BLOB을 vec에 미러한다. 한쪽만 지우면 검색 또는 재임베딩/모델 교체가 깨진다. 용량을 줄이려면 표 삭제가 아니라 양자화 같은 별도 설계가 필요하다.
+
 ## Workspace 의존성 pin 정책
 
 루트 `package.json`은 `@memento/core`·`@memento/agent-integration`을 의존성으로 **선언하지 않습니다**. 두 패키지는 registry 에 없는 비공개 워크스페이스라 이름이 발행 매니페스트에 남으면 소비자의 `npm audit signatures`가 404 로 실패합니다(#1038). 대신 `prepack`이 `dist/node_modules/@memento/*`로 복사해 tarball 에 싣고, 설치 후 `dist/server/*.js` 기준 상위 탐색으로 해석됩니다. `packages/memento-server`와 `apps/experimental-example`은 `"*"`로 선언해 모노레포 내부 개발 시 항상 로컬 workspace 빌드를 참조합니다.
