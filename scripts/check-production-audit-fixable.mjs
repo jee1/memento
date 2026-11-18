@@ -129,8 +129,28 @@ function loadReport() {
 const report = loadReport();
 const vulns = Object.values(report.vulnerabilities);
 const inScope = vulns.filter((v) => failSeverities.has(v.severity));
-const fixable = inScope.filter(isBlocking);
-const accepted = inScope.filter((v) => !isBlocking(v));
+
+// 자체 권고 없이 다른 패키지를 거쳐서만 걸린 노드(via 가 전부 패키지 이름)는 npm 이 fixAvailable 을
+// 낙관적으로 true 로 주기도 한다(#1764: 어느 vite 도 picomatch 권고 범위를 벗어나지 못한다).
+// dev 포함 레인만, 이런 노드는 원인 패키지 중 하나라도 고칠 수 있어야 고칠 수 있는 것으로 보고,
+// 허용 목록에는 원인 패키지만 올린다. 원인을 찾지 못하면 npm 의 판정을 따른다.
+const isViaOnly = (v) =>
+  Array.isArray(v.via) && v.via.length > 0 && v.via.every((c) => typeof c === 'string');
+
+function isEffectivelyBlocking(v, visiting = new Set()) {
+  if (!isBlocking(v)) return false;
+  if (!includeDev || !isViaOnly(v)) return true;
+  visiting.add(v.name);
+  const blocking = v.via.some((name) => {
+    if (visiting.has(name)) return false;
+    const cause = report.vulnerabilities[name];
+    return cause ? isEffectivelyBlocking(cause, visiting) : true;
+  });
+  visiting.delete(v.name);
+  return blocking;
+}
+const fixable = inScope.filter((v) => isEffectivelyBlocking(v));
+const accepted = inScope.filter((v) => !isEffectivelyBlocking(v));
 
 console.log(
   `Audit scope: ${scope}. Counts:`,
@@ -154,7 +174,10 @@ try {
   failLoad(err instanceof Error ? err.message : String(err));
 }
 
-const unlisted = findUnlistedAccepted(accepted, allowlist);
+const unlisted = findUnlistedAccepted(
+  includeDev ? accepted.filter((v) => !isViaOnly(v)) : accepted,
+  allowlist,
+);
 const stale = findStaleAllowlistEntries(accepted, allowlist);
 
 if (stale.length > 0) {

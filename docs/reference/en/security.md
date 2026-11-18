@@ -7,11 +7,11 @@ The HTTP admin server uses **several trust surfaces at once**: cookie sessions f
 - **CI gate**: `.github/workflows/security-check.yml` runs two lanes. (1) Production — `node scripts/check-production-audit-fixable.mjs` (`npm audit --omit=dev`), **fails if any fixable High/Moderate/Critical** remains. (2) Full tree (#909) — the same script with `--include-dev`, failing only on **High/Critical fixable within wanted ranges** (findings that need a semver-major bump are excluded). A following `npm audit summary` step records the complete result in the job summary.
 - **Policy**: resolve only within wanted (minor/patch) ranges. Do not use `npm audit fix --force` or `overrides` to yank the ML stack (`AGENTS.md` wanted-only deps).
 - **Accepted allowlist (#942)**: the gate’s source of truth is `security/accepted-audit.json`. Upstream-blocked (unfixable) findings missing from that list fail Security Check. `scripts/lib/accepted-audit-allowlist.spec.ts` enforces set equality between the allowlist and the Upstream-blocked table below, so new acceptances must update **the table and the JSON in the same PR**. A High that is major-only in the full-tree lane also requires an allowlist entry — it does not auto-pass.
-- **Upstream-blocked (accepted risk, no force-override)** — remeasured 2026-09-16:
+- **Upstream-blocked (accepted risk, no force-override)** — remeasured 2026-11-18:
 
 | Package path | Advisory / notes | Why blocked | Tracking |
 |--------------|------------------|-------------|----------|
-| (No upstream-blocked items accepted as of 2026-09-16 — #989) | — | — | — |
+| `picomatch` | [GHSA-fc5q-39xc-vjpf](https://github.com/advisories/GHSA-fc5q-39xc-vjpf) (High), dev only. `tinyglobby`, `fdir`, `vite`, `vitest`, `@vitest/coverage-v8` and `@typescript-eslint/*` are flagged only through this cause and are not listed separately (an advisory of their own would be unlisted, so the gate blocks it) | No patched release (advisory range `<=4.0.7`, npm latest is 4.0.7). Not in the production tree (`--omit=dev`) | #1764 |
 
 - **High-severity ledger, 8 findings (#909)** — measured 2026-09-16 (`npm audit`: 0 high / 3 moderate; `--omit=dev`: 0 high):
 
