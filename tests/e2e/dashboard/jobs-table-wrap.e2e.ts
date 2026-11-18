@@ -31,6 +31,15 @@ const JOBS = [
     isRunning: false,
     paused: false,
   },
+  {
+    name: 'memory_consolidation',
+    description: '타입별 보관 기간과 망각 점수로 만료된 기억을 정리하는 긴 설명입니다',
+    intervalMs: 3600000,
+    lastExecution: '2026-11-14T03:00:00.000Z',
+    errorCount: 0,
+    isRunning: false,
+    paused: false,
+  },
 ];
 
 async function installJobsRoutes(page: Page): Promise<void> {
@@ -71,7 +80,7 @@ async function installJobsRoutes(page: Page): Promise<void> {
           queueSize: 0,
           errorRate: 0,
           memoryUsage: 40,
-          uptimeHuman: '1h',
+          uptimeHuman: '1시간',
         },
         queue: { size: 0, runningCount: 0, runningNames: [], queuedNames: [] },
       }),
@@ -279,6 +288,52 @@ test.describe('jobs table wrap (#1724)', () => {
       await expect(page.locator('#jobs-schedule-tbody .jobs-schedule__last').first()).not.toContainText(
         '2026. 11. 14.',
       );
+
+      // #1728: uptime is Korean units (not 「가동 1h」); unlabeled IDs stay one line;
+      // schedule descriptions use line-clamp + title.
+      const healthText = await page.locator('#jobs-health-summary').innerText();
+      expect(healthText).toMatch(/가동\s+\d+(초|분|시간)/);
+      expect(healthText).not.toMatch(/가동\s+\d+[hms]\b/i);
+
+      const descCss = await page.evaluate(() => {
+        const el = document.querySelector('.jobs-schedule__desc') as HTMLElement | null;
+        if (!el) return null;
+        const cs = getComputedStyle(el);
+        return {
+          clamp: cs.webkitLineClamp,
+          overflow: cs.overflow,
+          title: el.getAttribute('title') || el.title || '',
+        };
+      });
+      expect(descCss, 'schedule desc missing').not.toBeNull();
+      expect(descCss!.clamp).toBe('2');
+      expect(descCss!.overflow).toBe('hidden');
+      expect(descCss!.title.length).toBeGreaterThan(0);
+
+      const idName = await page.evaluate(() => {
+        const row = document.querySelector('tr[data-job-name="memory_consolidation"]');
+        const nameEl = row?.querySelector('.jobs-schedule__name') as HTMLElement | null;
+        if (!nameEl) return null;
+        const cs = getComputedStyle(nameEl);
+        const range = document.createRange();
+        range.selectNodeContents(nameEl);
+        const tops = new Set(
+          Array.from(range.getClientRects())
+            .filter((r) => r.width > 0)
+            .map((r) => Math.round(r.top)),
+        );
+        return {
+          text: (nameEl.textContent || '').trim(),
+          whiteSpace: cs.whiteSpace,
+          textOverflow: cs.textOverflow,
+          lines: tops.size,
+        };
+      });
+      expect(idName, 'unlabeled job name missing').not.toBeNull();
+      expect(idName!.text).toBe('memory_consolidation');
+      expect(idName!.whiteSpace).toBe('nowrap');
+      expect(idName!.textOverflow).toBe('ellipsis');
+      expect(idName!.lines, `ID must not glyph-wrap: ${JSON.stringify(idName)}`).toBe(1);
 
       const report = await measureJobsTables(page);
       expect(report.ok, `measure: ${JSON.stringify(report)}`).toBe(true);

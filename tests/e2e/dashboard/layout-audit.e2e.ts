@@ -276,7 +276,7 @@ async function installAllRoutes(page: Page): Promise<void> {
             paused: true,
           },
         ],
-        health: { runningJobs: 1, queueSize: 1, errorRate: 0.1, memoryUsage: 40, uptimeHuman: '1h' },
+        health: { runningJobs: 1, queueSize: 1, errorRate: 0.1, memoryUsage: 40, uptimeHuman: '1시간' },
         queue: { size: 1, runningCount: 1, runningNames: ['monitoring'], queuedNames: ['cleanup'] },
       }),
     }),
@@ -723,6 +723,12 @@ async function scanActivePanel(page: Page, tab: string, viewport: string): Promi
           if (token.length === 1 && !/^[ABC]$/.test(token)) continue;
           pushFinding('english', el, token, `in "${text.slice(0, 60)}"`);
         }
+        // #1728: 「가동 1h」 style units start with a digit, so the Latin token
+        // matcher above misses them. Flag compact English duration abbreviations.
+        const durationAbbr = scanText.match(/\b\d+\s*[hms]\b/gi) || [];
+        for (const token of durationAbbr) {
+          pushFinding('english', el, token, `duration abbr in "${text.slice(0, 60)}"`);
+        }
       }
 
       function inspect(el: HTMLElement): void {
@@ -797,5 +803,33 @@ test.describe('dashboard layout audit (#1726 r5)', () => {
     }
 
     expect(all, `layout-audit findings (${all.length})`).toEqual([]);
+  });
+
+  // #1728: scan alone does not fail when `.tab-panel { overflow-wrap }` is removed
+  // (measured: 0 findings). Assert the computed style directly so the rule cannot
+  // silently disappear.
+  test('.tab-panel overflow-wrap is break-word; clearing it fails this check', async ({ page }) => {
+    await installAllRoutes(page);
+    await page.goto('/dashboard');
+    await expect(page.locator('.tab-panel').first()).toBeAttached();
+
+    const before = await page.evaluate(() => {
+      const el = document.querySelector('.tab-panel');
+      return el ? getComputedStyle(el).overflowWrap : '';
+    });
+    expect(before, 'dashboard.css .tab-panel must keep overflow-wrap: break-word').toBe('break-word');
+
+    await page.evaluate(() => {
+      const style = document.createElement('style');
+      style.id = 'layout-audit-ow-counter';
+      style.textContent = '.tab-panel { overflow-wrap: normal !important; }';
+      document.head.appendChild(style);
+    });
+
+    const after = await page.evaluate(() => {
+      const el = document.querySelector('.tab-panel');
+      return el ? getComputedStyle(el).overflowWrap : '';
+    });
+    expect(after, 'counter-check: clearing overflow-wrap must leave break-word').not.toBe('break-word');
   });
 });
