@@ -43,7 +43,7 @@ function maxLevel(a: RiskLevel, b: RiskLevel): RiskLevel {
 }
 
 const TEST_RE = /(\.(spec|test)\.[cm]?[jt]s$|\/__tests__\/|^tests\/)/;
-const NON_CODE_RE = /(\.md$|^docs\/|package-lock\.json$|^CHANGELOG)/;
+const NON_CODE_RE = /(\.md$|^docs\/|package-lock\.json$|^CHANGELOG|^changelog\.d\/)/;
 const SOURCE_RE = /^(packages|apps|scripts|static)\/.*\.[cm]?[jt]s$/;
 const SECURITY_RE =
   /(auth|token|secur|crypto|session|permission|cors|secret|pii|sanitiz|path-traversal)/i;

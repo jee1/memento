@@ -19,6 +19,12 @@ describe("scoreRisk", () => {
     expect(result.level).toBe("low");
   });
 
+  it("changelog.d 조각은 코드가 아니라 문서처럼 0점이다 (#1780)", () => {
+    const result = scoreRisk([file("changelog.d/1780-fragments.md", 3)]);
+    expect(result.score).toBe(0);
+    expect(result.level).toBe("low");
+  });
+
   it("테스트를 동반한 작은 소스 수정은 low", () => {
     const result = scoreRisk([
       file("packages/memento-core/src/domains/memory/foo.ts", 20),

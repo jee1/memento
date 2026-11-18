@@ -140,6 +140,22 @@ describe('checkChangelogGate', () => {
     expect(result.entryCount).toBe(1);
   });
 
+  it('Unreleased 가 비어도 changelog.d 조각이 있으면 통과한다 (#1780)', () => {
+    const result = checkChangelogGate({ ...base, changelog: changelogWith('\n'), fragmentCount: 2 });
+    expect(result.violated).toBe(false);
+    expect(result.entryCount).toBe(2);
+  });
+
+  it('조각 수는 Unreleased 항목 수에 더해 센다 (#1780)', () => {
+    const result = checkChangelogGate({ ...base, changelog: changelogWith('\n- 하나\n\n'), fragmentCount: 3 });
+    expect(result.entryCount).toBe(4);
+  });
+
+  it('Unreleased 도 조각도 없으면 위반이다 (#1780)', () => {
+    const result = checkChangelogGate({ ...base, changelog: changelogWith('\n'), fragmentCount: 0 });
+    expect(result.violated).toBe(true);
+  });
+
   it('매니페스트가 태그보다 앞서면 릴리스 준비로 보고 생략한다', () => {
     const result = checkChangelogGate({
       ...base,
@@ -257,7 +273,7 @@ describe('checkPrChangelogGate (#1489)', () => {
     expect(result.violated).toBe(true);
     expect(result.skipReason).toBeNull();
     expect(result.userFacingFiles).toEqual([userFacingFile]);
-    expect(result.reason).toContain('CHANGELOG.md 가 수정되지 않았습니다');
+    expect(result.reason).toContain('changelog.d/ 에 조각 파일이 더해지지 않았습니다');
   });
 
   it('이슈 #1489 에 언급된 누락 PR 유형(perf, fix)은 CHANGELOG 가 없으면 차단된다', () => {
@@ -310,6 +326,23 @@ describe('checkPrChangelogGate (#1489)', () => {
     });
     expect(result.violated).toBe(false);
     expect(result.skipReason).toBe('no-user-facing-changes');
+  });
+
+  it('CHANGELOG.md 대신 changelog.d 조각을 더해도 통과한다 (#1780)', () => {
+    const result = checkPrChangelogGate({
+      changedFiles: [userFacingFile, 'changelog.d/1780-fragments.md'],
+      title: 'feat: add awesome feature',
+    });
+    expect(result.violated).toBe(false);
+    expect(result.skipReason).toBeNull();
+  });
+
+  it('changelog.d/README.md 만 바뀐 것은 조각이 아니라 위반이다 (#1780)', () => {
+    const result = checkPrChangelogGate({
+      changedFiles: [userFacingFile, 'changelog.d/README.md'],
+      title: 'feat: add awesome feature',
+    });
+    expect(result.violated).toBe(true);
   });
 
   it('사용자 영향 경로가 바뀌었어도 예외 제목 타입(test, docs, chore, style, ci)은 통과한다', () => {

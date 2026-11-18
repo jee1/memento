@@ -13,6 +13,8 @@ import { existsSync, readFileSync } from 'node:fs';
 import { dirname, join, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { isMain, parseArgs as parseCliArgs } from './lib/cli.js';
+import { isFragmentPath } from './lib/changelog-fragments.js';
+import { readFragments } from './release-changelog.js';
 
 export const MANIFEST_PATHS = [
   'package.json',
@@ -85,6 +87,11 @@ export type ChangelogSkipReason = 'no-tag' | 'release-prep' | 'no-commits';
 
 export interface ChangelogGateInput {
   changelog: string;
+  /**
+   * `changelog.d/` 의 조각 파일 수 (#1780). PR 은 조각만 더하므로 릴리스 노트의 재료는
+   * `[Unreleased]` 항목과 조각을 합친 것이다.
+   */
+  fragmentCount?: number;
   packageVersion: string;
   /** `git describe --tags --abbrev=0`. 태그를 못 찾으면 null. */
   lastTag: string | null;
@@ -120,7 +127,7 @@ export function countUnreleasedEntries(changelog: string): number {
 }
 
 export function checkChangelogGate(input: ChangelogGateInput): ChangelogGateResult {
-  const entryCount = countUnreleasedEntries(input.changelog);
+  const entryCount = countUnreleasedEntries(input.changelog) + (input.fragmentCount ?? 0);
   if (input.lastTag === null || input.lastTag === '') {
     return { entryCount, skipReason: 'no-tag', violated: false };
   }
@@ -234,13 +241,18 @@ export function checkPrChangelogGate(input: PrChangelogGateInput): PrChangelogGa
     };
   }
 
+  // PR 은 `CHANGELOG.md` 대신 `changelog.d/<이슈번호>-<이름>.md` 조각을 더한다 (#1780).
+  if (input.changedFiles.some(isFragmentPath)) {
+    return { violated: false, userFacingFiles, skipReason: null };
+  }
+
   const hasChangelogInDiff = input.changedFiles.includes('CHANGELOG.md');
   if (!hasChangelogInDiff) {
     return {
       violated: true,
       userFacingFiles,
       skipReason: null,
-      reason: '사용자 영향 경로가 바뀌었으나 CHANGELOG.md 가 수정되지 않았습니다.',
+      reason: '사용자 영향 경로가 바뀌었으나 changelog.d/ 에 조각 파일이 더해지지 않았습니다 (CHANGELOG.md 를 직접 고치지 않습니다, changelog.d/README.md).',
     };
   }
 
@@ -346,12 +358,12 @@ function printVersionReport(result: CheckResult): void {
 }
 
 function printChangelogReport(gate: ChangelogGateResult): void {
-  console.log(`\nCHANGELOG [Unreleased] 항목 ${gate.entryCount}건`);
+  console.log(`\nCHANGELOG 항목 ${gate.entryCount}건 ([Unreleased] 와 changelog.d/ 조각)`);
   if (gate.skipReason !== null) {
     console.log(`  게이트 생략 - ${CHANGELOG_SKIP_MESSAGES[gate.skipReason]}`);
   } else if (gate.violated) {
     console.log(
-      '  직전 태그 이후 커밋이 있는데 [Unreleased] 가 비어 있다. 이대로 릴리스를 끊으면 노트가 없다 (#1116).',
+      '  직전 태그 이후 커밋이 있는데 [Unreleased] 항목도 changelog.d/ 조각도 없다. 이대로 릴리스를 끊으면 노트가 없다 (#1116).',
     );
   }
 }
@@ -406,12 +418,18 @@ function main(): void {
 
   printVersionReport(result);
 
+  const fragments = readFragments(REPO_ROOT);
   const gate = checkChangelogGate({
     changelog: readFileSync(join(REPO_ROOT, 'CHANGELOG.md'), 'utf-8'),
+    fragmentCount: fragments.fragments.length,
     packageVersion: result.manifests[0].version,
     ...readGitFacts(REPO_ROOT),
   });
   printChangelogReport(gate);
+  if (fragments.problems.length > 0) {
+    console.log(`\n조각 형식 문제 ${fragments.problems.length}건 (릴리스 때 합치기가 깨진다):`);
+    for (const p of fragments.problems) console.log(`  changelog.d/${p.file}: ${p.message}`);
+  }
 
   let prGate: PrChangelogGateResult | null = null;
   if (base) {
@@ -426,7 +444,8 @@ function main(): void {
     printPrChangelogReport(prGate);
   }
 
-  const violated = result.violations.length > 0 || gate.violated || (prGate?.violated ?? false);
+  const violated =
+    result.violations.length > 0 || gate.violated || (prGate?.violated ?? false) || fragments.problems.length > 0;
   console.log(!violated && !readError ? '\nOK' : '\n위반이 확인되었습니다.');
 
   if (ci && violated) process.exit(1);

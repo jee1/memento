@@ -124,7 +124,14 @@ git push origin v1.7.3
 
 ### 4. CHANGELOG 버전 절 만들기 (이슈 #1049)
 
-릴리스 직후 `CHANGELOG.md`의 `## [Unreleased]` 내용을 새 버전 절로 옮기고 `[Unreleased]`를 비웁니다.
+PR 은 `CHANGELOG.md` 를 고치지 않고 `changelog.d/<이슈번호>-<짧은이름>.md` 조각을 더합니다 (이슈 #1780, 형식은 `changelog.d/README.md`). 릴리스 준비 PR 에서 조각을 새 버전 절로 합치고 조각을 지웁니다.
+
+```bash
+npm run release:changelog -- --version 1.31.0 --dry-run   # 합칠 항목만 본다
+npm run release:changelog -- --version 1.31.0             # CHANGELOG.md 갱신, 조각 삭제
+```
+
+`[Unreleased]` 에 옛 방식으로 남은 항목도 같이 옮겨지고, 결과는 아래 모양입니다.
 
 ```markdown
 ## [Unreleased]
@@ -138,7 +145,7 @@ git push origin v1.7.3
 `gh release create --notes-file`로 직접 작성하며, `release.yml`은 CHANGELOG를 읽지 않습니다.
 
 `npm run check:version-sync` 가 이 절을 게이트로 강제합니다 (#1116). 직전 태그 이후 커밋이
-있는데 `[Unreleased]` 가 비어 있으면 CI 가 실패합니다. 매니페스트 버전이 직전 태그보다 앞서
+있는데 `[Unreleased]` 항목도 `changelog.d/` 조각도 없으면 CI 가 실패합니다. PR 단계에서는 사용자 영향 경로를 바꾼 PR 이 조각을 더하지 않으면 실패합니다. 매니페스트 버전이 직전 태그보다 앞서
 있을 때(= 릴리스 준비 PR)는 생략하므로, 위 4단계를 밟는 릴리스 PR 자체는 막히지 않습니다.
 
 ## 🎯 최종 권장사항

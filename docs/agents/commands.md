@@ -97,6 +97,14 @@ npx tsx scripts/check-removed-names.ts [--base=<ref>] [--allow=<이름,이름>]
 
 `check-removed-names` 는 diff 에서 지운 export 와 클래스 메서드 이름 중 6자 이상 camelCase, PascalCase, snake_case 인 이름을 뽑아 코드(`*.ts`, `*.js` 등)와 문서(`*.md`)에 남은 언급을 `git grep` 으로 찾습니다. diff 에서 다시 추가한 이름은 무시하고, 같은 이름의 정의가 다른 곳에 있으면 문서의 언급만 봅니다. `CHANGELOG.md` 와 `docs/adr/` 는 이력이라 보지 않습니다. 이력으로 남겨야 하는 언급은 `--allow` 로 두고 PR 본문에 「남긴 언급과 이유」를 적습니다.
 
+CHANGELOG 조각(#1780): PR 은 `changelog.d/` 에 조각을 더하고, 릴리스 준비 PR 에서 합친다. 형식은 `changelog.d/README.md`.
+
+```bash
+npm run release:changelog -- --check                      # 조각 형식만 검사 (쓰지 않음)
+npm run release:changelog -- --version 2.4.0 --dry-run    # 합칠 항목 미리 보기
+npm run release:changelog -- --version 2.4.0              # CHANGELOG.md 에 새 버전 절을 만들고 조각 삭제
+```
+
 benchmark-v3 macro_category 정의는 [benchmark-macro-categories.md](../reference/ko/benchmark-macro-categories.md)에 정리되어 있습니다.
 
 테스트 모킹 경로도 CI `lint-typecheck` 잡에서 검사합니다. 존재하지 않는 모듈을 가리키는 상대 경로 `vi.mock` 은 같은 경로의 동적 import 까지 함께 가로채기 때문에 실행 중에는 드러나지 않고 스펙이 조용히 전량 통과합니다(#821). 정적 스캔이라야 잡힙니다.
