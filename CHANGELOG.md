@@ -26,6 +26,10 @@
 - 기각 게이트 드리프트 모니터. `rejection_gate_baseline`(migration 066, append-only)에 임계값을 잰 조건(N, 날짜, judge 모델, 라벨 세트, 참조 분포)을 남기고, 기동과 임계값 변경 때 실효 임계값이 활성 기준과 다르면 행을 덧붙인다. 배치 `rejection_gate_drift_check`(일 1회, LLM 호출 없음)가 지난 ISO 주의 기각률이 참조 기각률 중심 `max(3 시그마, 무릎 질량)` 밴드를 벗어나거나 활성 기억이 기준 N 의 2배 이상이면 `memory.search.gate_drift` 이벤트에 alert 를 남긴다. alert 는 재측정 신호이며 임계값을 바꾸지 않는다. `get_telemetry_summary` 의 `search_quality.gate_drift` 가 최신 판정과 활성 기준을 보여 주며 전역 범위 요약에만 실린다. 기존 DB 의 시드 기준 참조는 그 DB 의 텔레메트리로 계산한다 (#1681).
 - 관리자 설정 화면이 상위 스위치에 가려 코드가 읽지 않는 값(`LLM_MODEL_RELATION_EXTRACTION` 은 제공자 typesafe(옛 값 jev)일 때, 검색 기각 게이트 임계값 3개는 게이트 off/ollama 이거나 게이트가 typesafe 인데 `TYPESAFE_API_KEY` 가 비었을 때, `CONSOLIDATION_JUDGE_THRESHOLD` 는 판정기 off 이거나 판정기가 typesafe 인데 `TYPESAFE_API_KEY` 가 비었을 때)에 「적용 안 됨」 배지와 이유를 보이고, `GET /admin/settings` 항목에 `inactive_reason` 필드를 더한다. 값을 지우거나 막지 않는다 (#1685).
 
+### Fixed
+
+- 관리자 배치 작업 탭: 스케줄 설명이 두 줄에서 말줄임(`…`)과 `title` 전체 글을 보이게 하고, 한국어 이름이 없는 작업 ID는 한 줄 말줄임으로 글자 쪼개짐을 막는다. 레이아웃 전수 검사에 `.tab-panel` 의 `overflow-wrap: break-word` 직접 단언을 넣는다. 가동 요약 e2e mock 의 `1h` 를 `1시간` 으로 맞춘다 (#1728).
+
 ### Changed
 
 - 주기 점검 로그 `Monitoring completed` 의 `metrics` 에 `rssMiB`, `heapUsedMiB`, `heapTotalMiB`, `externalMiB`, `arrayBuffersMiB` 를 MiB 절대값으로 남기고, 힙 비율인 `memoryUsage` 는 `heapFillPercent` 로 이름을 바꾼다. 컨테이너 메모리로 오독하던 값이다. 로그를 읽는 알림과 대시보드는 없고 메모리 알림(`RssAnon` 기준)은 그대로다. 새 설정, 화면, 테이블은 없다 (#1757).
