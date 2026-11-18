@@ -96,6 +96,7 @@
 - **새 상류 권고로 Security Check 가 실패하던 것을 푼다** (#1764): 개발 의존성 `picomatch`(수정 버전 없음, 권고 범위 `<=4.0.7`)를 `security/accepted-audit.json` 과 `docs/reference/{ko,en}/security.md` 표에 올린다(운영 트리에는 없다). `minimatch` 권고는 lockfile 에서 `@typescript-eslint/*` 8.73.0, `eslint` 10.15.0, `minimatch` 11.0.9 로 올려 해소한다. `scripts/check-production-audit-fixable.mjs --include-dev` 는 자체 권고 없이 다른 패키지를 거쳐서만 걸린 노드(`tinyglobby`, `fdir`, `vite`, `vitest`, `@vitest/coverage-v8`, `@typescript-eslint/*`)를 원인 패키지가 모두 고칠 수 없으면 고칠 수 없는 것으로 보고 허용 목록 없이 수용한다. npm 이 `vite` 를 낙관적으로 고칠 수 있다고 보고했기 때문이다. 이런 패키지에 자체 권고가 생기면 목록에 없어서 게이트가 막는다.
 - **gemini 실패로 로컬 모델이 대신 임베딩한 벡터의 표기** (#1760): `GeminiEmbeddingService` 가 로컬 모델로 넘어간 결과에 제공자 `minilm` 을 달고, `UnifiedEmbeddingService` 는 제공자 서비스가 단 표기를 덮어쓰지 않습니다(openai 의 TF-IDF 대체도 같습니다). 예전에는 로컬 모델 벡터가 제공자 `gemini` 로 저장돼 native 판정과 재임베딩 대상 판정에서 로컬 모델 벡터로 읽히지 않았습니다. 이미 저장된 행은 고치지 않습니다.
 - `[relevance_signal].scale` 의 코드 기본값(`ranking-weights-loader.ts` `DEFAULT_CONFIG`)을 2.0 에서 배포 toml 값 1.5 로 맞춘다 (#1759). #1729 가 toml 만 1.5 로 내려 toml 이 없는 설치는 앞 모델용 2.0 으로 돌았다. toml 이 있는 설치(운영 포함)의 순위는 그대로다.
+- **Sleep consolidation 이 매시간 같은 기억을 다시 임베딩하던 것** (#1771): 묶기 후보 가운데 5줄 기록 라벨이 있는 기억(운영 474건)을 실행마다 라벨을 뗀 글로 로컬 모델에 다시 넣었다. 로컬 임베딩 캐시(256개)보다 많아 한 건도 맞히지 못했다. 이제 라벨 뗀 벡터를 서비스 안에 실행 사이에 두고(기억 ID, 라벨 뗀 글의 해시, 제공자로 확인) 새로 들어오거나 바뀐 후보만 계산한다. 묶기 결과, 예약, 설정은 그대로다. 운영 DB 사본에서 같은 후보로 연달아 돌린 두 번째 실행이 약 200초에서 0.6초로 줄었다(부하가 높은 기계에서 잰 값, 첫 실행은 그대로).
 
 ### Removed
 
