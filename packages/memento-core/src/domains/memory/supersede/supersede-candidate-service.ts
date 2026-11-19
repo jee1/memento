@@ -112,7 +112,7 @@ function buildPairs(db: Database.Database, lookbackDays: number): { pairs: Candi
       }
       const similarity = cosineSimilarity(next.embedding, embedding);
       const top = tops[index]!;
-      if (similarity < MIN_COSINE || (top.length === TOP_OLD_PER_NEW && similarity <= top[top.length - 1]!.similarity)) {
+      if (!(similarity >= MIN_COSINE) || (top.length === TOP_OLD_PER_NEW && similarity <= top[top.length - 1]!.similarity)) {
         continue;
       }
       let at = top.length;
