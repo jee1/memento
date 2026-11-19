@@ -1,5 +1,5 @@
 import { readdirSync, readFileSync, statSync } from 'node:fs';
-import { join } from 'node:path';
+import { join, resolve } from 'node:path';
 import { describe, expect, it } from 'vitest';
 
 /**
@@ -8,7 +8,13 @@ import { describe, expect, it } from 'vitest';
  * 목록은 손으로 들되, 목록 밖 파일이 `embeddingColumnToNumbers` 를 부르면 실패한다.
  */
 
+const REPO_ROOT = resolve(import.meta.dirname, '..');
 const SCAN_ROOT = 'packages';
+const CALL = /\bembeddingColumnToNumbers\s*\(/;
+
+function withoutComments(src: string): string {
+  return src.replace(/\/\*[\s\S]*?\*\//g, '').replace(/^\s*\/\/.*$/gm, '');
+}
 const SKIP_DIRS = new Set(['node_modules', 'dist', 'test', 'tests', '__tests__']);
 
 const KNOWN_READERS = [
@@ -23,9 +29,9 @@ const KNOWN_READERS = [
 
 function walkSourceFiles(dir: string): string[] {
   const files: string[] = [];
-  for (const entry of readdirSync(join(process.cwd(), dir))) {
+  for (const entry of readdirSync(join(REPO_ROOT, dir))) {
     const rel = join(dir, entry);
-    if (statSync(join(process.cwd(), rel)).isDirectory()) {
+    if (statSync(join(REPO_ROOT, rel)).isDirectory()) {
       if (!SKIP_DIRS.has(entry)) files.push(...walkSourceFiles(rel));
     } else if (
       entry.endsWith('.ts') &&
@@ -42,7 +48,7 @@ function walkSourceFiles(dir: string): string[] {
 describe('embeddingColumnToNumbers 호출 파일 고정 (#1794)', () => {
   it('목록 밖 파일이 저장된 임베딩 BLOB 을 풀지 않는다', () => {
     const readers = walkSourceFiles(SCAN_ROOT)
-      .filter((f) => readFileSync(join(process.cwd(), f), 'utf-8').match(/\bembeddingColumnToNumbers\s*\(/))
+      .filter((f) => CALL.test(withoutComments(readFileSync(join(REPO_ROOT, f), 'utf-8'))))
       .sort();
 
     const added = readers.filter((f) => !KNOWN_READERS.includes(f));
