@@ -306,6 +306,40 @@ describe('SupersedeCandidateService (#1548)', () => {
     expect(port.calls).toHaveLength(3);
   });
 
+  it('판정 중 기억 행이 영구 삭제되면 그 쌍은 건너뛰고, 소프트 삭제는 그대로 판정한다 (#1789)', async () => {
+    const seed = () => {
+      insertSeedMemory(db, { id: 'oldA', content: 'oldA 본문', createdAt: OLD_AT });
+      insertSeedMemory(db, { id: 'oldB', content: 'oldB 본문', createdAt: OLD_AT });
+      insertSeedMemory(db, { id: 'newN', content: 'newN 본문', createdAt: NEW_AT, vec: [0.9, 0.1, 0] });
+    };
+    const scanRemovingOldBAfterFirstJudge = async (remove: () => void) => {
+      const port = fakeChatPort((_request, index) => {
+        if (index === 0) {
+          remove();
+        }
+        return judgeReply('compatible');
+      });
+      const summary = await service(port).scan({ runId: 'run-del' });
+      return { summary, calls: port.calls.length };
+    };
+
+    seed();
+    const hard = await scanRemovingOldBAfterFirstJudge(() => {
+      db.prepare('DELETE FROM memory_item WHERE id = ?').run('oldB');
+    });
+    expect(hard.summary).toMatchObject({ judged: 1, pairsConsidered: 2, failed: 0 });
+    expect(hard.calls).toBe(1);
+
+    db.prepare('DELETE FROM memory_supersede_candidate').run();
+    db.prepare('DELETE FROM memory_item').run();
+    seed();
+    const soft = await scanRemovingOldBAfterFirstJudge(() => {
+      db.prepare('UPDATE memory_item SET is_deleted = 1 WHERE id = ?').run('oldB');
+    });
+    expect(soft.summary).toMatchObject({ judged: 2, pairsConsidered: 2 });
+    expect(soft.calls).toBe(2);
+  });
+
   it('LLM 이 설정되지 않으면 호출 없이 not_configured 로 끝나고 logical 행 하나를 남긴다', async () => {
     seedPair();
 
