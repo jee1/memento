@@ -506,6 +506,45 @@ describe('SleepConsolidationService', () => {
       expect(generateEmbedding).toHaveBeenCalledTimes(2);
     });
 
+    it('#1795: first run after restart keeps the vectors once the embedding result names the provider', async () => {
+      insertEpisodic(db, 'e1', { owner: 'agent-x', content: templateContent('alpha') });
+      insertEpisodic(db, 'e2', { owner: 'agent-x', content: templateContent('beta') });
+      insertEmbedding(db, 'e1', emb, provider);
+      insertEmbedding(db, 'e2', emb, provider);
+
+      const { uni, svc, getCurrentProviderName } = setupService();
+      getCurrentProviderName.mockReturnValue(null);
+      const generateEmbedding = vi.spyOn(uni, 'generateEmbedding').mockImplementation(async text => {
+        getCurrentProviderName.mockReturnValue(provider);
+        const vec = text.includes('alpha') ? [1, 0, 0, 0] : [0, 1, 0, 0];
+        return { embedding: vec, provider };
+      });
+
+      await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+      expect(generateEmbedding).toHaveBeenCalledTimes(2);
+      await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+      expect(generateEmbedding).toHaveBeenCalledTimes(2);
+    });
+
+    it('#1795: a provider change after the first run still discards the kept vectors', async () => {
+      insertEpisodic(db, 'e1', { owner: 'agent-x', content: templateContent('alpha') });
+      insertEmbedding(db, 'e1', emb, provider);
+      insertEmbedding(db, 'e1', emb, 'other-provider');
+
+      const { uni, svc, getCurrentProviderName } = setupService();
+      getCurrentProviderName.mockReturnValue(null);
+      const generateEmbedding = vi.spyOn(uni, 'generateEmbedding').mockImplementation(async () => {
+        getCurrentProviderName.mockReturnValue(provider);
+        return { embedding: [1, 0, 0, 0], provider };
+      });
+
+      await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+      getCurrentProviderName.mockReturnValue('other-provider');
+      generateEmbedding.mockImplementation(async () => ({ embedding: [1, 0, 0, 0], provider: 'other-provider' }));
+      await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+      expect(generateEmbedding).toHaveBeenCalledTimes(2);
+    });
+
     it('#1771: without a known provider the re-embedded vector is not kept for later runs', async () => {
       insertEpisodic(db, 'e1', { owner: 'agent-x', content: templateContent('alpha') });
       insertEpisodic(db, 'e2', { owner: 'agent-x', content: templateContent('beta') });
@@ -516,7 +555,7 @@ describe('SleepConsolidationService', () => {
       getCurrentProviderName.mockReturnValue(null);
       const generateEmbedding = vi.spyOn(uni, 'generateEmbedding').mockImplementation(async text => {
         const vec = text.includes('alpha') ? [1, 0, 0, 0] : [0, 1, 0, 0];
-        return { embedding: vec, provider };
+        return { embedding: vec };
       });
 
       await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });

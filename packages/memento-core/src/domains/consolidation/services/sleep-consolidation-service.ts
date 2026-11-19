@@ -533,7 +533,10 @@ export class SleepConsolidationService {
         }
       }
     }
-    const model = uni.getModelInfo?.().model ?? '';
+    // 재기동 직후에는 제공자 이름이 비어 있다. 첫 임베딩 결과가 알려 주는 제공자로 정하고 그 뒤 후보는 같은 제공자만 받는다 (#1795).
+    let activeProvider = provider;
+    const keyOf = (text: string) =>
+      `${activeProvider ?? ''}:${uni.getModelInfo?.().model ?? ''}:${hashMemoryContent(text)}`;
     for (const candidate of candidates) {
       const stored = embMap.get(candidate.id);
       if (!stored) {
@@ -544,9 +547,8 @@ export class SleepConsolidationService {
         this.labelFreeVectors.delete(candidate.id);
         continue;
       }
-      const key = `${provider ?? ''}:${model}:${hashMemoryContent(stripped)}`;
       const kept = this.labelFreeVectors.get(candidate.id);
-      if (kept?.key === key && kept.vector.length === stored.length) {
+      if (kept?.key === keyOf(stripped) && kept.vector.length === stored.length) {
         embMap.set(candidate.id, kept.vector);
         continue;
       }
@@ -556,12 +558,13 @@ export class SleepConsolidationService {
         if (
           Array.isArray(vec) &&
           vec.length === stored.length &&
-          (!provider || res?.provider === provider)
+          (!activeProvider || res?.provider === activeProvider)
         ) {
           embMap.set(candidate.id, vec as number[]);
-          // 제공자를 모르면 위 확인이 꺼져 다른 공간의 벡터일 수 있다. 이번 실행에만 쓴다.
-          if (provider) {
-            this.labelFreeVectors.set(candidate.id, { key, vector: vec as number[] });
+          activeProvider ??= res?.provider;
+          // 제공자를 끝내 모르면 다른 공간의 벡터일 수 있다. 이번 실행에만 쓴다.
+          if (activeProvider) {
+            this.labelFreeVectors.set(candidate.id, { key: keyOf(stripped), vector: vec as number[] });
           }
         }
       } catch {
