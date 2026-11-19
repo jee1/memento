@@ -9,13 +9,14 @@
 
 <!-- 다음 릴리스에 나갈 항목만 둡니다. 릴리스 직후 아래 형식으로 버전 절을 만들고 이 절을 비웁니다. -->
 
+## [2.3.11] - 2026-11-23
+
 ### Added
 
 - 문서: `docs/operations/ko/db-retention-policy.md` 에 2026-11-18 운영 DB 실측(audit/job/telemetry vs `memory_item`)과 `job_run_log` CASCADE 줄을 보강한다. 기록성 표가 본문보다 큰 것은 purge 실패가 아니라 audit 누적과 90일 창 안 정상 적재다 (#1772).
 - 문서: 임베딩 이중 저장(`memory_embedding` 진실 원본 + `memory_item_vec_*` ANN 인덱스)이 의도된 설계임을 `docs/agents/architecture.md` 와 `GLOSSARY.md` 에 적는다. 운영 DB 측정에서 두 표 행 수가 같고(15,051) 고아는 0이었다. 표 한쪽 삭제는 하지 않는다 (#1773).
 - `npm run ci:local`(`scripts/ci-local.sh`)이 CI `lint-typecheck` 잡과 `security-check.yml` 의 정적 검사 명령을 워크플로에서 읽어 한 번에 돌리고, 실패한 명령을 표시하며 0 이 아닌 값으로 끝난다 (#1761). 워크플로에 모르는 여러 줄 단계가 생기면 실패해 스크립트를 고치게 한다. 끝에 `scripts/check-removed-names.ts` 를 부른다: merge-base 대비 diff 에서 지운 export, 메서드 이름이 코드나 문서에 남으면 목록을 찍고 실패한다(`--allow` 로 이력 언급 허용). CI 게이트는 바꾸지 않았다. 사람이 PR 전에 돌리는 검사다.
 - **모델 이주 반복** (#1729 PR 6b): 로컬 임베딩 모델이 바뀌면 기동 뒤 `embedding_reconciliation` 실행(1,000건)을 잇달아 돌려 native 나 창 행이 옛 모델인 기억을 다시 만든다. `BatchScheduler.startModelMigration()` 이 HTTP 서버를 띄운 프로세스에서만 돈다(stdio 는 sidecar 잠금을 얻었을 때). 정합 잡은 옛 모델 행도 후보로 보고, 실행당 4분 예산이 지나면 남은 수를 돌려주며, 연속 실패 20건이면 멈춘다. 옛 모델 기억이 활성 기억의 1% 를 넘는 동안 Sleep consolidation 은 건너뛰고 warnings 에 이유를 남긴다. 이주나 정합 잡이 도는 동안 `POST /api/v1/maintenance/reindex` 는 409 다. 지금 모델에서는 옛 모델 행이 없어 이주가 시작하지 않는다. 끄기는 잡 일시정지나 `BATCH_SCHEDULER_ENABLED=false` 다. 설정 키는 더하지 않았다.
-
 - **로컬 임베딩 모델 패키지 소스** (#1729 PR 7): `models/memento-embedding-e5-small-ko-v2/` 에 npm 패키지 `@jee1/memento-embedding-e5-small-ko-v2` 의 소스를 둡니다. 원본 `dragonkue/multilingual-e5-small-ko-v2`(revision `fcfc26bf`, apache-2.0)를 고정 버전 도구(`requirements.txt`)로 ONNX 로 내보내고 int8 로 양자화하는 `build.py`, 결과 다섯 파일의 `sha256.json`, 라이선스 고지(`LICENSE`, `NOTICE`), 주인이 실행하는 `publish.sh`(변환, sha256 대조, `npm publish --dry-run` 크기 확인, 확인 뒤 게시)입니다. 같은 기계에서 다시 만든 파일은 sha256 이 같았습니다. 앱은 아직 이 패키지에 의존하지 않고 동작은 바뀌지 않습니다. 게시는 주인이 따로 합니다.
 - 문서: README, README.en, 릴리스 노트 템플릿(`release.yml`)에 「쓰고 있으면 Discussions 에 한 줄 남겨 달라」 안내를 넣고, `.github/ISSUE_TEMPLATE/config.yml` 에 Discussions contact link 를 추가한다. 사용 정보 수집은 넣지 않는다 (#1718).
 - Anchor Map 기억 노드 응답에 `anchors: [{ slot, hop_distance }]` 를 추가하고, 화면은 가장 가까운 소속 앵커 색으로 채우며 hop이 멀수록 옅게, 여러 앵커면 테두리를 두 번째 앵커 색으로 칠한다. 슬롯 문자·소속 문구·범례를 함께 맞춘다. 기존 `hop_distance` 의미는 그대로다 (#1692).
@@ -28,6 +29,7 @@
 - 기각 게이트 드리프트 모니터. `rejection_gate_baseline`(migration 066, append-only)에 임계값을 잰 조건(N, 날짜, judge 모델, 라벨 세트, 참조 분포)을 남기고, 기동과 임계값 변경 때 실효 임계값이 활성 기준과 다르면 행을 덧붙인다. 배치 `rejection_gate_drift_check`(일 1회, LLM 호출 없음)가 지난 ISO 주의 기각률이 참조 기각률 중심 `max(3 시그마, 무릎 질량)` 밴드를 벗어나거나 활성 기억이 기준 N 의 2배 이상이면 `memory.search.gate_drift` 이벤트에 alert 를 남긴다. alert 는 재측정 신호이며 임계값을 바꾸지 않는다. `get_telemetry_summary` 의 `search_quality.gate_drift` 가 최신 판정과 활성 기준을 보여 주며 전역 범위 요약에만 실린다. 기존 DB 의 시드 기준 참조는 그 DB 의 텔레메트리로 계산한다 (#1681).
 - 관리자 설정 화면이 상위 스위치에 가려 코드가 읽지 않는 값(`LLM_MODEL_RELATION_EXTRACTION` 은 제공자 typesafe(옛 값 jev)일 때, 검색 기각 게이트 임계값 3개는 게이트 off/ollama 이거나 게이트가 typesafe 인데 `TYPESAFE_API_KEY` 가 비었을 때, `CONSOLIDATION_JUDGE_THRESHOLD` 는 판정기 off 이거나 판정기가 typesafe 인데 `TYPESAFE_API_KEY` 가 비었을 때)에 「적용 안 됨」 배지와 이유를 보이고, `GET /admin/settings` 항목에 `inactive_reason` 필드를 더한다. 값을 지우거나 막지 않는다 (#1685).
 - **접속 클라이언트와 도구 호출 결과를 로컬에만 일별로 센다** (#1768): 서버가 클라이언트 이름과 버전, 접속 방식(`stdio`, `http-streamable`, `http-sse`, `websocket`, `rest`), 프로토콜 시대(`legacy`, `modern`), 도구와 결과, 오류 코드별 횟수를 새 표 `usage_daily_count`(마이그레이션 069)에만 쌓는다. 바깥으로 보내는 코드는 없고 기억 내용, 검색어, 인자, 경로, 토큰, 프로젝트와 세션 ID 는 담지 않는다. 호출 경로는 메모리에만 모으고 30초마다와 종료 때 쓴다. 클라이언트 정보는 새 방식 요청의 `_meta['io.modelcontextprotocol/clientInfo']`, 옛 방식의 `initialize` 에서 읽는다. 하루 서로 다른 열쇠는 2,000개로 막고 보관은 365일이다. 설정 키는 더하지 않았다. 질의 예는 `docs/operations/ko/db-retention-policy.md`.
+- CLI: `memento doctor --report` 가 환경(Memento 버전, Node 주 버전, OS와 CPU 종류, 설치 방식, 임베딩 제공자, 기억 수 구간)과 최근 7일 이 기기의 오류 집계로 GitHub 이슈 초안 링크를 만든다. `--print` 는 붙여 넣을 내용 전체를 보여 주고, 초안이 2KB 를 넘으면 링크 없이 이 출력만 나온다. 보고서는 `UsageReport` 타입의 칸(열거값, 구간, 정해진 모양의 숫자와 버전)으로만 채워 기억 내용, 검색어, 경로, 토큰, 호스트 이름, 사용자 이름이 들어가지 않고 네트워크 호출이 없다. 서버 시작 실패와 마이그레이션 실패 메시지 끝에 이 명령을 안내하는 한 줄을 붙였다 (#1769).
 
 ### Changed
 
@@ -39,21 +41,17 @@
   - `[relevance_signal].scale` 2.0 → 1.5, `VECTOR_SCORE_SCALE` `mapped-cosine-v3`. ranking_version payload 에 `local_embedding_model`, `query_score_mapping` 을 더했습니다.
   - 검색 품질 기준선(`ranking-nightly.json`, `ranking-pr.json`)을 새 모델로 다시 찍고 identity 에 `embedding_model` 을 더했습니다. 모델 이름이 다르거나 없는 기준선은 `mismatch` 입니다.
   - 기동 뒤 모델 이주(PR 6b)가 옛 모델 벡터를 다시 만듭니다. 운영 사본 리허설(활성 13,510건)은 1GiB 상한에서 14회, 580초에 끝났습니다. 배포와 되돌리기는 `docs/operations/ko/local-embedding-model-switch.md` 를 따릅니다.
-
 - **재색인과 임베딩 정합 잡은 지정한 제공자만 쓴다** (#1729 PR 6a): `UnifiedEmbeddingService.generateEmbeddingStrict(text, provider)` 를 더하고, `MemoryEmbeddingService.createAndStoreEmbedding` 의 다섯째 인자를 strict 제공자로 바꿨습니다. 수동 재색인(`reindex`, `reindexByIds`, CLI `reindex-embeddings`, `POST /api/v1/maintenance/reindex`)과 `embedding_reconciliation`, 저장소 스크립트의 벤치마크 시드(`scripts/lib/benchmark-search-database.ts`)와 `scripts/agent-memory-production-adapter.ts` 가 이 경로를 탑니다. 예전에는 지정한 제공자가 실패하면 우선순위대로 다른 제공자로 넘어가 외부 키가 있으면 원문이 외부 임베딩 API 로 나가고, 없으면 TF-IDF 행이 쌓였습니다. 이제는 실패로 세고 행을 쓰지 않습니다. 제공자 서비스 안에서 다른 제공자로 넘어간 결과(openai 의 TF-IDF 대체)도 받지 않습니다. `modelDriftCount` 는 native 행에 더해 창 행의 옛 모델도 셉니다.
 - **기억끼리 기준값과 질의 점수 사상을 모델 정의로** (#1729 PR 5): 값과 결과는 그대로입니다.
   - `LOCAL_EMBEDDING_MODEL.memorySimilarity` 가 Sleep consolidation 군집(0.65), 요약 합침(0.85), remember 중복 판정(0.85), supersede 후보(0.65), 이웃 기억(0.8), 앵커 슬롯 A/B/C(0.8/0.6/0.4)의 기본값입니다. env 덮어쓰기 셋(`CONSOLIDATION_SIMILARITY_THRESHOLD`, `CONSOLIDATION_MERGE_SIMILARITY_THRESHOLD`, `MEMENTO_REMEMBER_DEDUP_THRESHOLD`)은 그대로 받고, 값은 그 모델의 raw 코사인 척도입니다. 두 벌이던 앵커 슬롯 설정은 `anchor-slot-config.ts` 하나입니다.
   - `LOCAL_EMBEDDING_MODEL.queryScoreMapping`(지금 `{ a: 1, b: 0 }`)과 `mapQueryScore` 를 질의 점수 네 자리(벡터 레인 길이 감쇠 직전, 텍스트 전용 backfill, fallback 유사도 검색, `search_local` 질의 필터의 질의 유사도)에만 겁니다. 로컬 임베딩 모델(`minilm`) 점수만 옮기고 다른 제공자 점수는 그대로입니다. remember 중복 판정과 기억끼리 비교는 사상하지 않습니다.
-
 - **질의 벡터와 기억 벡터를 나눈다** (#1729 PR 4): 검색(하이브리드 벡터 레인과 backfill, fallback 유사도 검색, provider 병렬 검색, `search_local` 질의 필터)은 `UnifiedEmbeddingService.embedQuery` 로 질의 벡터를 만들고, 저장과 기억끼리 비교는 `generateEmbedding` 으로 기억 벡터를 만듭니다. 로컬 임베딩 모델은 역할 접두(`LOCAL_EMBEDDING_MODEL.prefixes`)를 창마다 붙이고 창 크기를 510 에서 접두 토큰 수(특수 토큰 빼고)를 뺀 값으로 잡으며, 결과 캐시와 창 캐시 키에 저장 이름과 역할을 넣습니다. 지금 모델은 두 접두가 비어 있어 벡터와 창 크기(510)가 같습니다. 같은 글을 검색어와 저장 글로 모두 쓰면 캐시가 따로라 모델을 한 번 더 부릅니다.
-
 - **로컬 임베딩 모델 정의를 한 곳으로** (#1729 PR 3): 모델 이름과 위치가 `LOCAL_EMBEDDING_MODEL`(`shared/config/embedding-models.ts`) 하나에만 있습니다. 모델과 저장 벡터는 그대로라 검색 결과가 같습니다.
   - `MINILM_MODEL_ID`, `MINILM_MODEL_NAME` 을 `LOCAL_EMBEDDING_MODEL.storedName`, `.source`, `.dimensions` 로 바꿨습니다. Dockerfile warmup 과 `scripts/docker-smoke.mjs` 도 모델 id 를 직접 적지 않고 빌드된 정의를 읽습니다.
   - `MiniLMEmbeddingService`(`minilm-embedding-service.ts`)를 `LocalEmbeddingService`(`local-embedding-service.ts`)로, 로그의 「MiniLM」을 「로컬 임베딩 모델」로 바꿨습니다. 내부 패키지 `@memento/core` 의 subpath export 도 새 파일 이름입니다.
   - nightly 단계와 spec 이름을 `local-embedding-korean-quality` 로 바꿨습니다.
   - provider 가 빈 옛 행 보정이 저장 이름으로도 `minilm` 을 채웁니다. 지금 이름은 이미 `%minilm%` 로 잡혀 결과가 같습니다.
   - 그대로 둔 것: 제공자 값 `minilm`(`EMBEDDING_PROVIDER`, recall `provider_filter`, 관리 API), vec 테이블 `memory_item_vec_minilm`, 마이그레이션.
-
 - 대시보드 「대체 후보」 탭을 「검토 대기열」 탭 안의 접이식 구역으로 옮겼다. 둘 다 사람이 승인하는 후보 큐다. 목록, 승인, 되돌리기, 거절 동작과 `/admin/memory/supersede-candidates*` 응답은 그대로이고, 구역을 펼칠 때 목록을 불러온다. 상태 탭 「대체 후보 대기」 행의 링크가 이 구역을 펼친다. 옮기면서 화면의 영어 키(`project_id`, `confirmed`, `pending`, `compatible`, `apply`, `restore`, `SUPERSEDE_APPLY_ENABLED`)를 한국어로 바꿨다. 후보 표의 상태, 판정 열은 글자 단위로 꺾이지 않게 줄바꿈을 막았고, 390px 에서 표와 상세가 두 열로 눌리던 것을 한 열로 풀었다 (#1700).
 - 대시보드 탭을 7개로 확정한다. 순서는 상태, 검토 대기열, 배치 작업, 기억 찾기, 앵커 맵, 기억 그래프, 설정이다. 모바일 그룹 칩은 「운영」, 「공간」 두 개이고 설정은 그룹 밖 마지막에 둔다 (#1700).
 - 상태 탭 요청이 실패하면 구역 영역의 실패 배너 한 곳에만 이유를 그린다. 같은 문구를 따로 그리던 `#ops-status-error` 를 지웠다 (#1699 후속).
@@ -62,6 +60,8 @@
 - 설정에 남은 `[ranking_weights]` 의 옛 키(`delta`, `epsilon`, `zeta`, `consolidation` 등 알 수 없는 키)는 어떤 값이어도 기동을 깨지 않고, 로더가 버린 키 이름을 기동 때 `console.warn` 한 줄로 알린다. 버려진 키는 `ranking_version` 해시에도 섞이지 않는다. `ranking:preview --changes` 에 `delta`, `epsilon` 을 주면 `UNKNOWN_KNOB` 으로 거부된다 (#1694).
 - 절대 점수 0.5 와 비교하던 두 곳을 같은 식으로 내렸다: 지침 주입 훅 `DIRECTIVE_POLICY.minFinalScore` 와 메타 기억 통계 성공 판정 `isItemSuccess` 가 `0.5 − 0.10·ln2/10`(≈ 0.4931) 이상이다. 같은 후보가 같은 선택과 판정을 받는다. 메타 기억의 `avg_confidence`(0.9·final + 0.1·vector 의 누적 평균)는 약 0.0062 내려가 저신뢰, 고실패 판정과 heal 대상이 조금 늘 수 있다. 머지 뒤 첫 heal 은 dry-run 결과를 보고 실행한다 (#1694).
 - `tune-weights` 후보는 같은 `--seed` 에서도 달라진다. `delta`, `epsilon` 이 탐색 순서 5, 6번째라 `alpha`, `beta`, `gamma` 는 같고 `theta` 부터 밀린다. 과거 tune 결과를 재현하려면 이 변경 이전 코드를 써야 한다 (#1694).
+- 로컬 테스트 병렬 수를 코어의 1/4(2~6개)로 올리고(CI 는 2 유지, `VITEST_MAX_WORKERS` 로 조정), `*.nightly.spec.ts` 를 로컬에서도 기본 제외한다(`VITEST_INCLUDE_NIGHTLY=1` 로 포함). 바뀐 범위만 도는 `npm run test:changed` 를 더하고, 임시 경로를 `Date.now()` 만으로 짓던 테스트 13개 파일에 `process.pid` 를 더해 병렬 충돌을 막는다 (#1775)
+- PR 이 `CHANGELOG.md` 의 같은 자리를 고쳐 서로 충돌하던 것을 없앤다. PR 은 `changelog.d/<이슈번호>-<짧은이름>.md` 조각만 더하고, 릴리스 준비 때 `npm run release:changelog -- --version <x.y.z>` 가 새 버전 절로 합쳐 조각을 지운다. `check:version-sync` 의 PR 게이트와 릴리스 게이트가 조각을 인정하고 형식을 검사한다 (#1780)
 
 ### Fixed
 
@@ -80,9 +80,7 @@
 - **주인 지침도 망각 정리로 지워지던 문제** (#1749): `user-directive` 태그 기억은 이제 정리 대상에서 뺀다. 이미 소프트 삭제된 지침도 유예가 지나도 영구 삭제하지 않는다.
 - **관리 API 메모리 정리가 working 을 곧바로 영구 삭제하던 문제** (#1749): `POST /admin/memory/cleanup` 은 이제 매일 도는 망각 정리(`ForgettingPolicyService`)를 돌린다. 소프트 삭제와 30일 유예를 거치고 망각 이벤트를 남긴다. working 만이 아니라 모든 유형이 대상이다. 응답에 영구 삭제 수 `hard_deleted_count` 를 더했다. 소프트 삭제와 영구 삭제는 행이 실제로 바뀔 때만 망각 이벤트를 남겨, 예약 정리와 겹쳐 돌아도 같은 기억을 두 번 기록하지 않는다.
 - **소프트 삭제가 `last_accessed` 를 지금으로 덮어쓰던 문제** (#1749): 되살린 기억이 방금 쓴 것처럼 보였다. 이제 소프트 삭제는 `is_deleted`, `deleted_at` 만 바꾼다.
-
 - **메타 기억 저신뢰 판정** (#1744): recall 결과 판정이 고정 하한 대신 같은 결과의 1위 점수 대비 비율을 쓴다. 비율이 confidence 이고 0.8 이상이면 성공이다. 예전 confidence(`0.9·final + 0.1·vector`)는 recall 경로가 vector 를 넘기지 않아 `0.9·final` 이었고, 하한 0.5 가 recall 결과 중앙값(약 0.51) 위라 운영 사본에서 recall 된 기억의 97%(4,902/5,063)가 저신뢰였다. 운영 사본 질의 262건 재현에서 결과 항목의 저신뢰 비율은 72~75% 에서 0.3% 로, 성공 비율은 63~67% 에서 77~79% 로 바뀌었다(옛 임베딩 모델, 새 모델 둘 다). 이미 쌓인 `avg_confidence` 와 `failure_count` 는 이 변경이 바꾸지 않는다. 인트로스펙션 스캔은 `recall_count` 가 0 인 행을 저신뢰, 고실패로 잡지 않는다. 운영자가 통계를 손으로 초기화한 뒤(#1744 코멘트의 SQL) 다시 recall 되기 전의 기억은 목록에 들어가지 않는다.
-
 - **기억끼리 비교가 창 벡터와 옛 모델 벡터를 쓰던 문제** (#1731, #1732): 이웃 기억, 앵커(지역 검색의 앵커와 n-hop, 질의 필터), Sleep consolidation 군집, 검색의 텍스트 전용 backfill 이 저장 벡터를 직접 읽을 때 벡터 검색(#889)과 같은 규칙을 따릅니다. 기억 전체를 대표하는 native 행만 읽고, `minilm` 은 지금 모델로 만든 행만 씁니다. fallback 벡터 검색은 벡터 검색처럼 native 와 창 행을 함께 비교하고 지금 모델 행만 보도록 model 조건을 더했습니다. 이전에는 이웃 기억과 앵커가 기억의 아무 행이나 가장 최근 것을 골라, 긴 기억(창 행이 있는 기억)은 본문 일부의 창 벡터로 이웃을 찾았습니다 (운영 사본에서 창 행이 있는 기억 530건 중 111건). 모델을 바꾼 뒤 재색인이 끝나기 전에는 옛 모델 벡터를 새 모델 벡터와 한 군집, 한 점수에서 비교했습니다. 이제 재색인 전의 기억은 이 기능들에서 「임베딩 없음」으로 다뤄지고, 재색인되면 다시 들어옵니다. 읽기는 `shared/utils/current-native-embedding.ts` 한 곳입니다.
 - 상태 탭(`.ops-status-layout`)과 같은 구조의 배치 작업·기억 찾기 레이아웃에 `flex:1` / `min-height:0` / `overflow-y:auto` 를 넣어, `.tab-panel` 의 `overflow:hidden` 아래에서도 휠·End 로 끝까지 내릴 수 있게 한다. e2e는 1280x720·390x844 에서 마지막 `.ops-row` 가 뷰포트 안에 들어오는지와 형제 탭 레이아웃 스크롤을 검사한다 (#1725).
 - 남은 대시보드 탭(배치 작업, 기억 찾기, 앵커 맵, 검토 대기열 갱신 시각, 상태 임베딩 진단 시각)에서 영어 내부 키·원시 ms·ISO 시각·글자 단위 꺾임을 정리한다. 작업 이름은 한국어+키 병기, 간격은 「매일」「5분마다」, 큐/트리거는 한국어, 설명은 사람 문장(`batch-scheduler-job-descriptions`). 라벨 누락 테스트는 `REGISTERED_MANUAL_BATCH_JOB_TYPES`를 읽고, e2e는 390/1280 잘림과 간격 포맷터 되돌림 반증을 넣는다 (#1724).
@@ -102,6 +100,7 @@
 - **Sleep consolidation 이 매시간 같은 기억을 다시 임베딩하던 것** (#1771): 묶기 후보 가운데 5줄 기록 라벨이 있는 기억(운영 474건)을 실행마다 라벨을 뗀 글로 로컬 모델에 다시 넣었다. 로컬 임베딩 캐시(256개)보다 많아 한 건도 맞히지 못했다. 이제 라벨 뗀 벡터를 서비스 안에 실행 사이에 두고(기억 ID, 라벨 뗀 글의 해시, 제공자로 확인) 새로 들어오거나 바뀐 후보만 계산한다. 묶기 결과, 예약, 설정은 그대로다. 운영 DB 사본에서 같은 후보로 연달아 돌린 두 번째 실행이 약 200초에서 0.6초로 줄었다(부하가 높은 기계에서 잰 값, 첫 실행은 그대로).
 - 관리자 배치 작업 탭: 스케줄 설명이 두 줄에서 말줄임(`…`)과 `title` 전체 글을 보이게 하고, 한국어 이름이 없는 작업 ID는 한 줄 말줄임으로 글자 쪼개짐을 막는다. 레이아웃 전수 검사에 `.tab-panel` 의 `overflow-wrap: break-word` 직접 단언을 넣는다. 가동 요약 e2e mock 의 `1h` 를 `1시간` 으로 맞춘다 (#1728).
 - **가끔 실패하던 망각 점수 비교 테스트** (#1781): `ForgettingAlgorithm` 은 기억마다 현재 시각을 따로 읽어 점수를 내는데, `#1749 다른 유형 수와 무관한 점수` 테스트가 그 계산을 두 번 하고 정확히 비교해 두 호출 사이에 시각이 넘어가면 소수 9자리 아래에서 어긋났다(2026-11-18 main `36735f1f` test-core 실패). 테스트가 시각을 고정해 결과가 결정적이 된다(운영 코드는 그대로). 같은 본문을 5,000번 반복했을 때 수정 전에는 이슈와 같은 어긋남(`0.5279907466045013` 대 `0.5279907466011582`)이 났고 수정 뒤에는 모두 통과했다.
+- `/mcp` 의 `GET`/`DELETE` 에 규약대로 돌려주는 `405 Allow: POST` 를 `audit_log` 해시 체인에 failure 행으로 쓰지 않는다. `/mcp` 요청 24,361건(2026-10-19 이후) 중 비정상 1,448건(5.9%)의 94.7%(1,371건)가 이 405 였고, 제외하면 77건(0.3%)이다. `http-audit.jsonl` 에는 그대로 남는다. `recall` 에서 `type` 도 `memory_types` 도 없을 때의 오류 문구가 `memory_types` 대안을 알려 준다. 누락을 기본값으로 채우는 변경은 하지 않았다 (#1776)
 
 ### Removed
 
