@@ -206,6 +206,11 @@ export class MemoryInjectionPrompt extends BaseTool {
 
       const memoryTypesForBundle = normalizeMemoryTypesForHybridItemSearch(memory_types);
 
+      // 브리프 프로젝트는 인자 → X-Memento-Project-Id 순. 검색 필터에는 쓰지 않는다 (기존 결과 불변).
+      const briefProjectId = project_id || context.projectId;
+      const brief = briefProjectId ? findProjectBrief(context.db, briefProjectId, owner_id) : undefined;
+      const briefLabel = brief ? `project-brief v${brief.version ?? 1} (${briefProjectId}, memory_id ${brief.id})` : '';
+
       const bundle = await buildKnowledgeContextBundle(
         {
           db: context.db,
@@ -220,6 +225,9 @@ export class MemoryInjectionPrompt extends BaseTool {
           projectId: project_id,
           ownerId: owner_id,
           itemScoreMin: mementoConfig.memoryInjectionItemScoreMin,
+          leadingMaterial: brief && include_project_brief
+            ? `# 프로젝트 브리프 — ${briefLabel}\n\n${brief.content}`
+            : undefined,
         },
       );
 
@@ -260,16 +268,9 @@ export class MemoryInjectionPrompt extends BaseTool {
         );
       }
 
-      // 브리프 프로젝트는 인자 → X-Memento-Project-Id 순. 검색 필터에는 쓰지 않는다 (기존 결과 불변).
-      const briefProjectId = project_id || context.projectId;
-      const brief = briefProjectId ? findProjectBrief(context.db, briefProjectId, owner_id) : undefined;
-      let message = bundle.promptText;
-      if (brief) {
-        const label = `project-brief v${brief.version ?? 1} (${briefProjectId}, memory_id ${brief.id})`;
-        message = include_project_brief
-          ? `# 프로젝트 브리프 — ${label}\n\n${brief.content}\n\n---\n\n${message}`
-          : `${message}\n\n> ${label} 있음 — 필요 시 memory_injection(include_project_brief: true) 또는 recall`;
-      }
+      const message = brief && !include_project_brief
+        ? `${bundle.promptText}\n\n> ${briefLabel} 있음 — 필요 시 memory_injection(include_project_brief: true) 또는 recall`
+        : bundle.promptText;
 
       recordItemFilteredTelemetry({
         telemetryService: context.services.telemetryService,

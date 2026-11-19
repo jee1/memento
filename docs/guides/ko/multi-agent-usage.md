@@ -152,7 +152,7 @@ memento connect project --project-id memento --dry-run
 
 - **작성**: `remember(type: "semantic", tags: ["project-brief"], project_id: "<프로젝트>", content: "<기획·결정·다음 할 일>")` — 헤더가 있으면 `project_id` 생략 가능
 - **갱신**: `remember(memory_id, update_mode: "replace", expected_version, project_id, ...)` — 다른 AI 가 먼저 고쳤으면 `memory_version_conflict`(409). 갱신은 헤더를 쓰지 않으므로 `project_id` 를 명시합니다
-- **주입**: `memory_injection(include_project_brief: true)` 는 질의와 무관하게 브리프 전문을 결과 맨 앞에 싣고 응답에 `project_brief: { memory_id, project_id, version, included }` 를 붙입니다. 브리프는 `token_budget` 과 별도입니다. 기본(`false`) 호출에는 브리프가 있을 때 포인터 한 줄만 붙습니다
+- **주입**: `memory_injection(include_project_brief: true)` 는 질의와 무관하게 브리프 전문을 저장 자료 경계 안 맨 앞에 싣고 응답에 `project_brief: { memory_id, project_id, version, included }` 를 붙입니다. 브리프는 `token_budget` 과 별도이고 `token_estimate` 에는 들어갑니다. 기본(`false`) 호출에는 브리프가 있을 때 포인터 한 줄만 붙습니다
 - 프로젝트는 `project_id` 인자 → `X-Memento-Project-Id` 순으로 정합니다. 검색 필터에는 영향이 없고, 프로젝트를 알 수 없으면 결과가 이전과 같습니다. `owner_id` 를 주면 브리프도 그 소유자 것만 봅니다
 
 매 턴 전문을 실으면 턴마다 같은 문서가 반복되므로 `true` 는 세션 시작과 compact 직후에만 씁니다. 훅이 있는 클라이언트(Claude Code `SessionStart`, Codex `SessionStart`)는 그 훅에서 `true` 호출을 지시하고, 훅이 없는 클라이언트는 도구 설명의 안내를 따릅니다.
