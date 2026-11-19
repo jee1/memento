@@ -535,8 +535,8 @@ export class SleepConsolidationService {
     }
     // 재기동 직후에는 제공자 이름이 비어 있다. 첫 임베딩 결과가 알려 주는 제공자로 정하고 그 뒤 후보는 같은 제공자만 받는다 (#1795).
     let activeProvider = provider;
-    const keyOf = (text: string) =>
-      `${activeProvider ?? ''}:${uni.getModelInfo?.().model ?? ''}:${hashMemoryContent(text)}`;
+    let model = uni.getModelInfo?.().model ?? '';
+    const keyOf = (hash: string) => `${activeProvider ?? ''}:${model}:${hash}`;
     for (const candidate of candidates) {
       const stored = embMap.get(candidate.id);
       if (!stored) {
@@ -547,8 +547,9 @@ export class SleepConsolidationService {
         this.labelFreeVectors.delete(candidate.id);
         continue;
       }
+      const hash = hashMemoryContent(stripped);
       const kept = this.labelFreeVectors.get(candidate.id);
-      if (kept?.key === keyOf(stripped) && kept.vector.length === stored.length) {
+      if (kept?.key === keyOf(hash) && kept.vector.length === stored.length) {
         embMap.set(candidate.id, kept.vector);
         continue;
       }
@@ -561,10 +562,14 @@ export class SleepConsolidationService {
           (!activeProvider || res?.provider === activeProvider)
         ) {
           embMap.set(candidate.id, vec as number[]);
-          activeProvider ??= res?.provider;
+          if (!activeProvider && res?.provider) {
+            // 기동 직후에는 모델 정보도 기본값이라 제공자와 함께 한 번만 다시 읽고 실행 중에는 고정한다.
+            activeProvider = res.provider;
+            model = uni.getModelInfo?.().model ?? '';
+          }
           // 제공자를 끝내 모르면 다른 공간의 벡터일 수 있다. 이번 실행에만 쓴다.
           if (activeProvider) {
-            this.labelFreeVectors.set(candidate.id, { key: keyOf(stripped), vector: vec as number[] });
+            this.labelFreeVectors.set(candidate.id, { key: keyOf(hash), vector: vec as number[] });
           }
         }
       } catch {

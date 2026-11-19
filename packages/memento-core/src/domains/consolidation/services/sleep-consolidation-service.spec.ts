@@ -526,6 +526,23 @@ describe('SleepConsolidationService', () => {
       expect(generateEmbedding).toHaveBeenCalledTimes(2);
     });
 
+    it('#1795: once the first result names the provider, a later candidate from another provider keeps its stored vector', async () => {
+      insertEpisodic(db, 'e1', { owner: 'agent-x', content: templateContent('alpha') });
+      insertEpisodic(db, 'e2', { owner: 'agent-x', content: templateContent('beta') });
+      insertEmbedding(db, 'e1', emb, provider);
+      insertEmbedding(db, 'e2', emb, provider);
+
+      const { uni, svc, getCurrentProviderName } = setupService();
+      getCurrentProviderName.mockReturnValue(null);
+      vi.spyOn(uni, 'generateEmbedding').mockImplementation(async text => {
+        const alpha = text.includes('alpha');
+        return { embedding: alpha ? [1, 0, 0, 0] : [0, 1, 0, 0], provider: alpha ? provider : 'other-provider' };
+      });
+
+      const result = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+      expect(result.clustersFound).toBe(1);
+    });
+
     it('#1795: a provider change after the first run still discards the kept vectors', async () => {
       insertEpisodic(db, 'e1', { owner: 'agent-x', content: templateContent('alpha') });
       insertEmbedding(db, 'e1', emb, provider);
