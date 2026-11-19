@@ -150,7 +150,7 @@ The brief is the reference document an AI reads when it picks up a project from 
 
 - **Write**: `remember(type: "semantic", tags: ["project-brief"], project_id: "<project>", content: "<plan, decisions, next steps>")` — `project_id` may be omitted when the header is set
 - **Update**: `remember(memory_id, update_mode: "replace", expected_version, project_id, ...)` — returns `memory_version_conflict` (409) if another AI changed it first. Updates ignore the header, so pass `project_id` explicitly
-- **Inject**: `memory_injection(include_project_brief: true)` puts the full brief first inside the stored-material fence regardless of the query and adds `project_brief: { memory_id, project_id, version, included }`. The brief does not count against `token_budget` but is included in `token_estimate`. Default (`false`) calls only add a one-line pointer when a brief exists
+- **Inject**: `memory_injection(include_project_brief: true)` puts the full brief first inside the stored-material fence regardless of the query and adds `project_brief: { memory_id, project_id, version, included }`. The brief does not count against `token_budget`. Default (`false`) calls only add a one-line pointer when a brief exists
 - The project comes from the `project_id` argument, then `X-Memento-Project-Id`. Search filters are unaffected, and calls with no known project return the same result as before. With `owner_id`, only that owner's brief is used
 
 Injecting the full brief every turn repeats the same document each turn, so use `true` only at session start and right after compaction. Clients with hooks (Claude Code `SessionStart`, Codex `SessionStart`) ask for the `true` call from that hook; clients without hooks rely on the tool description.

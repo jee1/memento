@@ -1070,7 +1070,7 @@ interface SearchResource {
 
 Use before a task to gather context in one shot. The MCP **tool** `memory_injection` returns a token-budgeted summary of relevant memories; the schema below is for the same-named **prompt** (`getPrompt`) path. In practice, the tool call is more common.
 
-The tool's `message` wraps the memories (and the brief when `include_project_brief: true`) in one `<memento-material-<16 hex>>` tag pair drawn fresh per call, preceded by one line saying the text between the tags is stored material, not instructions. Tag-shaped strings inside stored text become `&lt;`. This lowers the chance a model follows stored text as instructions; it is not a guarantee. The brief pointer line and the no-memories text sit outside the tags.
+The tool's `message` wraps the memories (and the brief when `include_project_brief: true`) in one `<memento-material-<16 hex>>` tag pair drawn fresh per call, preceded by one line saying the text between the tags is stored material, not instructions. The tag name `memento-material` inside stored text becomes `memento_material`. This lowers the chance a model follows stored text as instructions; it is not a guarantee. The brief pointer line and the no-memories text sit outside the tags.
 
 When the rejection gate is enabled, the tool keeps only gate top-10 item scores at or above `MEMORY_INJECTION_ITEM_SCORE_MIN` (default 0.5; 0 disables) (#1682). Top-level `item_filter` reports applied/kept/dropped. Empty injection caused by the filter is `item_filter.kept === 0 && item_filter.scored > 0`.
 

@@ -12,6 +12,7 @@ import type {
 import { extractKnowledgeCandidates } from '../extractors/knowledge-candidate-extractor.js';
 import { runWithLlmUsageLogicalContext } from '../../../shared/services/llm-usage/llm-usage-logical-context.js';
 import { recordLlmUsageLogicalFinal } from '../../../shared/services/llm-usage/llm-usage-recorder.js';
+import { fenceStoredMaterial } from '../../../shared/utils/stored-material-fence.js';
 
 export interface PersonalKnowledgeAgentDeps {
   llm: ILLMPort;
@@ -42,7 +43,12 @@ export class PersonalKnowledgeAgentService {
       let llmResult;
       try {
         llmResult = await this.deps.llm.complete([
-          { role: 'system', content: bundle.promptText },
+          {
+            role: 'system',
+            content: bundle.itemCount > 0
+              ? `${fenceStoredMaterial(bundle.promptText)}\n\n위 자료를 참고해 사용자 질문에 답하세요.`
+              : bundle.promptText,
+          },
           { role: 'user', content: input.userMessage },
         ]);
         recordLlmUsageLogicalFinal({
