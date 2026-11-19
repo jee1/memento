@@ -4,6 +4,8 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SUPERSEDE_PROMPT_VERSION } from '../supersede-judge.js';
 import { dismissSupersedeCandidate } from '../supersede-apply-service.js';
 import { SupersedeCandidateService } from '../supersede-candidate-service.js';
+import { embeddingColumnToNumbers } from '../../../../shared/utils/embedding-serialization.js';
+import { cosineSimilarity } from '../../../../shared/utils/vector-math.js';
 import {
   closeSupersedeTestDb,
   createSupersedeTestDb,
@@ -314,5 +316,66 @@ describe('SupersedeCandidateService (#1548)', () => {
     expect(logicalRows()).toEqual([
       expect.objectContaining({ feature: 'supersede_judge', final_path: 'not_configured' }),
     ]);
+  });
+
+  /** 전체를 올려 전수 비교하는 옛 방식. 나눠 읽는 방식과 같은 쌍을 같은 순서로 내는지 대조하는 기준이다 (#1789). */
+  function referencePairs(lookbackDays: number): Array<[string, string]> {
+    const rows = db
+      .prepare(
+        `SELECT mi.id, mi.type, mi.owner_id AS ownerId, mi.project_id AS projectId, mi.privacy_scope AS scope,
+                julianday(mi.created_at) AS jd, julianday(mi.created_at) >= julianday('now') - ? AS recent,
+                mi.origin_source AS origin, me.embedding AS embedding, me.model AS model
+         FROM memory_item mi JOIN memory_embedding me ON me.memory_id = mi.id AND me.projection_type = 'native'`,
+      )
+      .all(lookbackDays) as Array<Record<string, any>>;
+    const key = (r: Record<string, any>) => JSON.stringify([r.ownerId, r.projectId, r.scope, r.type, r.model]);
+    const origin = (r: Record<string, any>) => {
+      const o = JSON.parse(r.origin) as { tool?: string; caller?: string };
+      return o.tool === 'sleep-consolidation' ? 'consolidation' : o.caller === 'user' ? 'user' : 'unknown';
+    };
+    const pairs: Array<[string, string]> = [];
+    for (const next of rows.filter((r) => r.recent === 1).sort((a, b) => b.jd - a.jd)) {
+      rows
+        .filter((o) => key(o) === key(next) && o.jd < next.jd && !(origin(next) === 'consolidation' && origin(o) === 'user'))
+        .map((o) => ({ o, sim: cosineSimilarity(embeddingColumnToNumbers(next.embedding)!, embeddingColumnToNumbers(o.embedding)!) }))
+        .filter(({ sim }) => sim >= 0.65)
+        .sort((a, b) => b.sim - a.sim)
+        .slice(0, 3)
+        .forEach(({ o }) => pairs.push([o.id, next.id]));
+    }
+    return pairs;
+  }
+
+  it('나눠 읽어도 전체를 올려 전수 비교한 것과 같은 쌍을 같은 순서로 판정한다 (#1789)', async () => {
+    let seed = 1789;
+    const rand = () => {
+      seed = (seed * 1664525 + 1013904223) % 4294967296;
+      return seed / 4294967296;
+    };
+    const centers = [[1, 0, 0, 0], [0.8, 0.6, 0, 0], [0, 0, 1, 0]];
+    for (let i = 0; i < 80; i += 1) {
+      const c = centers[i % centers.length]!;
+      const vec = i % 7 === 0 ? c : c.map((x) => x + (rand() - 0.5) * 0.4);
+      insertSeedMemory(db, {
+        id: `m${String(i).padStart(2, '0')}`,
+        content: `본문 ${i}`,
+        createdAt: isoDaysAgo(i < 20 ? 0.5 + rand() * 5 : 8 + rand() * 40),
+        type: i % 5 === 0 ? 'episodic' : 'semantic',
+        ownerId: i % 4 === 0 ? 'owner-b' : 'owner-a',
+        vec: i % 11 === 0 ? null : vec,
+        originSource: i % 3 === 0 ? { tool: 'sleep-consolidation' } : i % 3 === 1 ? { caller: 'user' } : {},
+      });
+    }
+    const expected = referencePairs(7);
+    expect(expected.length).toBeGreaterThan(10);
+
+    const summary = await service(fakeChatPort(() => judgeReply('compatible'))).scan({ runId: 'run-eq', maxPairs: 1000 });
+
+    expect(summary.pairsConsidered).toBe(expected.length);
+    const judged = db
+      .prepare('SELECT old_memory_id, new_memory_id FROM memory_supersede_candidate ORDER BY rowid')
+      .all() as Array<{ old_memory_id: string; new_memory_id: string }>;
+    expect(judged.map((r) => [r.old_memory_id, r.new_memory_id])).toEqual(expected);
+    expect(summary.skippedNoEmbedding).toBe(8);
   });
 });

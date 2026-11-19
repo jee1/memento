@@ -110,9 +110,9 @@ export interface MemoryResourceRow {
   pinned: number | boolean;
 }
 
+/** 본문은 싣지 않는다. 필요한 쌍만 {@link getMemoryContentById} 로 읽는다. */
 export interface SupersedeScopeMemoryRow {
   id: string;
-  content: string;
   type: string;
   ownerId: string | null;
   projectId: string | null;
@@ -120,8 +120,6 @@ export interface SupersedeScopeMemoryRow {
   createdAt: string;
   /** julianday(created_at). created_at 은 ISO 와 공백 형식이 섞여 있어 문자열 비교를 쓰지 않는다. */
   createdJd: number;
-  /** created_at 이 호출 시점 기준 lookback 안에 있다. */
-  isRecent: boolean;
   embedding: number[];
   embeddingModel: string | null;
   origin: MemoryOrigin;
@@ -146,11 +144,6 @@ function parseMemoryOrigin(originSource: string | null): MemoryOrigin {
     return 'consolidation';
   }
   return caller === 'user' ? 'user' : 'unknown';
-}
-
-export interface SupersedeScopeMemories {
-  memories: SupersedeScopeMemoryRow[];
-  withoutEmbedding: number;
 }
 
 export function listActiveMemoryIdAndContent(
@@ -267,24 +260,16 @@ export function findServedProceduralVersion(
 
 /**
  * 대체 후보 탐색 대상: 삭제되지 않은 semantic/episodic 과 native 임베딩 하나(가장 최근 행).
- * 이미 대체된 기억은 뺀다. 벡터가 없는 기억은 쌍을 만들 수 없어 개수만 센다.
+ * 이미 대체된 기억은 뺀다. 본문은 읽지 않는다 (#1789).
  */
-export function findSupersedeScopeMemories(
-  db: Database.Database,
-  lookbackDays: number,
-): SupersedeScopeMemories {
-  const rows = db
-    .prepare(
-      `SELECT
+const SUPERSEDE_SCOPE_SQL = `SELECT
          mi.id AS id,
-         mi.content AS content,
          mi.type AS type,
          mi.owner_id AS ownerId,
          mi.project_id AS projectId,
          COALESCE(mi.privacy_scope, 'private') AS privacyScope,
          mi.created_at AS createdAt,
          julianday(mi.created_at) AS createdJd,
-         julianday(mi.created_at) >= julianday('now') - ? AS isRecent,
          me.embedding AS embedding,
          me.model AS embeddingModel,
          mi.origin_source AS originSource
@@ -299,27 +284,52 @@ export function findSupersedeScopeMemories(
        WHERE mi.type IN ('semantic', 'episodic')
          AND COALESCE(mi.is_deleted, 0) = 0
          AND NOT ${supersedeByActiveTargetSql('mi')}
-         AND julianday(mi.created_at) IS NOT NULL`,
-    )
-    .all(lookbackDays) as Array<
-    Omit<SupersedeScopeMemoryRow, 'embedding' | 'isRecent' | 'origin'> & {
-      embedding: Buffer | null;
-      isRecent: number;
-      originSource: string | null;
-    }
-  >;
+         AND julianday(mi.created_at) IS NOT NULL`;
 
-  const memories: SupersedeScopeMemoryRow[] = [];
+type SupersedeScopeSqlRow = Omit<SupersedeScopeMemoryRow, 'embedding' | 'origin'> & {
+  embedding: Buffer | null;
+  originSource: string | null;
+};
+
+function toSupersedeScopeRow({ originSource, ...row }: SupersedeScopeSqlRow): SupersedeScopeMemoryRow | null {
+  const embedding = embeddingColumnToNumbers(row.embedding);
+  return embedding ? { ...row, embedding, origin: parseMemoryOrigin(originSource) } : null;
+}
+
+/** created_at 이 호출 시점 기준 lookback 안에 있는 탐색 대상. 벡터가 없는 행은 뺀다. */
+export function findRecentSupersedeScopeMemories(
+  db: Database.Database,
+  lookbackDays: number,
+): SupersedeScopeMemoryRow[] {
+  const rows = db
+    .prepare(`${SUPERSEDE_SCOPE_SQL} AND julianday(mi.created_at) >= julianday('now') - ?`)
+    .all(lookbackDays) as SupersedeScopeSqlRow[];
+  return rows.flatMap((row) => toSupersedeScopeRow(row) ?? []);
+}
+
+/**
+ * 탐색 대상 전부를 한 행씩 훑는다. 전체를 배열로 올리지 않는다 (#1789).
+ * 벡터가 없는 기억은 방문하지 않고 개수만 돌려준다.
+ */
+export function forEachSupersedeScopeMemory(
+  db: Database.Database,
+  visit: (row: SupersedeScopeMemoryRow) => void,
+): { withoutEmbedding: number } {
   let withoutEmbedding = 0;
-  for (const { originSource, ...row } of rows) {
-    const embedding = embeddingColumnToNumbers(row.embedding);
-    if (!embedding) {
+  for (const raw of db.prepare(SUPERSEDE_SCOPE_SQL).iterate() as IterableIterator<SupersedeScopeSqlRow>) {
+    const row = toSupersedeScopeRow(raw);
+    if (row) {
+      visit(row);
+    } else {
       withoutEmbedding += 1;
-      continue;
     }
-    memories.push({ ...row, embedding, isRecent: row.isRecent === 1, origin: parseMemoryOrigin(originSource) });
   }
-  return { memories, withoutEmbedding };
+  return { withoutEmbedding };
+}
+
+export function getMemoryContentById(db: Database.Database, id: string): string | undefined {
+  const row = db.prepare('SELECT content FROM memory_item WHERE id = ?').get(id) as { content: string } | undefined;
+  return row?.content;
 }
 
 export function findAnchorMemorySummaryById(
