@@ -176,3 +176,11 @@ npm run release:changelog -- --version 1.31.0             # CHANGELOG.md 갱신,
 워크스페이스 매니페스트로 풀립니다. `npm run check:version-sync` 가 이 일치를 검사하며 CI 에서도
 실행됩니다.
 
+
+## 릴리스 준비 PR 머지 직후 다음 버전으로 올린다
+
+릴리스 준비 PR(2.3.11 이라면 버전과 CHANGELOG 절을 만든 PR)을 머지한 직후, 다음 PR 로 매니페스트 다섯 곳과 `server.json`, `package-lock.json` 을 다음 패치 버전(2.3.12)으로 올립니다. 올리지 않으면 릴리스 사이에 머지된 커밋이 모두 직전 릴리스 버전을 달고 운영 이미지에 올라갑니다.
+
+- **태그는 운영에서 돈 릴리스 준비 커밋에 건다.** main 의 최신 커밋이 아니라 릴리스 준비 PR 의 머지 커밋에 `git tag 2.3.11 <sha>` 를 걸어 푸시하고, 그 태그로 `gh release create 2.3.11 --verify-tag` 를 합니다. `release.yml` 은 태그 커밋을 체크아웃해 세 매니페스트가 태그와 같은지 검사하므로(`Verify package.json version matches the tag`), 이렇게 하면 main 이 2.3.12 로 앞서 있어도 2.3.11 이 게시됩니다. 태그 없이 Release 를 main 대상으로 만들면 태그가 main 끝에 생겨 `E_VERSION_MISMATCH` 로 멈춥니다.
+- **`check:version-sync` 는 이 상태를 통과한다.** 매니페스트 버전이 직전 태그보다 앞서 있으면 CHANGELOG 게이트를 생략합니다(`release-prep`). 버전을 올려 둔 동안 이 게이트는 쉬고, 릴리스 준비 PR 에서 `release:changelog` 가 합칠 항목이 없으면 실패하는 것으로 노트 누락을 막습니다.
+- `[Unreleased]` 가 아니라 `changelog.d/` 조각이 다음 절의 재료다. 버전을 올려도 `CHANGELOG.md` 에 2.3.12 절을 미리 만들지 않습니다.
