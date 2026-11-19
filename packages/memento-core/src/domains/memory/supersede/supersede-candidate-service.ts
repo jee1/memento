@@ -9,7 +9,12 @@ import type { ChatLlmPort } from '../../../shared/services/chat-llm/chat-llm-por
 import { getLlmUsageLogicalContext, runWithLlmUsageLogicalContext } from '../../../shared/services/llm-usage/llm-usage-logical-context.js';
 import { recordLlmUsageLogicalFinal } from '../../../shared/services/llm-usage/llm-usage-recorder.js';
 import { cosineSimilarity } from '../../../shared/utils/vector-math.js';
-import { findSupersedeScopeMemories, type SupersedeScopeMemoryRow } from '../repositories/memory-item-repository.js';
+import {
+  findRecentSupersedeScopeMemories,
+  forEachSupersedeScopeMemory,
+  getMemoryContentById,
+  type SupersedeScopeMemoryRow,
+} from '../repositories/memory-item-repository.js';
 import { SupersedeCandidateRepository } from './supersede-candidate-repository.js';
 import {
   SUPERSEDE_PROMPT_VERSION,
@@ -46,15 +51,18 @@ export interface SupersedeScanSummary {
   byVerdict: Record<SupersedeVerdict, number>;
 }
 
+/** 쌍을 짓고 나면 벡터는 쓰지 않으므로 쥐지 않는다. */
+type PairMemory = Omit<SupersedeScopeMemoryRow, 'embedding'>;
+
 interface CandidatePair {
-  old: SupersedeScopeMemoryRow;
-  next: SupersedeScopeMemoryRow;
+  old: PairMemory;
+  next: PairMemory;
 }
 
-function toScoped(row: SupersedeScopeMemoryRow): ScopedMemory {
+function toScoped(row: PairMemory, content: string): ScopedMemory {
   return {
     id: row.id,
-    content: row.content,
+    content,
     type: row.type,
     ownerId: row.ownerId,
     projectId: row.projectId,
@@ -64,7 +72,7 @@ function toScoped(row: SupersedeScopeMemoryRow): ScopedMemory {
 }
 
 /** 범위가 같은 기억끼리만 짝을 짓는다. null 은 null 끼리만 같다. */
-function groupKey(row: SupersedeScopeMemoryRow): string {
+function groupKey(row: PairMemory): string {
   return JSON.stringify([row.ownerId, row.projectId, row.privacyScope, row.type, row.embeddingModel]);
 }
 
@@ -73,37 +81,56 @@ function groupKey(row: SupersedeScopeMemoryRow): string {
  * 사용자 기억이 요약을 대체하는 쌍과 요약끼리의 쌍(다시 요약한 결과)은 그대로 판정한다.
  * 출처 미상의 옛 기억은 사용자 것인지 알 수 없어 막지 않는다.
  */
-function canSupersede(old: SupersedeScopeMemoryRow, next: SupersedeScopeMemoryRow): boolean {
+function canSupersede(old: PairMemory, next: PairMemory): boolean {
   return !(next.origin === 'consolidation' && old.origin === 'user');
 }
 
-function buildPairs(memories: SupersedeScopeMemoryRow[]): CandidatePair[] {
-  const groups = new Map<string, SupersedeScopeMemoryRow[]>();
-  for (const memory of memories) {
-    const key = groupKey(memory);
-    const group = groups.get(key);
-    if (group) {
-      group.push(memory);
+/**
+ * 최근 기억마다 같은 범위의 더 오래된 기억 중 유사도 상위 TOP_OLD_PER_NEW 개와 짝을 짓는다.
+ * 옛 기억은 한 행씩 훑으며 최근 기억별 상위 목록만 갱신해, 전체를 메모리에 올리지 않는다 (#1789).
+ * 같은 유사도는 훑은 순서가 앞선 쪽이 먼저다.
+ */
+function buildPairs(db: Database.Database, lookbackDays: number): { pairs: CandidatePair[]; withoutEmbedding: number } {
+  const recent = findRecentSupersedeScopeMemories(db, lookbackDays).sort((a, b) => b.createdJd - a.createdJd);
+  const tops = recent.map(() => [] as Array<{ old: PairMemory; similarity: number }>);
+  const recentByGroup = new Map<string, number[]>();
+  recent.forEach((next, index) => {
+    const key = groupKey(next);
+    const indexes = recentByGroup.get(key);
+    if (indexes) {
+      indexes.push(index);
     } else {
-      groups.set(key, [memory]);
+      recentByGroup.set(key, [index]);
     }
-  }
+  });
+
+  const { withoutEmbedding } = forEachSupersedeScopeMemory(db, ({ embedding, ...old }) => {
+    for (const index of recentByGroup.get(groupKey(old)) ?? []) {
+      const next = recent[index]!;
+      if (old.createdJd >= next.createdJd || !canSupersede(old, next)) {
+        continue;
+      }
+      const similarity = cosineSimilarity(next.embedding, embedding);
+      const top = tops[index]!;
+      if (!(similarity >= MIN_COSINE) || (top.length === TOP_OLD_PER_NEW && similarity <= top[top.length - 1]!.similarity)) {
+        continue;
+      }
+      let at = top.length;
+      while (at > 0 && top[at - 1]!.similarity < similarity) {
+        at -= 1;
+      }
+      top.splice(at, 0, { old, similarity });
+      top.length = Math.min(top.length, TOP_OLD_PER_NEW);
+    }
+  });
 
   const pairs: CandidatePair[] = [];
-  const recent = memories.filter((m) => m.isRecent).sort((a, b) => b.createdJd - a.createdJd);
-  for (const next of recent) {
-    const olds = groups
-      .get(groupKey(next))!
-      .filter((candidate) => candidate.createdJd < next.createdJd && canSupersede(candidate, next))
-      .map((old) => ({ old, similarity: cosineSimilarity(next.embedding, old.embedding) }))
-      .filter(({ similarity }) => similarity >= MIN_COSINE)
-      .sort((a, b) => b.similarity - a.similarity)
-      .slice(0, TOP_OLD_PER_NEW);
-    for (const { old } of olds) {
+  recent.forEach(({ embedding: _embedding, ...next }, index) => {
+    for (const { old } of tops[index]!) {
       pairs.push({ old, next });
     }
-  }
-  return pairs;
+  });
+  return { pairs, withoutEmbedding };
 }
 
 export class SupersedeCandidateService {
@@ -143,16 +170,24 @@ export class SupersedeCandidateService {
 
     const lookbackDays = options.lookbackDays ?? SUPERSEDE_DEFAULT_LOOKBACK_DAYS;
     const maxPairs = options.maxPairs ?? SUPERSEDE_DEFAULT_MAX_PAIRS;
-    const { memories, withoutEmbedding } = findSupersedeScopeMemories(this.deps.db, lookbackDays);
+    const { pairs, withoutEmbedding } = buildPairs(this.deps.db, lookbackDays);
     summary.skippedNoEmbedding = withoutEmbedding;
-
-    const pairs = buildPairs(memories);
     summary.pairsConsidered = pairs.length;
 
     let attempts = 0;
+    let nextId: string | null = null;
+    let nextText: string | undefined;
     for (const { old, next } of pairs) {
-      const oldScoped = toScoped(old);
-      const nextScoped = toScoped(next);
+      if (nextId !== next.id) {
+        nextId = next.id;
+        nextText = getMemoryContentById(this.deps.db, next.id);
+      }
+      const oldText = getMemoryContentById(this.deps.db, old.id);
+      if (oldText === undefined || nextText === undefined) {
+        continue;
+      }
+      const oldScoped = toScoped(old, oldText);
+      const nextScoped = toScoped(next, nextText);
       const inputHash = computeSupersedeInputHash({
         promptVersion: SUPERSEDE_PROMPT_VERSION,
         provider: port.provider,
@@ -160,8 +195,8 @@ export class SupersedeCandidateService {
         old: oldScoped,
         next: nextScoped,
       });
-      const oldContentSha256 = sha256Hex(old.content);
-      const newContentSha256 = sha256Hex(next.content);
+      const oldContentSha256 = sha256Hex(oldText);
+      const newContentSha256 = sha256Hex(nextText);
       if (this.repository.hasDismissedPair(old.id, next.id, oldContentSha256, newContentSha256)) {
         summary.skippedDismissed += 1;
         continue;
