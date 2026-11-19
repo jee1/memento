@@ -221,6 +221,20 @@ describe('QualityAssuranceService', () => {
       expect(result.warning_count).toBeGreaterThanOrEqual(0);
     });
 
+    it('should remove quality_metrics rows outside QUALITY_NAMESPACES after recording (#1650)', async () => {
+      db.prepare(
+        `INSERT INTO quality_metrics (metric_namespace, metric_key, context, metric_value, measured_at)
+         VALUES ('consolidation', 'retired_metric', 'default', 0.5, '2026-01-01T00:00:00.000Z')`
+      ).run();
+
+      await service.measureQuality({ namespaces: ['search'] });
+
+      const namespaces = (
+        db.prepare('SELECT DISTINCT metric_namespace AS ns FROM quality_metrics').all() as { ns: string }[]
+      ).map((r) => r.ns);
+      expect(namespaces).not.toContain('consolidation');
+    });
+
     it('should handle errors gracefully', async () => {
       // Given: 잘못된 네임스페이스
       // When/Then: 에러가 발생해야 함

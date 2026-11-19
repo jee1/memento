@@ -133,6 +133,12 @@ AI 가 짠 코드를 사람이 다 읽지 못하는 만큼, 리뷰를 두 단계
 
 같은 리뷰 지적이 반복되면 코멘트로 남기지 말고 `scripts/check-*.ts --ci` 같은 정적 검사로 승격해 CI 에 붙입니다.
 
+과거 사고 부류는 `tests/` 의 시험으로도 막습니다(#1794, CI `test-root`).
+
+- `tests/embedding-blob-readers-pinned.spec.ts`: `embeddingColumnToNumbers` 를 부르는 비테스트 파일 목록을 고정합니다. 목록 밖 파일이 생기면 창 행을 통째로 읽지 않는지 확인하라고 실패합니다.
+- `tests/benchmark-cli-clock.spec.ts`: `scripts/` 에서 `benchmark-search-database` 로 시드하는 CLI 가 `benchmark-clock` 도 import 하는지 봅니다. 시계가 없는 기존 CLI 여섯 개는 시험 안 목록으로 예외입니다.
+- `quality-assurance-service.spec.ts`: 측정을 기록하면 `QUALITY_NAMESPACES` 밖 `quality_metrics` 행이 지워지는지 봅니다(`removeRetiredNamespaces`).
+
 ```bash
 npm run hooks:install                      # core.hooksPath → scripts/git-hooks
 npm run pr:risk -- --title "<PR 제목>"     # 현재 브랜치의 리스크 점수 미리 보기 (origin/main 기준)
