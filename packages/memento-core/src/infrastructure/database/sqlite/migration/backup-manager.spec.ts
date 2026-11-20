@@ -335,6 +335,29 @@ describe('BackupManager', () => {
       }
     });
 
+    it('publishes the copy without integrity_check when the caller checks it later (#1802)', async () => {
+      const fileDb = openWalDatabase();
+      fileDb.exec("CREATE TABLE memory_item (id TEXT); INSERT INTO memory_item VALUES ('m1');");
+      const pragmaSpy = vi.spyOn(Database.prototype, 'pragma');
+
+      try {
+        const result = await backupManager.createBackup(fileDb, undefined, { skipIntegrityCheck: true });
+
+        expect(result.integrityCheck).toBe('skipped');
+        expect(pragmaSpy.mock.calls.map(([source]) => source)).not.toContain('integrity_check');
+        const copy = new Database(result.backupPath, { readonly: true });
+        try {
+          expect(copy.pragma('integrity_check', { simple: true })).toBe('ok');
+          expect(copy.prepare('SELECT count(*) AS c FROM memory_item').get()).toEqual({ c: 1 });
+        } finally {
+          copy.close();
+        }
+      } finally {
+        pragmaSpy.mockRestore();
+        fileDb.close();
+      }
+    });
+
     it('removes the current attempt after backup checkpoint fails', async () => {
       const fileDb = openWalDatabase();
       const realPragma = Database.prototype.pragma;

@@ -218,6 +218,20 @@ describe('backup-memory-db operator script', () => {
     expect(readdirSync(backupsDir).filter(name => name.endsWith('.db'))).toHaveLength(1);
   });
 
+  it('leaves integrity_check to the caller with --skip-integrity-check and does not prune after an unchecked copy (#1802)', () => {
+    const root = makeTempRoot();
+    const dbPath = join(root, 'memory.db');
+    const backupsDir = join(root, 'backups');
+    createDb(dbPath);
+
+    const result = runBackupScript(dbPath, ['--skip-integrity-check'], [], { MEMENTO_BACKUP_DIR: backupsDir });
+
+    expect(result.status, result.stderr).toBe(0);
+    const output = parseJson(result.stdout);
+    expect(output).toMatchObject({ ok: true, integrity_check: 'skipped', memory_item: 1, cleanup: null });
+    expect(existsSync(output.backupPath as string)).toBe(true);
+  });
+
   it('expands a leading tilde in DB_PATH against HOME (#962)', () => {
     const root = makeTempRoot();
     createDb(join(root, 'memory.db'));
@@ -442,6 +456,7 @@ fs.unlinkSync = function(target) {
     for (const args of [
       ['--apply'],
       ['--unknown'],
+      ['--skip-integrity-check', '--cleanup'],
       ['--cleanup', '--unknown'],
       ['--cleanup', '--apply', '--extra'],
     ]) {
@@ -453,7 +468,7 @@ fs.unlinkSync = function(target) {
         ok: false,
         stage: 'usage',
         reason: 'invalid-arguments',
-        hint: 'Usage: node scripts/backup-memory-db.mjs [--cleanup [--apply]]',
+        hint: 'Usage: node scripts/backup-memory-db.mjs [--skip-integrity-check | --cleanup [--apply]]',
       });
       expect(backupDirNames(backupsDir)).toEqual(beforeUsageError);
     }
@@ -534,10 +549,9 @@ fs.unlinkSync = function(target) {
 import { createRequire } from 'node:module';
 
 const require = createRequire(process.cwd() + '/package.json');
-const core = require('@memento/core');
+const { BackupManager } = require('@memento/core/infrastructure/database/sqlite/migration/backup-manager.js');
 
-const realCleanup = core.BackupManager.prototype.cleanupBackups;
-core.BackupManager.prototype.cleanupBackups = async function() {
+BackupManager.prototype.cleanupBackups = async function() {
   throw new Error('injected cleanup failure');
 };
 `);

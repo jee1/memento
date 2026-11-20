@@ -45,7 +45,24 @@ export interface BackupResult {
 
   totalPages: number;
 
-  integrityCheck: 'ok';
+  /** skipped 면 호출자가 사본을 따로 검사해야 한다 (#1802). */
+  integrityCheck: 'ok' | 'skipped';
+}
+
+export interface CreateBackupOptions {
+  /**
+   * 사본의 integrity_check 를 건너뛴다. 운영 배포는 서버를 세운 동안 복사만 하고,
+   * 검사는 새 서버 기동과 나란히 돌린다 (#1802). 나머지 검증(checkpoint, 쪽 수, 크기, fsync)은 그대로 한다.
+   */
+  skipIntegrityCheck?: boolean;
+}
+
+function copyPassesIntegrityCheck(verify: Database.Database, options: CreateBackupOptions): boolean {
+  if (options.skipIntegrityCheck) {
+    return true;
+  }
+  const integrity = verify.pragma('integrity_check') as Array<{ integrity_check: string }>;
+  return integrity.length === 1 && integrity[0]?.integrity_check === 'ok';
 }
 
 export type CleanupMode = 'preview' | 'apply';
@@ -540,7 +557,11 @@ export class BackupManager {
   /**
    * 데이터베이스 백업 생성
    */
-  async createBackup(db: Database.Database, migrationVersion?: string): Promise<BackupResult> {
+  async createBackup(
+    db: Database.Database,
+    migrationVersion?: string,
+    options: CreateBackupOptions = {}
+  ): Promise<BackupResult> {
     const timestamp = new Date();
     const timestampStr = timestamp.toISOString().replace(/[:.]/g, '-');
     const backupFileName = migrationVersion
@@ -600,14 +621,11 @@ export class BackupManager {
           const journalMode = verify.pragma('journal_mode', { simple: true }) as string;
           totalPages = verify.pragma('page_count', { simple: true }) as number;
           const pageSize = verify.pragma('page_size', { simple: true }) as number;
-          const integrity = verify.pragma('integrity_check') as Array<{ integrity_check: string }>;
-
           if (
             journalMode !== 'delete' ||
             totalPages !== metadata.totalPages ||
             pageSize !== sourcePageSize ||
-            integrity.length !== 1 ||
-            integrity[0]?.integrity_check !== 'ok'
+            !copyPassesIntegrityCheck(verify, options)
           ) {
             throw backupFailure('backup-validation-failed');
           }
@@ -671,7 +689,7 @@ export class BackupManager {
         size,
         expectedSize,
         totalPages,
-        integrityCheck: 'ok',
+        integrityCheck: options.skipIntegrityCheck ? 'skipped' : 'ok',
       };
     } catch (error) {
       const safeError = normalizeBackupFailure(error, removeAttemptArtifacts(inProgressPath));
