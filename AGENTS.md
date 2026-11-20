@@ -7,7 +7,7 @@
 | 문서 | 내용 |
 |------|------|
 | [architecture.md](./docs/agents/architecture.md) | 패키지·도메인 |
-| [commands.md](./docs/agents/commands.md) | 명령·환경·Docker (배포 `deploy:docker`) |
+| [commands.md](./docs/agents/commands.md) | 명령, 환경, Docker (배포 `deploy:docker`) |
 | [agent-workflow.md](./docs/agents/agent-workflow.md) | MCP·graphify·UI·복리 |
 | [search-ranking.md](./docs/agents/search-ranking.md) | 랭킹 공식 |
 | [DEVELOPMENT_RULES.md](./DEVELOPMENT_RULES.md) | 코딩 표준 |

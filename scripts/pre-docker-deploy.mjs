@@ -83,11 +83,11 @@ function writable(file) {
 // WAL 읽기에는 -shm 을 쓸 수 있어야 한다. 디렉터리도 -shm 도 못 쓰면 호스트 백업은 반드시
 // source-dir-unwritable 로 끝나므로 시도하지 않는다. 운영(uid 1001 소유)에서는 매번 이 경우이고,
 // 실패하는 호스트 시도가 정지 구간에 1.1~1.6초를 더했다 (#1798).
-// 디렉터리가 없으면 여기서 고르지 않는다. 호스트 시도가 db-not-found 로 끝나야 잘못된 DB_PATH 가 드러난다.
+// DB 파일이 없으면 여기서 고르지 않는다. 호스트 시도가 db-not-found 로 끝나야 잘못된 DB_PATH 가 드러난다.
+// 컨테이너 백업은 DB_PATH 가 아니라 컨테이너 안의 고정 경로를 백업하기 때문이다.
 function hostCannotOpenSource() {
   const dbPath = resolveDbPath();
-  const dir = path.dirname(dbPath);
-  return existsSync(dir) && !writable(dir) && !writable(`${dbPath}-shm`);
+  return existsSync(dbPath) && !writable(path.dirname(dbPath)) && !writable(`${dbPath}-shm`);
 }
 
 function backupInContainer(message) {

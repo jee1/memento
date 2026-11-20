@@ -168,7 +168,7 @@ git worktree remove ~/git/memento-worktrees/issue-123-feature-name   # 브랜치
 
 ## Docker 및 DB 운영
 
-DB 백업과 복구, Docker 배포는 자주 쓰는 운영 명령입니다. 운영 배포는 `npm run deploy:docker` 한 명령으로 합니다. build, 정지, `db:pre-docker-deploy`(백업과 integrity_check), `up -d`, `/health`, 첫 recall 을 차례로 돌고 단계가 실패하면 멈춥니다. 백업이 실패하면 새 이미지로 바꾸지 않고 정지했던 컨테이너를 다시 띄웁니다. 끝에 끊긴 시간과 `memory_item`, `quick_check`, 버전을 한 줄로 찍습니다. 손으로 배포할 때도 `npm run db:pre-docker-deploy`는 **반드시** 정지 뒤, 기동 전에 돌립니다. 이 단계를 건너뛰면 손상된 DB가 컨테이너로 올라갈 수 있습니다.
+DB 백업과 복구, Docker 배포는 자주 쓰는 운영 명령입니다. 운영 배포는 `npm run deploy:docker` 한 명령으로 합니다. 떠 있는 서버에 recall 을 한 번 불러 토큰과 포트를 확인한 뒤 build, 정지, `db:pre-docker-deploy`(백업과 integrity_check), `up -d`, `/health`, 첫 recall 을 차례로 돌고 단계가 실패하면 멈춥니다. 백업이 실패하면 새 이미지로 바꾸지 않고 정지했던 컨테이너를 다시 띄웁니다. 끝에 끊긴 시간과 `memory_item`, `quick_check`, 버전을 한 줄로 찍습니다. 손으로 배포할 때도 `npm run db:pre-docker-deploy`는 **반드시** 정지 뒤, 기동 전에 돌립니다. 이 단계를 건너뛰면 손상된 DB가 컨테이너로 올라가기도 합니다.
 
 ```bash
 npm run deploy:docker             # 운영 배포 (build -> stop -> 백업 -> up -> 첫 recall 확인)

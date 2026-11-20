@@ -158,20 +158,28 @@ describe('pre-docker-deploy operator script', () => {
     expect(existsSync(markerPath)).toBe(false);
   });
 
-  it('does not pick the container route when the DB directory does not exist (#1798)', () => {
+  it('does not pick the container route when DB_PATH names a missing file in an unwritable directory (#1798)', () => {
     const root = makeTempRoot();
+    const dataDir = join(root, 'data');
     const markerPath = join(root, 'docker-called');
     const binDir = join(root, 'bin');
+    mkdirSync(dataDir);
     mkdirSync(binDir);
+    createWalDbWithoutSidecars(dataDir);
+    chmodSync(dataDir, 0o500);
 
-    const result = runPreDockerDeploy({
-      DB_PATH: join(root, 'no-such-dir', 'memory.db'),
-      MEMENTO_BACKUP_DIR: join(root, 'backups'),
-      PATH: setupFakeDocker(binDir, { markerPath, mode: 'success' }),
-    });
+    try {
+      const result = runPreDockerDeploy({
+        DB_PATH: join(dataDir, 'memroy.db'),
+        MEMENTO_BACKUP_DIR: join(root, 'backups'),
+        PATH: setupFakeDocker(binDir, { markerPath, mode: 'success' }),
+      });
 
-    expect(result.status).toBe(1);
-    expect(existsSync(markerPath)).toBe(false);
+      expect(result.status).toBe(1);
+      expect(existsSync(markerPath)).toBe(false);
+    } finally {
+      chmodSync(dataDir, 0o700);
+    }
   });
 
   it('exits 1 when the container fallback also fails (#1001)', () => {

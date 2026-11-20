@@ -42,16 +42,18 @@ Memento MCP/HTTP 서버를 Docker로 **재배포·재시작**할 때 따르는 �
 cd /path/to/memento
 npm run deploy:docker                  # build 부터
 npm run deploy:docker -- --skip-build  # 이미 빌드한 이미지로
+npm run deploy:docker -- --skip-preflight  # 서버가 이미 내려가 있을 때
 ```
 
 아래 손 절차를 이 순서로 한 번에 돌린다 (#1798).
 
-1. `.env` 에서 `tools:invoke` 토큰을 찾는다(`MEMENTO_API_TOKENS`, 없으면 `ADMIN_API_KEY`). 없으면 서버를 건드리지 않고 끝난다.
-2. `docker compose build` (서버가 떠 있는 동안). 실패하면 서버를 건드리지 않고 끝난다.
-3. `docker compose stop` 뒤 `npm run db:pre-docker-deploy`. 백업이 실패하면 새 이미지로 바꾸지 않고 `docker compose start` 로 정지했던 컨테이너를 다시 띄운 뒤 실패로 끝난다.
-4. `docker compose up -d --no-build`.
-5. `/health` 가 200 이 될 때까지 기다린 뒤 `/tools/recall` 을 한 번 부른다. 임베딩 모델은 첫 기억 호출 때 올라오므로 `/health` 200 만으로는 기억 호출이 된다는 보장이 없다. recall 은 5xx 와 연결 오류에만 다시 묻고(최대 5회), 4xx 는 바로 실패로 끝난다. `/tools` 는 15분에 100회 rate limit 이다.
-6. 컨테이너 안에서 `quick_check` 와 `memory_item` 건수를 읽고 한 줄로 찍는다.
+1. `.env` 의 `MEMENTO_API_TOKENS` 에서 `tools:invoke` 토큰을 고른다. agent 에 묶이지 않은 토큰을 먼저 쓴다. `ADMIN_API_KEY` 는 #1241 부터 `/tools` 를 열지 않아 쓰지 않는다. 쓸 토큰이 없으면 서버를 건드리지 않고 끝난다.
+2. 떠 있는 서버에 `/tools/recall` 을 한 번 부른다. 토큰, 포트(`MCP_SERVER_PORT`), 게시 주소(`MCP_PUBLISH_HOST`)가 틀리면 여기서 서버를 건드리지 않고 끝난다.
+3. `docker compose build` (서버가 떠 있는 동안). 실패하면 서버를 건드리지 않고 끝난다.
+4. `docker compose stop` 뒤 `npm run db:pre-docker-deploy`. 백업이 실패하면 새 이미지로 바꾸지 않고 `docker compose start` 로 정지했던 컨테이너를 다시 띄운 뒤 실패로 끝난다. 다시 띄우기도 실패하면 서버가 내려가 있다고 알린다.
+5. `docker compose up -d --no-build`.
+6. `/health` 가 200 이 될 때까지 기다린 뒤 `/tools/recall` 을 한 번 부른다. 임베딩 모델은 첫 기억 호출 때 올라온다. `/health` 200 만으로는 기억 호출이 된다고 보장하지 못한다. recall 은 5xx 와 연결 오류에만 다시 묻고(최대 5회), 4xx 는 바로 실패로 끝난다. `/tools` 는 15분에 100회 rate limit 이다.
+7. 컨테이너 안에서 `quick_check` 와 `memory_item` 건수를 읽고 한 줄로 찍는다.
 
 ```text
 [deploy] downtime=10.9s recall_ready=13.3s (stop=0.7s backup=5.7s start=4.4s first_recall=2.4s) memory_item=13836 quick_check=ok version=2.3.12
@@ -61,7 +63,7 @@ npm run deploy:docker -- --skip-build  # 이미 빌드한 이미지로
 
 - `downtime`: 정지 명령부터 `/health` 200 까지.
 - `recall_ready`: 정지 명령부터 첫 recall 성공까지. 에이전트가 실제로 기억을 못 쓰는 시간이다.
-- 괄호 안은 단계별 시간이다. `stop` 이 30초 가까이 나오면 종료 시점에 배치 작업이 돌고 있어 `stop_grace_period` 를 다 쓴 것이다.
+- 괄호 안은 단계별 시간이다. `stop` 이 30초 가까이 나오면 종료 시점에 배치 작업이 돌아 `stop_grace_period` 를 다 썼다.
 
 시험은 `COMPOSE_PROJECT_NAME`, `COMPOSE_FILE`, `MCP_SERVER_PORT`, `DB_PATH`, `MEMENTO_BACKUP_DIR` 를 바꿔 별도 compose 프로젝트로 한다. 운영 컨테이너에는 영향이 없다.
 
