@@ -10,7 +10,7 @@ import { parseArgs as parseCliArgs, resolveDbPath } from './lib/cli-runtime.js';
  *   node scripts/pre-docker-deploy.mjs --force
  */
 import { spawnSync } from 'node:child_process';
-import { accessSync, constants, existsSync } from 'node:fs';
+import { accessSync, closeSync, constants, openSync, readSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -85,9 +85,26 @@ function writable(file) {
 // 실패하는 호스트 시도가 정지 구간에 1.1~1.6초를 더했다 (#1798).
 // DB 파일이 없으면 여기서 고르지 않는다. 호스트 시도가 db-not-found 로 끝나야 잘못된 DB_PATH 가 드러난다.
 // 컨테이너 백업은 DB_PATH 가 아니라 컨테이너 안의 고정 경로를 백업하기 때문이다.
+// rollback journal DB 는 읽기 전용 디렉터리에서도 호스트 백업이 되므로 WAL DB 만 고른다.
 function hostCannotOpenSource() {
   const dbPath = resolveDbPath();
-  return existsSync(dbPath) && !writable(path.dirname(dbPath)) && !writable(`${dbPath}-shm`);
+  return isWalDatabase(dbPath) && !writable(path.dirname(dbPath)) && !writable(`${dbPath}-shm`);
+}
+
+/** SQLite 헤더 18번째 바이트(file format write version)가 2 이면 WAL 이다. 파일이 없거나 못 읽으면 false. */
+function isWalDatabase(dbPath) {
+  try {
+    const header = Buffer.alloc(19);
+    const fd = openSync(dbPath, 'r');
+    try {
+      readSync(fd, header, 0, 19, 0);
+    } finally {
+      closeSync(fd);
+    }
+    return header[18] === 2;
+  } catch {
+    return false;
+  }
 }
 
 function backupInContainer(message) {

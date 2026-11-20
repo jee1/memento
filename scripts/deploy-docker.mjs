@@ -32,6 +32,8 @@ const { values } = parseArgs({
     'skip-preflight': { type: 'boolean', default: false },
     'timeout-sec': { type: 'string', default: '180' },
   },
+  allowPositionals: false,
+  strict: true,
 });
 const service = process.env.MEMENTO_COMPOSE_SERVICE ?? 'memento-mcp-server';
 const timeoutMs = Number(values['timeout-sec']) * 1000;
@@ -70,14 +72,16 @@ function readDotenv() {
 
 const dotenv = readDotenv();
 
-/** compose 와 같은 순서로 값을 찾는다. 셸 환경 변수, 그다음 저장소 루트 .env. */
-const setting = key => process.env[key] || dotenv[key] || '';
+/** compose 와 같은 순서로 값을 찾는다. 셸 환경 변수(빈 값도 설정으로 본다), 그다음 저장소 루트 .env. */
+const setting = key => process.env[key] ?? dotenv[key] ?? '';
 
 /**
- * tools:invoke 토큰을 고른다. ADMIN_API_KEY 는 #1241 부터 /tools 를 열지 않는다.
+ * recall 을 부를 수 있는 tools:invoke 나 tools:read 토큰을 고른다. ADMIN_API_KEY 는 #1241 부터 /tools 를 열지 않는다.
  * 서버가 버리는 항목(비밀 32자 미만)은 건너뛰고, agent 에 묶이지 않은 토큰을 먼저 쓴다.
  * 그 밖의 서버 검증과 어긋나는 경우는 정지 전 preflight recall 이 잡는다.
  */
+const RECALL_SCOPES = ['tools:invoke', 'tools:read'];
+
 function pickToolsToken() {
   let entries;
   try {
@@ -92,7 +96,7 @@ function pickToolsToken() {
       agentId: typeof (t?.agent_id ?? t?.agentId) === 'string' ? (t.agent_id ?? t.agentId).trim() : '',
       scopes: Array.isArray(t?.scopes) ? t.scopes : [],
     }))
-    .filter(t => t.secret.length >= 32 && t.scopes.includes('tools:invoke'));
+    .filter(t => t.secret.length >= 32 && RECALL_SCOPES.some(scope => t.scopes.includes(scope)));
   return usable.find(t => !t.agentId) ?? usable[0] ?? null;
 }
 
@@ -113,7 +117,7 @@ async function waitFor(label, deadline, request, { intervalMs = POLL_MS, maxAtte
       const res = await request();
       if (res.ok) return res;
       last = `HTTP ${res.status}`;
-      if (res.status < 500) fail(`${label} returned ${last}: ${(await res.text()).slice(0, 200)}`);
+      if (res.status < 500 && res.status !== 429) fail(`${label} returned ${last}: ${(await res.text()).slice(0, 200)}`);
     } catch (error) {
       last = error instanceof Error ? error.message : String(error);
     }
@@ -134,7 +138,7 @@ const recall = token => () =>
       authorization: `Bearer ${token.secret}`,
       'x-memento-agent-id': token.agentId || 'deploy-check',
     },
-    body: JSON.stringify({ query: 'deploy readiness check', type: 'episodic', limit: 1 }),
+    body: JSON.stringify({ query: 'deploy readiness check', type: 'episodic', limit: 1, auto_set_anchor: false }),
     signal: AbortSignal.timeout(60_000),
   });
 
@@ -163,7 +167,7 @@ const seconds = ms => `${(ms / 1000).toFixed(1)}s`;
 
 if (!(timeoutMs > 0)) fail(`--timeout-sec must be a positive number: ${values['timeout-sec']}`);
 const token = pickToolsToken();
-if (!token) fail('no usable tools:invoke token in MEMENTO_API_TOKENS (.env); server untouched');
+if (!token) fail('no usable recall token (tools:invoke or tools:read) in MEMENTO_API_TOKENS (.env); server untouched');
 
 // 토큰, 포트, 게시 주소가 맞는지 떠 있는 서버로 먼저 확인한다. 틀리면 정지 전에 끝난다.
 if (!values['skip-preflight']) {
@@ -182,12 +186,20 @@ if (!values['skip-build']) {
   if (!compose('build', service).ok) fail('docker compose build; server untouched');
 }
 
+// preflight 가 답한 서버가 이 compose 프로젝트의 컨테이너인지 본다. 다른 프로젝트(예: worktree 이름)로
+// 돌리면 stop 이 아무것도 세우지 않아 운영 서버가 떠 있는 채로 백업이 돈다 (#1041).
+const wasRunning = run('docker', ['compose', 'ps', '-q', '--status', 'running', service], { capture: true }).stdout.trim() !== '';
+if (!values['skip-preflight'] && !wasRunning) {
+  fail(`${service} is not running in this compose project (COMPOSE_PROJECT_NAME, run from the main checkout); server untouched`);
+}
+
 const stoppedAt = Date.now();
 log(`stop ${service}`);
 if (!compose('stop', service).ok) fail('docker compose stop');
 const stopDoneAt = Date.now();
 
 if (!run(process.execPath, [path.join(root, 'scripts', 'pre-docker-deploy.mjs')]).ok) {
+  if (!wasRunning) fail('pre-docker-deploy (backup or integrity_check); the server was already down and stays down');
   log('backup failed; restarting the previous container without the new image');
   if (!compose('start', service).ok) {
     fail(`pre-docker-deploy failed and docker compose start failed too; the server is down, run: docker compose start ${service}`);
@@ -201,7 +213,7 @@ if (!compose('up', '-d', '--no-build', service).ok) {
   fail(`docker compose up -d; the server is stopped, run: docker compose up -d ${service}`);
 }
 
-const health = await (await waitFor('/health', Date.now() + timeoutMs, getHealth)).json();
+const health = await (await waitFor('/health', Date.now() + timeoutMs, getHealth)).json().catch(() => ({}));
 const healthyAt = Date.now();
 await waitFor('first recall', Date.now() + timeoutMs, recall(token), { intervalMs: 2000, maxAttempts: 5 });
 const readyAt = Date.now();

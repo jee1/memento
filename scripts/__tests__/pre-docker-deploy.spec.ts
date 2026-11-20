@@ -158,6 +158,31 @@ describe('pre-docker-deploy operator script', () => {
     expect(existsSync(markerPath)).toBe(false);
   });
 
+  it('keeps a rollback-journal DB in an unwritable directory on the host route (#1798)', () => {
+    const root = makeTempRoot();
+    const dataDir = join(root, 'data');
+    const markerPath = join(root, 'docker-called');
+    const binDir = join(root, 'bin');
+    mkdirSync(dataDir);
+    mkdirSync(binDir);
+    const dbPath = join(dataDir, 'memory.db');
+    createDb(dbPath);
+    chmodSync(dataDir, 0o500);
+
+    try {
+      const result = runPreDockerDeploy({
+        DB_PATH: dbPath,
+        MEMENTO_BACKUP_DIR: join(root, 'backups'),
+        PATH: setupFakeDocker(binDir, { markerPath, mode: 'success' }),
+      });
+
+      expect(result.status, result.stderr).toBe(0);
+      expect(existsSync(markerPath)).toBe(false);
+    } finally {
+      chmodSync(dataDir, 0o700);
+    }
+  });
+
   it('does not pick the container route when DB_PATH names a missing file in an unwritable directory (#1798)', () => {
     const root = makeTempRoot();
     const dataDir = join(root, 'data');

@@ -21,8 +21,13 @@ afterEach(async () => {
   roots = [];
 });
 
-/** docker 대신 호출을 기록하는 가짜. failOn 에 든 compose 하위 명령은 1 로 끝난다. */
-function setup(opts: { failOn?: string } = {}) {
+const PS = 'compose ps -q --status running memento-mcp-server';
+
+/**
+ * docker 대신 호출을 기록하는 가짜. failOn 에 든 compose 하위 명령은 1 로 끝난다.
+ * notRunning 이면 compose ps 가 빈 출력을 내 서비스 컨테이너가 이 프로젝트에 없는 것처럼 보인다.
+ */
+function setup(opts: { failOn?: string; notRunning?: boolean } = {}) {
   const root = mkdtempSync(join(tmpdir(), 'memento-deploy-docker-'));
   roots.push(root);
   const binDir = join(root, 'bin');
@@ -36,6 +41,7 @@ echo "$*" >> "${callLog}"
 case "$*" in
   "compose ${opts.failOn ?? '__none__'} "*) exit 1 ;;
   *" exec "*) echo '{"quick_check":"ok","memory_item":1}' ;;
+  "compose ps "*) ${opts.notRunning ? ':' : 'echo c0ffee'} ;;
 esac
 exit 0
 `,
@@ -103,6 +109,7 @@ describe('deploy-docker (#1798)', () => {
     expect(result.status, result.stderr).toBe(0);
     expect(t.calls()).toEqual([
       'compose build memento-mcp-server',
+      PS,
       'compose stop memento-mcp-server',
       'compose up -d --no-build memento-mcp-server',
       expect.stringMatching(/^compose exec -T memento-mcp-server node -e /),
@@ -135,9 +142,52 @@ describe('deploy-docker (#1798)', () => {
     );
 
     expect(result.status).toBe(1);
-    expect(t.calls()).toEqual(['compose stop memento-mcp-server', 'compose start memento-mcp-server']);
+    expect(t.calls()).toEqual([PS, 'compose stop memento-mcp-server', 'compose start memento-mcp-server']);
     expect(result.stderr).toContain('the previous container is running again');
     expect(server.seen.recall).toBe(1);
+  });
+
+  it('leaves an already stopped server down when the backup fails after --skip-preflight', async () => {
+    const t = setup({ notRunning: true });
+
+    const result = await runDeploy({ ...t.env, DB_PATH: join(t.dbPath, '..', 'missing.db') }, [
+      '--skip-build',
+      '--skip-preflight',
+    ]);
+
+    expect(result.status).toBe(1);
+    expect(t.calls()).toEqual([PS, 'compose stop memento-mcp-server']);
+    expect(result.stderr).toContain('the server was already down and stays down');
+  });
+
+  it('stops before touching the server when the answering server is not this compose project (e.g. run from a worktree)', async () => {
+    const t = setup({ notRunning: true });
+    const server = await fakeServer();
+
+    const result = await runDeploy({ ...t.env, MCP_SERVER_PORT: server.port }, ['--skip-build']);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('is not running in this compose project');
+    expect(t.calls()).toEqual([PS]);
+  });
+
+  it('retries the first recall on 429 instead of failing a healthy deploy', async () => {
+    const t = setup();
+    const server = await fakeServer({ recallStatuses: [200, 429, 200] });
+
+    const result = await runDeploy({ ...t.env, MCP_SERVER_PORT: server.port }, ['--skip-build']);
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(server.seen.recall).toBe(3);
+  });
+
+  it('rejects a misspelled flag instead of ignoring it', async () => {
+    const t = setup();
+
+    const result = await runDeploy(t.env, ['--skip-prefight']);
+
+    expect(result.status).not.toBe(0);
+    expect(t.calls()).toEqual([]);
   });
 
   it('says the server is down when the restart after a failed backup also fails', async () => {
@@ -188,7 +238,21 @@ describe('deploy-docker (#1798)', () => {
     expect(server.seen).toMatchObject({ auth: `Bearer ${SECRET}-b`, agent: 'claude-code' });
   });
 
-  it('refuses to start without a usable tools:invoke token and leaves the server untouched', async () => {
+  it('accepts a tools:read token for the recall check', async () => {
+    const t = setup();
+    const server = await fakeServer();
+    const reader = { id: 'reader', secret: `${SECRET}-r`, scopes: ['tools:read'] };
+
+    const result = await runDeploy(
+      { ...t.env, MCP_SERVER_PORT: server.port, MEMENTO_API_TOKENS: JSON.stringify([reader]) },
+      ['--skip-build']
+    );
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(server.seen.auth).toBe(`Bearer ${SECRET}-r`);
+  });
+
+  it('refuses to start without a usable recall token and leaves the server untouched', async () => {
     const t = setup();
     // 비어 있으면 저장소 .env 를 읽으므로, 서버가 버리는 짧은 비밀과 admin 전용 토큰만 둔다. ADMIN_API_KEY 는 /tools 를 열지 않는다 (#1241).
     const unusable = JSON.stringify([
@@ -198,7 +262,7 @@ describe('deploy-docker (#1798)', () => {
     const result = await runDeploy({ ...t.env, MEMENTO_API_TOKENS: unusable, ADMIN_API_KEY: SECRET });
 
     expect(result.status).toBe(1);
-    expect(result.stderr).toContain('no usable tools:invoke token');
+    expect(result.stderr).toContain('no usable recall token');
     expect(t.calls()).toEqual([]);
   });
 });

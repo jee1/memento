@@ -47,13 +47,14 @@ npm run deploy:docker -- --skip-preflight  # 서버가 이미 내려가 있을 �
 
 아래 손 절차를 이 순서로 한 번에 돌린다 (#1798).
 
-1. `.env` 의 `MEMENTO_API_TOKENS` 에서 `tools:invoke` 토큰을 고른다. agent 에 묶이지 않은 토큰을 먼저 쓴다. `ADMIN_API_KEY` 는 #1241 부터 `/tools` 를 열지 않아 쓰지 않는다. 쓸 토큰이 없으면 서버를 건드리지 않고 끝난다.
+1. `.env` 의 `MEMENTO_API_TOKENS` 에서 recall 을 부를 수 있는 `tools:invoke` 나 `tools:read` 토큰을 고른다. agent 에 묶이지 않은 토큰을 먼저 쓴다. `ADMIN_API_KEY` 는 #1241 부터 `/tools` 를 열지 않아 쓰지 않는다. 쓸 토큰이 없으면 서버를 건드리지 않고 끝난다.
 2. 떠 있는 서버에 `/tools/recall` 을 한 번 부른다. 토큰, 포트(`MCP_SERVER_PORT`), 게시 주소(`MCP_PUBLISH_HOST`)가 틀리면 여기서 서버를 건드리지 않고 끝난다.
 3. `docker compose build` (서버가 떠 있는 동안). 실패하면 서버를 건드리지 않고 끝난다.
-4. `docker compose stop` 뒤 `npm run db:pre-docker-deploy`. 백업이 실패하면 새 이미지로 바꾸지 않고 `docker compose start` 로 정지했던 컨테이너를 다시 띄운 뒤 실패로 끝난다. 다시 띄우기도 실패하면 서버가 내려가 있다고 알린다.
-5. `docker compose up -d --no-build`.
-6. `/health` 가 200 이 될 때까지 기다린 뒤 `/tools/recall` 을 한 번 부른다. 임베딩 모델은 첫 기억 호출 때 올라온다. `/health` 200 만으로는 기억 호출이 된다고 보장하지 못한다. recall 은 5xx 와 연결 오류에만 다시 묻고(최대 5회), 4xx 는 바로 실패로 끝난다. `/tools` 는 15분에 100회 rate limit 이다.
-7. 컨테이너 안에서 `quick_check` 와 `memory_item` 건수를 읽고 한 줄로 찍는다.
+4. 서비스 컨테이너가 이 compose 프로젝트에서 돌고 있는지 `docker compose ps` 로 본다. worktree 처럼 프로젝트 이름이 다른 곳에서 돌리면 `stop` 이 운영 서버를 세우지 못하므로 여기서 끝난다. 배포는 메인 체크아웃에서 한다.
+5. `docker compose stop` 뒤 `npm run db:pre-docker-deploy`. 백업이 실패하면 새 이미지로 바꾸지 않고 `docker compose start` 로 정지했던 컨테이너를 다시 띄운 뒤 실패로 끝난다. `--skip-preflight` 로 이미 내려가 있던 서버는 다시 띄우지 않는다. 다시 띄우기도 실패하면 서버가 내려가 있다고 알린다.
+6. `docker compose up -d --no-build`.
+7. `/health` 가 200 이 될 때까지 기다린 뒤 `/tools/recall` 을 한 번 부른다. 임베딩 모델은 첫 기억 호출 때 올라온다. `/health` 200 만으로는 기억 호출이 된다고 보장하지 못한다. recall 은 5xx, 429, 연결 오류에만 다시 묻고(최대 5회), 그 밖의 4xx 는 바로 실패로 끝난다. `/tools` 는 15분에 100회 rate limit 이다. 확인 recall 은 앵커를 바꾸지 않는다(`auto_set_anchor: false`).
+8. 컨테이너 안에서 `quick_check` 와 `memory_item` 건수를 읽고 한 줄로 찍는다.
 
 ```text
 [deploy] downtime=10.9s recall_ready=13.3s (stop=0.7s backup=5.7s start=4.4s first_recall=2.4s) memory_item=13836 quick_check=ok version=2.3.12
