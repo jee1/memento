@@ -462,6 +462,9 @@ export class QualityReporter {
    */
   async generateReport(options: ReportOptions = {}): Promise<string> {
     const format = options.format || 'markdown';
+    if (!isReportFormat(format)) {
+      throw new Error(`Unsupported report format: ${format}`);
+    }
     const reportData = await this.collectReportData(options);
 
     logger.info(`품질 리포트 생성: ${format} 형식`, {
@@ -477,8 +480,6 @@ export class QualityReporter {
         return this.generateMarkdownReport(reportData);
       case 'json':
         return this.generateJsonReport(reportData);
-      default:
-        throw new Error(`Unsupported report format: ${format}`);
     }
   }
 }

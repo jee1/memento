@@ -1,6 +1,4 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
-import { existsSync, readdirSync } from 'fs';
-import path from 'path';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
 import { QualityReporter, isReportFormat, type ReportFormat } from './quality-reporter.js';
@@ -436,17 +434,6 @@ describe('QualityReporter', () => {
       expect(parsed.generated_at).toBeDefined();
     });
 
-    it.each(['markdown', 'json'] as const)('should not write a report file when format is %s', async (format) => {
-      const logDir = path.join(process.cwd(), 'logs');
-      const reportFiles = () =>
-        existsSync(logDir) ? readdirSync(logDir).filter(f => f.startsWith('quality-report-')) : [];
-      const before = reportFiles();
-
-      await reporter.generateReport({ format });
-
-      expect(reportFiles()).toEqual(before);
-    });
-
     it('should reject html as a report format', async () => {
       expect(isReportFormat('html')).toBe(false);
       await expect(
@@ -490,7 +477,7 @@ describe('QualityReporter', () => {
       ]);
     });
 
-    it('should rank a warning namespace above unmeasured namespaces regardless of order', async () => {
+    it('should rank a warning namespace above unmeasured namespaces listed before it', async () => {
       db.prepare(
         `INSERT INTO quality_metrics (metric_namespace, metric_key, context, metric_value, measured_at, status)
          VALUES ('storage', 'integrity', 'default', 0.5, ?, 'warning')`

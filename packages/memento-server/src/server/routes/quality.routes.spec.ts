@@ -125,18 +125,21 @@ describe('Quality Routes', () => {
 
     it.each(['html', 'xml'])('should reject format=%s with 400 without generating a report', async (format) => {
       const generateReport = vi.spyOn(QualityAssuranceService.prototype, 'generateReport');
-      mockRequest.query = { format };
+      try {
+        mockRequest.query = { format };
 
-      const handler = router.stack.find(layer => layer.route?.path === '/report' && layer.route?.methods.get);
-      await handler!.route!.stack[0].handle(mockRequest as Request, mockResponse as Response, mockNext);
+        const handler = router.stack.find(layer => layer.route?.path === '/report' && layer.route?.methods.get);
+        await handler!.route!.stack[0].handle(mockRequest as Request, mockResponse as Response, mockNext);
 
-      expect(mockResponse.status).toHaveBeenCalledWith(400);
-      expect(mockResponse.json).toHaveBeenCalledWith({
-        error: 'Unsupported report format',
-        supported: ['markdown', 'json']
-      });
-      expect(generateReport).not.toHaveBeenCalled();
-      generateReport.mockRestore();
+        expect(mockResponse.status).toHaveBeenCalledWith(400);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          error: 'Unsupported report format',
+          supported: ['markdown', 'json']
+        });
+        expect(generateReport).not.toHaveBeenCalled();
+      } finally {
+        generateReport.mockRestore();
+      }
     });
 
     it('should filter by namespace when provided', async () => {

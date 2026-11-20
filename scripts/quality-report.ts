@@ -54,7 +54,7 @@ function parseArgs(): CliOptions {
 
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
-    if (arg === '--format' && args[i + 1]) {
+    if (arg === '--format') {
       const format = args[i + 1];
       if (!isReportFormat(format)) {
         console.error(`지원하지 않는 리포트 형식입니다: ${format} (${REPORT_FORMATS.join(', ')})`);
