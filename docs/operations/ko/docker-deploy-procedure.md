@@ -61,10 +61,10 @@ npm run deploy:docker -- --skip-preflight  # 서버가 이미 내려가 있을 �
 10. 사본 검사 결과를 기다린다. 서비스 컨테이너 안에서 `quick_check` 와 `memory_item` 건수를 읽고 한 줄로 찍는다. 사본 검사가 실패하면 눈에 띄는 경고 블록에 사본 경로와 직전 백업 경로를 찍고 종료 코드 1 로 끝난다. 이때 오래된 백업은 지우지 않는다. 통과하면 오래된 백업을 정리한다(`--cleanup --apply`, 운영자 백업 10개 유지). 검사를 통과하지 못했거나 검사 전에 배포가 실패한 사본은 이름 뒤에 `.unverified` 를 붙여 정리와 직전 백업 선택에서 뺀다. 이 파일은 자동으로 지우지 않는다. `up` 뒤의 모든 실패 메시지에는 4단계 이미지로 되돌리는 명령이 붙는다.
 
 ```text
-[deploy] downtime=3.9s recall_ready=5.2s (stop=0.4s copy=0.5s start=2.9s first_recall=1.4s) copy_check=ok
+[deploy] downtime=4.1s recall_ready=5.5s (stop=0.5s copy=0.6s start=3.1s first_recall=1.4s) copy_check=ok memory_item=13914 quick_check=ok version=2.3.12
 ```
 
-운영 실측은 2026-11-20 17:55 에 3.9초, 19:32 에 4.1초였다. 17:55 줄은 [#1802 코멘트](https://github.com/jee1/memento/issues/1802#issuecomment-7034978235)에 있다. 이 절차 전(#1798 이전)에는 11.4초였다. 남은 시간의 대부분은 새 서버 기동 `start` 다. 같은 기계에서 시험이나 변이 검사가 돌면 `start` 가 길어진다(16:53 배포 13.3초, 같은 코멘트 스레드).
+운영 실측은 2026-11-20 17:55 에 3.9초([#1802 코멘트](https://github.com/jee1/memento/issues/1802#issuecomment-7034978235)), 19:32 에 4.1초(위 줄, [#1802 코멘트](https://github.com/jee1/memento/issues/1802#issuecomment-7038828366))였다. #1802 이전에는 11.4초였다. 남은 시간의 대부분은 새 서버 기동 `start` 다. 같은 기계에서 시험이나 변이 검사가 돌면 `start` 가 길어진다(16:53 배포 13.3초, 같은 코멘트 스레드).
 
 - `downtime`: 정지 명령부터 `/health` 200 까지.
 - `recall_ready`: 정지 명령부터 첫 recall 성공까지. 에이전트가 실제로 기억을 못 쓰는 시간이다.
