@@ -1,13 +1,14 @@
 import { describe, expect, it } from 'vitest';
-import { fenceStoredMaterial as coreFence } from '../packages/memento-core/src/shared/utils/stored-material-fence.js';
+import {
+  fenceStoredMaterial as coreFence,
+  withFixedMaterialTag as fixedTag,
+} from '../packages/memento-core/src/shared/utils/stored-material-fence.js';
 import { fenceStoredMaterial as clientFence } from '../packages/memento-client/src/stored-material-fence.js';
 
 /**
  * 저장 자료 경계는 core(memory_injection, 개인 지식 에이전트)와 공개 패키지 memento-client(ContextInjector, memento-assistant)에
  * 사본이 하나씩 있다. client 는 core 에 의존하지 않아서다. 두 사본은 표시 값만 빼고 같은 글을 내야 한다.
  */
-const fixedTag = (text: string) => text.replace(/memento-material-[0-9a-f]{16}/g, 'memento-material-0');
-
 const SAMPLES = [
   '',
   '평범한 기억 본문',

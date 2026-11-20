@@ -36,7 +36,8 @@ export async function beforeUserTurn(deps: Deps, input: BeforeUserTurnInput): Pr
       deps.policy.recallTimeoutMs,
     );
     deps.breaker.recordSuccess();
-    const body = result.items.map(i => `- ${i.content}`).join('\n');
+    // 본문 안 줄바꿈을 들여 써서 다음 줄이 새 항목처럼 보이지 않게 한다.
+    const body = result.items.map(i => `- ${i.content.replace(/\n/g, '\n  ')}`).join('\n');
     const systemContext = result.items.length === 0 ? '' : fenceStoredMaterial(body);
     return {
       systemContext,
