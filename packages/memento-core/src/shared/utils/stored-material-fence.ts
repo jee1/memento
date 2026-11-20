@@ -1,7 +1,13 @@
 import { randomBytes } from 'node:crypto';
 
-/** 본문 안의 표시 이름. 사이에 낀 형식 문자(zero-width 등)도 같은 이름으로 본다. */
-const MATERIAL_NAME = /memento\p{Cf}*-\p{Cf}*material/giu;
+/** 경계 표시 모양. 같은 입력에 같은 결과가 필요한 곳(mock LLM)이 표시 값을 고정할 때 쓴다. */
+export const STORED_MATERIAL_TAG = /memento-material-[0-9a-f]{16}/g;
+
+/**
+ * 본문 안의 표시 이름. 사이에 낀 형식, 결합, 공백 문자와 다른 하이픈도 같은 이름으로 본다.
+ * 전각 글자나 다른 문자 체계의 닮은 글자는 잡지 않는다. 진짜 표시는 호출마다 새로 뽑아 본문이 맞출 수 없다.
+ */
+const MATERIAL_NAME = /memento[\p{Cf}\p{Mn}\p{Z}]*[-_\u2010-\u2015\u2212\uFE63\uFF0D][\p{Cf}\p{Mn}\p{Z}]*material/giu;
 
 /**
  * 저장된 자료를 호출마다 새로 뽑은 표시 한 쌍으로 감싼다. 외부 글에서 온 기억이 지시처럼 읽힐 가능성을 낮추는 장치이고 막아 주지는 않는다.
