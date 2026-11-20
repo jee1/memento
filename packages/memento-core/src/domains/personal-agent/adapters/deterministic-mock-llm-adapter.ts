@@ -1,5 +1,5 @@
 import { createHash } from 'node:crypto';
-import { STORED_MATERIAL_TAG } from '../../../shared/utils/stored-material-fence.js';
+import { withFixedMaterialTag } from '../../../shared/utils/stored-material-fence.js';
 import type {
   ILLMPort,
   LLMCompletionResult,
@@ -40,7 +40,7 @@ export class DeterministicMockLlmAdapter implements ILLMPort {
       messages.map((message) => ({
         role: message.role,
         // 저장 자료 경계 표시는 호출마다 바뀐다. 같은 입력이 같은 requestId 를 받도록 고정값으로 바꾼다.
-        content: message.content.replace(STORED_MATERIAL_TAG, 'memento-material-0'),
+        content: withFixedMaterialTag(message.content),
       })),
     );
     const digest = createHash('sha256')

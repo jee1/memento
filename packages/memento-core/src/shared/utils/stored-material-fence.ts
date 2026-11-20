@@ -1,7 +1,9 @@
 import { randomBytes } from 'node:crypto';
 
-/** 경계 표시 모양. 같은 입력에 같은 결과가 필요한 곳(mock LLM)이 표시 값을 고정할 때 쓴다. */
-export const STORED_MATERIAL_TAG = /memento-material-[0-9a-f]{16}/g;
+/** 경계 표시 값을 고정값으로 바꾼다. 같은 입력에 같은 결과가 필요한 곳(mock LLM)이 쓴다. */
+export function withFixedMaterialTag(text: string): string {
+  return text.replace(/memento-material-[0-9a-f]{16}/g, 'memento-material-0');
+}
 
 /**
  * 본문 안의 표시 이름. 사이에 낀 형식, 결합, 공백 문자와 다른 하이픈도 같은 이름으로 본다.
