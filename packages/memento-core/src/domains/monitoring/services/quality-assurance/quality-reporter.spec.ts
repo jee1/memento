@@ -1,7 +1,7 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import Database from 'better-sqlite3';
 import { setupTestDatabase, cleanupTestDatabase } from '../../../../test/helpers/test-database.js';
-import { QualityReporter, type ReportFormat } from './quality-reporter.js';
+import { QualityReporter, isReportFormat, type ReportFormat } from './quality-reporter.js';
 import { QualityRecorder } from './quality-recorder.js';
 import { QualityEvaluator } from './quality-evaluator.js';
 import { QualityThresholdManager } from './quality-threshold-manager.js';
@@ -384,69 +384,6 @@ describe('QualityReporter', () => {
     });
   });
 
-  describe('generateHtmlReport', () => {
-    beforeEach(async () => {
-      // 테스트 데이터 준비
-      thresholdManager.setThreshold('search', 'precision_at_5', {
-        threshold_value: 0.7,
-        threshold_type: 'min',
-        description: 'Test threshold'
-      });
-
-      const searchMetrics: CollectedMetrics = {
-        namespace: 'search',
-        context: 'default',
-        measured_at: new Date().toISOString(),
-        metrics: {
-          precision_at_5: 0.85
-        }
-      };
-      const searchEvaluation = await evaluator.evaluateMetrics(searchMetrics);
-      await recorder.recordMeasurement(searchMetrics, searchEvaluation);
-    });
-
-    it('should generate html report', async () => {
-      // Given: 리포트 데이터가 있는 경우
-      const reportData = await reporter.collectReportData();
-
-      // When: HTML 리포트 생성
-      const html = reporter.generateHtmlReport(reportData);
-
-      // Then: HTML 형식의 리포트가 생성되어야 함
-      expect(html).toBeDefined();
-      expect(html).toContain('<!DOCTYPE html>');
-      expect(html).toContain('<html');
-      expect(html).toContain('Quality Assurance Report');
-    });
-
-    it('should include styles in html', async () => {
-      // Given: 리포트 데이터가 있는 경우
-      const reportData = await reporter.collectReportData();
-
-      // When: HTML 리포트 생성
-      const html = reporter.generateHtmlReport(reportData);
-
-      // Then: 스타일이 포함되어야 함
-      expect(html).toContain('<style>');
-      expect(html).toContain('status-pass');
-      expect(html).toContain('status-warning');
-      expect(html).toContain('status-fail');
-    });
-
-    it('should include summary table in html', async () => {
-      // Given: 리포트 데이터가 있는 경우
-      const reportData = await reporter.collectReportData();
-
-      // When: HTML 리포트 생성
-      const html = reporter.generateHtmlReport(reportData);
-
-      // Then: 요약 테이블이 포함되어야 함
-      expect(html).toContain('요약');
-      expect(html).toContain('총 지표 수');
-      expect(html).toContain('통과 지표');
-    });
-  });
-
   describe('generateReport', () => {
     beforeEach(async () => {
       // 테스트 데이터 준비
@@ -497,14 +434,11 @@ describe('QualityReporter', () => {
       expect(parsed.generated_at).toBeDefined();
     });
 
-    it('should generate html report when format is html', async () => {
-      // Given: html 형식 옵션
-      // When: 리포트 생성
-      const report = await reporter.generateReport({ format: 'html' });
-
-      // Then: HTML 형식의 리포트가 생성되어야 함
-      expect(report).toContain('<!DOCTYPE html>');
-      expect(report).toContain('<html');
+    it('should reject html as a report format', async () => {
+      expect(isReportFormat('html')).toBe(false);
+      await expect(
+        reporter.generateReport({ format: 'html' as ReportFormat })
+      ).rejects.toThrow('Unsupported report format');
     });
 
     it('should throw error for unsupported format', async () => {
@@ -525,5 +459,37 @@ describe('QualityReporter', () => {
       expect(parsed.latest_metrics.every((m: any) => m.metric_namespace === 'search')).toBe(true);
     });
   });
-});
 
+  describe('unmeasured 판정', () => {
+    it('should keep a namespace without measurement history as unmeasured with zero counts', async () => {
+      const reportData = await reporter.collectReportData({ namespace: 'search' });
+
+      expect(reportData.summary.namespace_status).toEqual([
+        {
+          namespace: 'search',
+          status: 'unmeasured',
+          metrics_count: 0,
+          passed_count: 0,
+          failed_count: 0,
+          no_threshold_count: 0,
+          unmeasured_count: 0
+        }
+      ]);
+    });
+
+    it('should rank a warning namespace above unmeasured namespaces listed before it', async () => {
+      db.prepare(
+        `INSERT INTO quality_metrics (metric_namespace, metric_key, context, metric_value, measured_at, status)
+         VALUES ('storage', 'integrity', 'default', 0.5, ?, 'warning')`
+      ).run(new Date().toISOString());
+
+      const reportData = await reporter.collectReportData();
+
+      const byNamespace = Object.fromEntries(
+        reportData.summary.namespace_status.map(ns => [ns.namespace, ns.status])
+      );
+      expect(byNamespace).toMatchObject({ search: 'unmeasured', relation: 'unmeasured', storage: 'warning' });
+      expect(reportData.summary.overall_status).toBe('warning');
+    });
+  });
+});

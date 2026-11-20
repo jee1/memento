@@ -6,7 +6,7 @@
  * PRD FR-4.7: HTTP API로 임계값 조회/업데이트 기능 구현
  */
 
-import { QualityAssuranceService, QualityThresholdManager, logger, sqliteRepositoryProvider } from '@memento/core';
+import { QualityAssuranceService, QualityThresholdManager, REPORT_FORMATS, isReportFormat, logger, sqliteRepositoryProvider } from '@memento/core';
 import type Database from 'better-sqlite3';
 import type { Request, Response } from 'express';
 import { Router } from 'express';
@@ -43,7 +43,7 @@ function respondQualityUnavailable(res: Response) {
  * 품질 리포트 생성
  *
  * Query Parameters:
- *   - format: 'markdown' | 'json' | 'html' (기본값: 'markdown')
+ *   - format: 'markdown' | 'json' (기본값: 'markdown'). 그 밖의 값은 400
  *   - namespace: 네임스페이스 필터 (선택적)
  *   - context: 컨텍스트 필터 (선택적, 기본값: 'default')
  *   - from: 시작 시간 (ISO 8601 형식, 선택적)
@@ -56,7 +56,14 @@ function getQualityReport(qualityService: QualityAssuranceService | null) {
         return respondQualityUnavailable(res);
       }
 
-      const format = (req.query.format as 'markdown' | 'json' | 'html') || 'markdown';
+      const requestedFormat = req.query.format || 'markdown';
+      if (!isReportFormat(requestedFormat)) {
+        return res.status(400).json({
+          error: 'Unsupported report format',
+          supported: REPORT_FORMATS
+        });
+      }
+      const format = requestedFormat;
       const namespace = req.query.namespace as string | undefined;
       const context = (req.query.context as string) || 'default';
       const from = req.query.from as string | undefined;
@@ -72,8 +79,6 @@ function getQualityReport(qualityService: QualityAssuranceService | null) {
 
       if (format === 'json') {
         res.setHeader('Content-Type', 'application/json');
-      } else if (format === 'html') {
-        res.setHeader('Content-Type', 'text/html');
       } else {
         res.setHeader('Content-Type', 'text/markdown');
       }

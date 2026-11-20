@@ -4,7 +4,7 @@
  * 품질 리포트 생성 서비스
  *
  * 주요 기능:
- * - Markdown, JSON, HTML 형식 리포트 생성
+ * - Markdown, JSON 형식 리포트 생성
  * - 네임스페이스, 컨텍스트, 시간 범위 필터링
  * - 품질 지표 요약, 경고 정보, 이력 추이 포함
  *
@@ -18,10 +18,8 @@ import { QualityThresholdManager } from './quality-threshold-manager.js';
 import { DatabaseUtils } from '../../../../shared/utils/database.js';
 import { logger } from '../../../../shared/utils/logger.js';
 import {
-  generateHtmlReport,
   generateJsonReport,
-  generateMarkdownReport,
-  saveReportToFile
+  generateMarkdownReport
 } from './quality-report-renderers.js';
 import {
   isEvaluableMetricState,
@@ -29,10 +27,16 @@ import {
   type QualityMetricState,
 } from './quality-metric-measurement.js';
 
+export const REPORT_FORMATS = ['markdown', 'json'] as const;
+
 /**
  * 리포트 형식
  */
-export type ReportFormat = 'markdown' | 'json' | 'html';
+export type ReportFormat = (typeof REPORT_FORMATS)[number];
+
+export function isReportFormat(value: unknown): value is ReportFormat {
+  return typeof value === 'string' && (REPORT_FORMATS as readonly string[]).includes(value);
+}
 
 /**
  * 리포트 생성 옵션
@@ -451,26 +455,16 @@ export class QualityReporter {
   }
 
   /**
-   * HTML 형식 리포트 생성
-   *
-   *  reportData - 리포트 데이터
-   *  HTML 형식 리포트 문자열
-   */
-  generateHtmlReport(reportData: QualityReport): string {
-    return generateHtmlReport(reportData);
-  }
-
-  /**
    * 리포트 생성
-   *
-   * PRD FR-5.5: 리포트 생성 시 JSON 형식 로그 파일 저장
-   * `logs/quality-report-{timestamp}.json` 형식으로 저장
    *
    * @param options - 리포트 옵션
    * @returns 리포트 문자열
    */
   async generateReport(options: ReportOptions = {}): Promise<string> {
     const format = options.format || 'markdown';
+    if (!isReportFormat(format)) {
+      throw new Error(`Unsupported report format: ${format}`);
+    }
     const reportData = await this.collectReportData(options);
 
     logger.info(`품질 리포트 생성: ${format} 형식`, {
@@ -481,18 +475,11 @@ export class QualityReporter {
       overall_status: reportData.summary.overall_status
     });
 
-    // PRD FR-5.5: JSON 형식 로그 파일 저장
-    await saveReportToFile(reportData);
-
     switch (format) {
       case 'markdown':
         return this.generateMarkdownReport(reportData);
       case 'json':
         return this.generateJsonReport(reportData);
-      case 'html':
-        return this.generateHtmlReport(reportData);
-      default:
-        throw new Error(`Unsupported report format: ${format}`);
     }
   }
 }

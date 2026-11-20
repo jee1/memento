@@ -288,37 +288,6 @@ describe('QualityAssuranceService', () => {
       expect(() => JSON.parse(report)).not.toThrow();
     });
 
-    it('should generate html report when format is html', async () => {
-      // Given: html 형식 옵션
-      // When: 리포트 생성
-      const report = await service.generateReport({ format: 'html' });
-
-      // Then: HTML 형식의 리포트가 생성되어야 함
-      expect(report).toContain('<!DOCTYPE html>');
-    });
-
-    it('should escape malicious namespace strings in html report (no raw script tags)', async () => {
-      const maliciousNs = 'search"><script>alert(1)</script>';
-      thresholdManager.setThreshold(maliciousNs, 'precision_at_5', {
-        threshold_value: 0.7,
-        threshold_type: 'min',
-        description: 'xss probe'
-      });
-      const collected: CollectedMetrics = {
-        namespace: maliciousNs,
-        context: 'default',
-        measured_at: new Date().toISOString(),
-        metrics: { precision_at_5: 0.85 }
-      };
-      const evaluation = await evaluator.evaluateMetrics(collected);
-      await recorder.recordMeasurement(collected, evaluation);
-
-      const report = await service.generateReport({ format: 'html', namespace: maliciousNs });
-
-      expect(report).not.toMatch(/<script>alert\(1\)<\/script>/);
-      expect(report).toContain('&lt;script&gt;');
-    });
-
     it('should apply filters when generating report', async () => {
       // Given: 네임스페이스 필터 옵션
       // When: 리포트 생성

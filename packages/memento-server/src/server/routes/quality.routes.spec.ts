@@ -123,20 +123,23 @@ describe('Quality Routes', () => {
       expect(mockResponse.send).toHaveBeenCalled();
     });
 
-    it('should generate html report when format=html', async () => {
-      // Given: HTML 형식으로 리포트 요청
-      mockRequest.query = { format: 'html' };
+    it.each(['html', 'xml'])('should reject format=%s with 400 without generating a report', async (format) => {
+      const generateReport = vi.spyOn(QualityAssuranceService.prototype, 'generateReport');
+      try {
+        mockRequest.query = { format };
 
-      // When: 리포트 생성 요청
-      const handler = router.stack.find(layer => layer.route?.path === '/report' && layer.route?.methods.get);
-      if (handler && handler.route) {
-        const routeHandler = handler.route.stack[0].handle;
-        await routeHandler(mockRequest as Request, mockResponse as Response, mockNext);
+        const handler = router.stack.find(layer => layer.route?.path === '/report' && layer.route?.methods.get);
+        await handler!.route!.stack[0].handle(mockRequest as Request, mockResponse as Response, mockNext);
+
+        expect(mockResponse.status).toHaveBeenCalledWith(400);
+        expect(mockResponse.json).toHaveBeenCalledWith({
+          error: 'Unsupported report format',
+          supported: ['markdown', 'json']
+        });
+        expect(generateReport).not.toHaveBeenCalled();
+      } finally {
+        generateReport.mockRestore();
       }
-
-      // Then: HTML 형식으로 리포트 생성
-      expect(mockResponse.setHeader).toHaveBeenCalledWith('Content-Type', 'text/html');
-      expect(mockResponse.send).toHaveBeenCalled();
     });
 
     it('should filter by namespace when provided', async () => {

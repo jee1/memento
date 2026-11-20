@@ -192,6 +192,8 @@ export type { CallerMemoryScope } from './shared/utils/owned-ids.js';
 export { getPerformanceMonitor } from './domains/monitoring/services/performance-monitor.js';
 export { QualityAssuranceService } from './domains/monitoring/services/quality-assurance/quality-assurance-service.js';
 export { QualityThresholdManager } from './domains/monitoring/services/quality-assurance/quality-threshold-manager.js';
+export { REPORT_FORMATS, isReportFormat } from './domains/monitoring/services/quality-assurance/quality-reporter.js';
+export type { ReportFormat } from './domains/monitoring/services/quality-assurance/quality-reporter.js';
 export { PIIMasker } from './shared/utils/pii-masker.js';
 export { SchemaVersionManager } from './infrastructure/database/sqlite/migration/schema-version-manager.js';
 export { MigrationDetector } from './infrastructure/database/sqlite/migration/migration-detector.js';
