@@ -492,4 +492,60 @@ describe('QualityReporter', () => {
       expect(reportData.summary.overall_status).toBe('warning');
     });
   });
+
+  describe('미측정 전환과 이력 보강 (#1812)', () => {
+    async function record(metrics: CollectedMetrics): Promise<void> {
+      await recorder.recordMeasurement(metrics, await evaluator.evaluateMetrics(metrics));
+    }
+
+    it('should drop the old number of a metric that became unmeasured and keep the measured one', async () => {
+      await record({
+        namespace: 'search',
+        context: 'default',
+        measured_at: '2026-11-19T00:00:00.000Z',
+        metrics: { precision_at_5: 0.8, recall_at_5: 0.5 }
+      });
+      await record({
+        namespace: 'search',
+        context: 'default',
+        measured_at: '2026-11-20T00:00:00.000Z',
+        metrics: { precision_at_5: 0, recall_at_5: 0.6 },
+        metric_states: { precision_at_5: 'unmeasured_no_ground_truth', recall_at_5: 'measured' }
+      });
+
+      const reportData = await reporter.collectReportData({ namespace: 'search' });
+
+      const byKey = Object.fromEntries(reportData.latest_metrics.map(m => [m.metric_key, m]));
+      expect(byKey.precision_at_5).toMatchObject({ metric_value: null, status: 'unmeasured' });
+      expect(byKey.recall_at_5).toMatchObject({ metric_value: 0.6 });
+    });
+
+    it('should stamp an unmeasured row with the measurement time, not the report time', async () => {
+      await record({
+        namespace: 'search',
+        context: 'default',
+        measured_at: '2026-11-19T00:00:00.000Z',
+        metrics: { precision_at_5: 0 },
+        metric_states: { precision_at_5: 'unmeasured_no_ground_truth' }
+      });
+
+      const reportData = await reporter.collectReportData({ namespace: 'search' });
+
+      const row = reportData.latest_metrics.find(m => m.metric_key === 'precision_at_5');
+      expect(row).toMatchObject({ status: 'unmeasured', measured_at: '2026-11-19T00:00:00.000Z' });
+    });
+
+    it('should keep a history entry whose metrics JSON.parse rejects and still render markdown', async () => {
+      // SQLite JSON_EXTRACT 는 JSON5 를 읽어 이력 조회를 통과하지만 JSON.parse 는 거부한다.
+      db.prepare(
+        `INSERT INTO quality_measurement_history (id, measurement_type, measured_at, metrics, status)
+         VALUES ('quality_broken', 'batch', ?, ?, 'success')`
+      ).run(new Date().toISOString(), "{namespace:'search',context:'default'}");
+
+      const reportData = await reporter.collectReportData();
+
+      expect(reportData.history.map(h => h.id)).toContain('quality_broken');
+      expect(() => reporter.generateMarkdownReport(reportData)).not.toThrow();
+    });
+  });
 });
