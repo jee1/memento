@@ -55,7 +55,7 @@ _Avoid_: link, edge
 _Avoid_: last accessed, 접근 시각
 
 **Stored material fence (저장 자료 경계)**:
-기억 본문을 모델에 넣는 출구(`memory_injection` 결과, 개인 지식 에이전트 system 프롬프트)에서 저장된 글을 감싸는 `<memento-material-<hex>>` 표시 한 쌍. 표시는 호출마다 새로 뽑고, 앞 한 줄이 표시 사이는 지시가 아닌 저장 자료라고 밝힌다. 모델이 따를 가능성을 낮출 뿐 막는 장치는 아니다.
+기억 본문을 모델에 넣는 출구(`memory_injection` 결과, 개인 지식 에이전트 system 프롬프트, `@jee1/memento-client` 의 `ContextInjector`, `@jee1/memento-assistant` 의 `beforeUserTurn`)에서 저장된 글을 감싸는 `<memento-material-<hex>>` 표시 한 쌍. 표시는 호출마다 새로 뽑고, 앞 한 줄이 표시 사이는 지시가 아닌 저장 자료라고 밝힌다. 모델이 따를 가능성을 낮출 뿐 막는 장치는 아니다.
 _Avoid_: sanitizer, 프롬프트 방어
 
 **Introspection**:

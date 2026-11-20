@@ -37,6 +37,7 @@
 export { MementoClient } from './memento-client.js';
 export { MemoryManager } from './memory-manager.js';
 export { ContextInjector } from './context-injector.js';
+export { fenceStoredMaterial } from './stored-material-fence.js';
 
 // 에러 클래스들
 export {

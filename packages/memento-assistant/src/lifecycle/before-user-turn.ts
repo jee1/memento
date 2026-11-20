@@ -1,4 +1,5 @@
 // packages/memento-assistant/src/lifecycle/before-user-turn.ts
+import { fenceStoredMaterial } from '@jee1/memento-client';
 import type { BeforeUserTurnInput, BeforeUserTurnResult, Policy } from '../types.js';
 import type { Transport } from '../transport/transport.js';
 import { shouldAutoRecall } from '../policy/auto-recall-policy.js';
@@ -36,7 +37,7 @@ export async function beforeUserTurn(deps: Deps, input: BeforeUserTurnInput): Pr
     );
     deps.breaker.recordSuccess();
     const body = result.items.map(i => `- ${i.content}`).join('\n');
-    const systemContext = result.items.length === 0 ? '' : `<memento>\n${body}\n</memento>`;
+    const systemContext = result.items.length === 0 ? '' : fenceStoredMaterial(body);
     return {
       systemContext,
       references: result.items.map(i => ({ id: i.id, type: i.type, importance: i.importance })),
