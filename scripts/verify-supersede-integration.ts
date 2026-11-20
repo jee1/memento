@@ -165,8 +165,6 @@ const scoped = (pair: Pair, view: View, args: Record<string, unknown>): never =>
 const json = (result: { content: Array<{ text?: string }> }) => JSON.parse(result.content[0]!.text!);
 const idsIn = (value: unknown, pair: Pair) => [pair.oldId, pair.newId].filter(id => JSON.stringify(value).includes(id));
 const contentOf = (id: string) => db.prepare('SELECT content FROM memory_item WHERE id = ?').pluck().get(id) as string;
-/** 질의가 old 본문이라 응답의 질의 줄(formatMemoryPrompt 의 검색 쿼리 줄)을 빼야 본문 일치가 의미를 가진다. */
-const withoutQueryEcho = (message: string) => message.split('\n').filter(line => !line.startsWith('**검색 쿼리**')).join('\n');
 const snippet = (id: string) => contentOf(id).trim().split('\n')[0]!.trim().slice(0, 40);
 /** memory_injection 의 promptText 는 id 대신 본문을 싣는다. 본문 첫 줄 앞부분으로 찾고, 두 본문이 같은 줄로 시작하면 가릴 수 없어 null 이다. */
 const idsByContent = (text: string, pair: Pair) => snippet(pair.oldId) === snippet(pair.newId) ? null
@@ -182,7 +180,7 @@ const probes: Record<string, Probe> = {
   recall_text: recall({ enable_hybrid: false }),
   recall_vector: recall({ vector_weight: 1, text_weight: 0 }),
   memory_injection: async (pair, view) => view === 'history' ? null
-    : idsByContent(withoutQueryEcho(json(await new MemoryInjectionPrompt().handle(scoped(pair, view, { query: pair.query, memory_types: [pair.type], max_memories: K, importance_threshold: 0, token_budget: 8000 }), context(pair, view) as never)).message), pair),
+    : idsByContent(json(await new MemoryInjectionPrompt().handle(scoped(pair, view, { query: pair.query, memory_types: [pair.type], max_memories: K, importance_threshold: 0, token_budget: 8000 }), context(pair, view) as never)).message, pair),
   resource_read: async (pair, view) => {
     const project = boundProject(pair, view);
     const scope = project ? { project_id: project } : {};

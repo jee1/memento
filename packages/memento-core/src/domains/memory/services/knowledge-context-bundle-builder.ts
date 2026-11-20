@@ -46,7 +46,7 @@ export interface KnowledgeContextBundleParams {
 }
 
 export interface KnowledgeContextBundle {
-  /** LLM system 프롬프트에 넣을 본문 */
+  /** 기억 본문. 모델에 넣는 출구가 `fenceStoredMaterial` 로 감싼다 */
   promptText: string;
   /** 요약에 포함된 기억 개수 */
   itemCount: number;
@@ -150,14 +150,12 @@ function summarizeMemories(
 
 function formatMemoryPrompt(
   summaries: Array<{ id: string; content: string; type: string; importance: number; summary: string }>,
-  query: string,
 ): string {
   if (summaries.length === 0) {
     return '관련 기억을 찾을 수 없습니다.';
   }
 
   let prompt = `# 관련 기억 (${summaries.length}개)\n\n`;
-  prompt += `**검색 쿼리**: "${query}"\n\n`;
 
   summaries.forEach((memory, index) => {
     const typeEmoji = getMemoryTypeEmoji(memory.type);
@@ -168,10 +166,7 @@ function formatMemoryPrompt(
     prompt += `**내용**: ${memory.summary}\n\n`;
   });
 
-  prompt += '---\n';
-  prompt += '*이 기억들은 현재 대화와 관련된 맥락 정보입니다. 참고하여 더 정확하고 관련성 높은 답변을 제공하세요.*';
-
-  return prompt;
+  return prompt.trimEnd();
 }
 
 function filterByOwner(memories: HybridSearchResult[], ownerId?: string | string[]): HybridSearchResult[] {
@@ -366,7 +361,7 @@ export async function buildKnowledgeContextBundle(
   }
 
   const summary = summarizeMemories(overlayWorkRecordDisplay(deps.db, memories), tokenBudget, maxMemories);
-  const formattedPrompt = formatMemoryPrompt(summary, query);
+  const formattedPrompt = formatMemoryPrompt(summary);
   const tokenEstimate = estimateTokens(formattedPrompt);
 
   const typeCounts = summary.reduce<Record<string, number>>((acc, row) => {

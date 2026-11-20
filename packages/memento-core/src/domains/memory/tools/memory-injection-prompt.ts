@@ -7,6 +7,7 @@ import { z } from 'zod';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { logger } from '../../../shared/utils/logger.js';
 import { PIIMasker } from '../../../shared/utils/pii-masker.js';
+import { fenceStoredMaterial } from '../../../shared/utils/stored-material-fence.js';
 import { BaseTool } from '../../../tools/base-tool.js';
 import { CommonSchemas, type ToolContext, type ToolResult } from '../../../tools/types.js';
 import {
@@ -263,13 +264,18 @@ export class MemoryInjectionPrompt extends BaseTool {
       // 브리프 프로젝트는 인자 → X-Memento-Project-Id 순. 검색 필터에는 쓰지 않는다 (기존 결과 불변).
       const briefProjectId = project_id || context.projectId;
       const brief = briefProjectId ? findProjectBrief(context.db, briefProjectId, owner_id) : undefined;
-      let message = bundle.promptText;
-      if (brief) {
-        const label = `project-brief v${brief.version ?? 1} (${briefProjectId}, memory_id ${brief.id})`;
-        message = include_project_brief
-          ? `# 프로젝트 브리프 — ${label}\n\n${brief.content}\n\n---\n\n${message}`
-          : `${message}\n\n> ${label} 있음 — 필요 시 memory_injection(include_project_brief: true) 또는 recall`;
-      }
+      const label = brief ? `project-brief v${brief.version ?? 1} (${briefProjectId}, memory_id ${brief.id})` : '';
+      const material = [
+        brief && include_project_brief ? `# 프로젝트 브리프 — ${label}\n\n${brief.content}` : '',
+        bundle.itemCount > 0 ? bundle.promptText : '',
+      ].filter(Boolean);
+      const message = [
+        material.length > 0 ? fenceStoredMaterial(material.join('\n\n---\n\n')) : '',
+        bundle.itemCount === 0 ? bundle.promptText : '',
+        brief && !include_project_brief
+          ? `> ${label} 있음 — 필요 시 memory_injection(include_project_brief: true) 또는 recall`
+          : '',
+      ].filter(Boolean).join('\n\n');
 
       recordItemFilteredTelemetry({
         telemetryService: context.services.telemetryService,

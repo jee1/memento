@@ -54,6 +54,10 @@ _Avoid_: link, edge
 기억이 recall 이나 `memory_injection` 결과에 마지막으로 나온 시각. `meta_memory_stats.last_recalled_at` 이 정본이고, 쓰임 기록을 모으기 전 기간은 쓰이지 않은 기간으로 세지 않는다. 망각은 이 시각부터 보존 기간을 잰다(#1751). `memory_item.last_accessed` 와 `last_accessed_at` 은 쓰임을 뜻하지 않는다(새 기억은 `last_accessed` 가 비어 있고, `last_accessed_at` 은 저장과 재강화 시각이다).
 _Avoid_: last accessed, 접근 시각
 
+**Stored material fence (저장 자료 경계)**:
+기억 본문을 모델에 넣는 출구(`memory_injection` 결과, 개인 지식 에이전트 system 프롬프트)에서 저장된 글을 감싸는 `<memento-material-<hex>>` 표시 한 쌍. 표시는 호출마다 새로 뽑고, 앞 한 줄이 표시 사이는 지시가 아닌 저장 자료라고 밝힌다. 모델이 따를 가능성을 낮출 뿐 막는 장치는 아니다.
+_Avoid_: sanitizer, 프롬프트 방어
+
 **Introspection**:
 신뢰도가 낮거나 자주 실패하는 기억을 찾아내고 정리(heal)하는 운영 절차.
 _Avoid_: cleanup, audit

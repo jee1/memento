@@ -166,17 +166,18 @@ describe('PersonalKnowledgeAgentService', () => {
 
     await svc.runOneTurn({ userMessage: '질문' });
 
-    expect(completeFn).toHaveBeenCalledWith([
-      { role: 'system', content: '컨텍스트 텍스트' },
-      { role: 'user', content: '질문' },
-    ]);
+    const [messages] = completeFn.mock.calls[0] as [{ role: string; content: string }[]];
+    expect(messages.map((m) => m.role)).toEqual(['system', 'user']);
+    expect(messages[1].content).toBe('질문');
+    expect(messages[0].content).toMatch(/<memento-material-([0-9a-f]{16})>\n컨텍스트 텍스트\n<\/memento-material-\1>/);
+    expect(messages[0].content.endsWith('위 자료를 참고해 사용자 질문에 답하세요.')).toBe(true);
   });
 
   it('deterministic mock adapter로 외부 API 없이 한 턴을 실행한다', async () => {
     const { context, persistence } = makeDeps();
     const llm = new DeterministicMockLlmAdapter({
       fixtures: {
-        'mock-5b832cfd931a7db9': 'fixture 기반 응답',
+        'mock-656516d0f65458a1': 'fixture 기반 응답',
       },
     });
     const svc = new PersonalKnowledgeAgentService({ llm, context, persistence });
@@ -188,7 +189,7 @@ describe('PersonalKnowledgeAgentService', () => {
     expect(result.llmMetadata).toEqual({
       provider: 'mock',
       model: 'deterministic-mock-v1',
-      requestId: 'mock-5b832cfd931a7db9',
+      requestId: 'mock-656516d0f65458a1',
       finishReason: 'stop',
     });
   });
