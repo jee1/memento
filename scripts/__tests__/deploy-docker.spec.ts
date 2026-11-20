@@ -1,4 +1,3 @@
-import Database from 'better-sqlite3';
 import { spawn } from 'node:child_process';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
@@ -21,16 +20,28 @@ afterEach(async () => {
   roots = [];
 });
 
-const PS = 'compose ps -q --status running memento-mcp-server';
+const SVC = 'memento-mcp-server';
+const PS = `compose ps -q --status running ${SVC}`;
+const INSPECT = 'inspect -f {{.Image}} {{.Config.Image}} c0ffee';
+const RUN = expect.stringMatching(new RegExp(`^compose run -d --rm --no-deps --user \\d+:\\d+ .* --entrypoint sleep ${SVC} 3600$`));
+const LIVE_CHECK = expect.stringMatching(/^exec b4ckup node -e .*integrity_check.*\)\);$/);
+const COPY = 'exec b4ckup node scripts/backup-memory-db.mjs --skip-integrity-check';
+const COPY_CHECK = expect.stringMatching(/^exec b4ckup node -e .*integrity_check.* \S+\/memory-backup-new\.db$/);
+const PRUNE = 'exec b4ckup node scripts/backup-memory-db.mjs --cleanup --apply';
+const RM = 'rm -f b4ckup';
 
 /**
  * docker 대신 호출을 기록하는 가짜. failOn 에 든 compose 하위 명령은 1 로 끝난다.
  * notRunning 이면 compose ps 가 빈 출력을 내 서비스 컨테이너가 이 프로젝트에 없는 것처럼 보인다.
+ * 백업 컨테이너 id 는 b4ckup 이고, 복사는 백업 디렉터리에 memory-backup-new.db 를 만든다.
  */
-function setup(opts: { failOn?: string; notRunning?: boolean } = {}) {
+function setup(
+  opts: { failOn?: string; notRunning?: boolean; liveCheck?: string; copyFails?: boolean; copyCheck?: string } = {}
+) {
   const root = mkdtempSync(join(tmpdir(), 'memento-deploy-docker-'));
   roots.push(root);
   const binDir = join(root, 'bin');
+  const backupDir = join(root, 'backups');
   mkdirSync(binDir);
   const callLog = join(root, 'docker-calls');
   writeFileSync(callLog, '');
@@ -40,23 +51,27 @@ function setup(opts: { failOn?: string; notRunning?: boolean } = {}) {
 echo "$*" >> "${callLog}"
 case "$*" in
   "compose ${opts.failOn ?? '__none__'} "*) exit 1 ;;
-  *" exec "*) echo '{"quick_check":"ok","memory_item":1}' ;;
+  "compose run "*) echo b4ckup ;;
+  "inspect "*) echo 'sha256:0ld memento-img' ;;
+  *"--skip-integrity-check") ${
+    opts.copyFails
+      ? 'exit 1'
+      : `: > "${backupDir}/memory-backup-new.db"; echo '{"ok":true,"backupPath":"${backupDir}/memory-backup-new.db"}'`
+  } ;;
+  "exec b4ckup node -e "*"/memory-backup-new.db") echo '${opts.copyCheck ?? 'ok'}' ;;
+  "exec b4ckup node -e "*) echo '${opts.liveCheck ?? 'ok'}' ;;
+  "compose exec "*) echo '{"quick_check":"ok","memory_item":1}' ;;
   "compose ps "*) ${opts.notRunning ? ':' : 'echo c0ffee'} ;;
 esac
 exit 0
 `,
     { mode: 0o755 }
   );
-  const dbPath = join(root, 'memory.db');
-  const db = new Database(dbPath);
-  db.exec("CREATE TABLE memory_item (id TEXT PRIMARY KEY); INSERT INTO memory_item VALUES ('m1');");
-  db.close();
   return {
-    dbPath,
+    backupDir,
     env: {
       PATH: `${binDir}:${process.env.PATH ?? ''}`,
-      DB_PATH: dbPath,
-      MEMENTO_BACKUP_DIR: join(root, 'backups'),
+      MEMENTO_BACKUP_DIR: backupDir,
       MEMENTO_API_TOKENS: TOKENS,
       MCP_PUBLISH_HOST: '',
     },
@@ -67,9 +82,10 @@ exit 0
 /** /health 와 /tools/recall 만 흉내 내는 서버. recall 은 recallStatuses 를 차례로 쓰고 마지막 값을 되풀이한다. */
 async function fakeServer(opts: { health?: number; recallStatuses?: number[] } = {}) {
   const statuses = opts.recallStatuses ?? [200];
-  const seen = { recall: 0, auth: '', agent: '' };
+  const seen = { recall: 0, health: 0, auth: '', agent: '' };
   const server = createServer((req, res) => {
     if (req.url === '/health') {
+      seen.health++;
       res.writeHead(opts.health ?? 200, { 'content-type': 'application/json' });
       res.end(JSON.stringify({ status: 'healthy', version: '9.9.9' }));
       return;
@@ -99,8 +115,8 @@ function runDeploy(env: Record<string, string>, args: string[] = []) {
   });
 }
 
-describe('deploy-docker (#1798)', () => {
-  it('checks the running server, backs up after stop, starts the new image, waits for a real recall and prints one line', async () => {
+describe('deploy-docker (#1798, #1802)', () => {
+  it('checks the live DB before stop, only copies while stopped, checks the copy alongside start and prunes after', async () => {
     const t = setup();
     const server = await fakeServer();
 
@@ -108,16 +124,22 @@ describe('deploy-docker (#1798)', () => {
 
     expect(result.status, result.stderr).toBe(0);
     expect(t.calls()).toEqual([
-      'compose build memento-mcp-server',
+      `compose build ${SVC}`,
       PS,
-      'compose stop memento-mcp-server',
-      'compose up -d --no-build memento-mcp-server',
-      expect.stringMatching(/^compose exec -T memento-mcp-server node -e /),
+      INSPECT,
+      RUN,
+      LIVE_CHECK,
+      `compose stop ${SVC}`,
+      COPY,
+      `compose up -d --no-build ${SVC}`,
+      COPY_CHECK,
+      expect.stringMatching(new RegExp(`^compose exec -T ${SVC} node -e `)),
+      PRUNE,
+      RM,
     ]);
-    expect(server.seen).toEqual({ recall: 2, auth: `Bearer ${SECRET}`, agent: 'deploy-check' });
-    expect(result.stdout).toContain('[pre-docker-deploy] Backup OK');
+    expect(server.seen).toMatchObject({ recall: 2, auth: `Bearer ${SECRET}`, agent: 'deploy-check' });
     expect(result.stdout).toMatch(
-      /\[deploy\] downtime=\d+\.\ds recall_ready=\d+\.\ds \(stop=.* memory_item=1 quick_check=ok version=9\.9\.9/
+      /\[deploy\] downtime=\d+\.\ds recall_ready=\d+\.\ds \(stop=.* copy=.* copy_check=ok memory_item=1 quick_check=ok version=9\.9\.9/
     );
   });
 
@@ -132,31 +154,65 @@ describe('deploy-docker (#1798)', () => {
     expect(t.calls()).toEqual([]);
   });
 
-  it('restarts the previous container and never runs up when the backup fails', async () => {
-    const t = setup();
+  it('stops before touching the server when integrity_check on the live DB fails', async () => {
+    const t = setup({ liveCheck: '*** in database main *** Page 7 is never used' });
     const server = await fakeServer();
 
-    const result = await runDeploy(
-      { ...t.env, DB_PATH: join(t.dbPath, '..', 'missing.db'), MCP_SERVER_PORT: server.port },
-      ['--skip-build']
-    );
+    const result = await runDeploy({ ...t.env, MCP_SERVER_PORT: server.port }, ['--skip-build']);
 
     expect(result.status).toBe(1);
-    expect(t.calls()).toEqual([PS, 'compose stop memento-mcp-server', 'compose start memento-mcp-server']);
-    expect(result.stderr).toContain('the previous container is running again');
-    expect(server.seen.recall).toBe(1);
+    expect(result.stderr).toContain('integrity_check on the live DB returned *** in database main *** Page 7 is never used; server untouched');
+    expect(t.calls()).toEqual([PS, INSPECT, RUN, LIVE_CHECK, RM]);
   });
 
-  it('leaves an already stopped server down when the backup fails after --skip-preflight', async () => {
-    const t = setup({ notRunning: true });
+  it('stops before touching the server when the backup container cannot start', async () => {
+    const t = setup({ failOn: 'run' });
+    const server = await fakeServer();
 
-    const result = await runDeploy({ ...t.env, DB_PATH: join(t.dbPath, '..', 'missing.db') }, [
-      '--skip-build',
-      '--skip-preflight',
-    ]);
+    const result = await runDeploy({ ...t.env, MCP_SERVER_PORT: server.port }, ['--skip-build']);
 
     expect(result.status).toBe(1);
-    expect(t.calls()).toEqual([PS, 'compose stop memento-mcp-server']);
+    expect(result.stderr).toContain('backup container); server untouched');
+    expect(t.calls()).toEqual([PS, INSPECT, RUN]);
+  });
+
+  it('restarts the previous container, waits for /health and never runs up when the copy fails', async () => {
+    const t = setup({ copyFails: true });
+    const server = await fakeServer();
+
+    const result = await runDeploy({ ...t.env, MCP_SERVER_PORT: server.port }, ['--skip-build']);
+
+    expect(result.status).toBe(1);
+    expect(t.calls()).toEqual([PS, INSPECT, RUN, LIVE_CHECK, `compose stop ${SVC}`, COPY, `compose start ${SVC}`, RM]);
+    expect(result.stderr).toContain('the previous container is running again and healthy');
+    expect(server.seen).toMatchObject({ recall: 1, health: 1 });
+  });
+
+  it('fails loudly with the previous backup and keeps old backups when the copy fails integrity_check', async () => {
+    const t = setup({ copyCheck: 'row 3 missing from index idx_memory_item' });
+    mkdirSync(t.backupDir, { recursive: true });
+    writeFileSync(join(t.backupDir, 'memory-backup-2026-11-19T00-00-00-000Z.db'), '');
+    const server = await fakeServer();
+
+    const result = await runDeploy({ ...t.env, MCP_SERVER_PORT: server.port }, ['--skip-build']);
+
+    expect(result.status).toBe(1);
+    expect(result.stdout).toContain('copy_check=row 3 missing from index idx_memory_item');
+    expect(result.stderr).toContain('FAILED: integrity_check on the backup copy returned row 3 missing from index idx_memory_item');
+    expect(result.stderr).toContain(`previous backup: ${join(t.backupDir, 'memory-backup-2026-11-19T00-00-00-000Z.db')}`);
+    expect(result.stderr).toContain('Old backups were not pruned');
+    expect(t.calls()).toContain(`compose up -d --no-build ${SVC}`);
+    expect(t.calls()).not.toContain(PRUNE);
+    expect(t.calls().at(-1)).toBe(RM);
+  });
+
+  it('leaves an already stopped server down when the copy fails after --skip-preflight', async () => {
+    const t = setup({ notRunning: true, copyFails: true });
+
+    const result = await runDeploy(t.env, ['--skip-build', '--skip-preflight']);
+
+    expect(result.status).toBe(1);
+    expect(t.calls()).toEqual([PS, RUN, LIVE_CHECK, `compose stop ${SVC}`, COPY, RM]);
     expect(result.stderr).toContain('the server was already down and stays down');
   });
 
@@ -190,20 +246,17 @@ describe('deploy-docker (#1798)', () => {
     expect(t.calls()).toEqual([]);
   });
 
-  it('says the server is down when the restart after a failed backup also fails', async () => {
-    const t = setup({ failOn: 'start' });
+  it('says the server is down when the restart after a failed copy also fails', async () => {
+    const t = setup({ copyFails: true, failOn: 'start' });
     const server = await fakeServer();
 
-    const result = await runDeploy(
-      { ...t.env, DB_PATH: join(t.dbPath, '..', 'missing.db'), MCP_SERVER_PORT: server.port },
-      ['--skip-build']
-    );
+    const result = await runDeploy({ ...t.env, MCP_SERVER_PORT: server.port }, ['--skip-build']);
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('the server is down, run: docker compose start memento-mcp-server');
   });
 
-  it('fails when /health never turns healthy within the timeout', async () => {
+  it('says the new container is unhealthy and how to roll back when /health never turns healthy', async () => {
     const t = setup();
     const server = await fakeServer({ health: 503 });
 
@@ -211,6 +264,8 @@ describe('deploy-docker (#1798)', () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('/health did not succeed within 1s');
+    expect(result.stderr).toContain(`the new container is running but not healthy; see docker compose logs --tail 100 ${SVC}`);
+    expect(result.stderr).toContain(`to roll back: docker tag sha256:0ld memento-img && docker compose up -d --no-build ${SVC}`);
     expect(server.seen.recall).toBe(1);
   });
 

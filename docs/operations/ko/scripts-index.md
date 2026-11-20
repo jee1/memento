@@ -25,7 +25,7 @@
 | backup-memory-db.mjs | memory.db online backup (무인자 계약 유지) 및 backup backlog cleanup preview/apply | `npm run db:backup`, `npm run db:backup:cleanup`, `npm run db:backup:cleanup -- --apply` |
 | backup-in-docker.sh | 컨테이너 안에서 online backup 실행, 출력은 호스트 소유 백업 디렉터리 | `npm run db:backup:docker` |
 | pre-docker-deploy.mjs | 배포 전 백업 + integrity_check; 호스트가 DB 디렉터리에 못 쓰면 바로 컨테이너 백업 | `npm run db:pre-docker-deploy` |
-| deploy-docker.mjs | 운영 배포 한 번에: build, 정지, 백업, 기동, `/health`, 첫 recall; 끊긴 시간과 DB 상태 한 줄 출력 | `npm run deploy:docker`, `npm run deploy:docker -- --skip-build` |
+| deploy-docker.mjs | 운영 배포 한 번에: build, 원본 integrity_check, 정지, 복사, 기동과 사본 integrity_check, `/health`, 첫 recall; 끊긴 시간과 DB 상태 한 줄 출력 | `npm run deploy:docker`, `npm run deploy:docker -- --skip-build` |
 | restore-memory-db-from-corrupt.mjs | 손상 DB 테이블별 복구 | `npm run db:restore-from-corrupt` (인자: `--source`, `--target`, 선택 `--only-tables`) |
 | db-residue-cleanup.ts | DB 잔재 report·dimensions=0 embedding cleanup·rule 관계 cleanup | `npm run db:residue -- report`, `npm run db:residue -- cleanup-embeddings`, `npm run db:residue -- cleanup-embeddings --apply`, `npm run db:residue -- cleanup-rule-relations`, `npm run db:residue -- cleanup-rule-relations --apply` |
 | db-vacuum.ts | DELETE 후 공간 회수 측정 | `npm run db:vacuum` |

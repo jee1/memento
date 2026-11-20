@@ -1,11 +1,13 @@
 #!/usr/bin/env node
 import { openDb, resolveBackupDir, resolveDbPath } from './lib/cli-runtime.js';
-import { BackupManager } from '@memento/core';
+// 배포 정지 구간에서 돌므로 core 전체(약 0.5초) 대신 이 모듈만 읽는다 (#1802).
+import { BackupManager } from '@memento/core/infrastructure/database/sqlite/migration/backup-manager.js';
 /**
  * Create a consistent SQLite backup using the online backup API (not cp/copyFileSync).
  *
  * Usage:
  *   DB_PATH=~/.memento/data/memory.db node scripts/backup-memory-db.mjs
+ *   node scripts/backup-memory-db.mjs --skip-integrity-check   # 사본 검사는 호출자가 따로 한다
  *   npm run db:backup
  */
 import path from 'path';
@@ -21,7 +23,7 @@ function failUsage() {
   fail(
     'usage',
     'invalid-arguments',
-    'Usage: node scripts/backup-memory-db.mjs [--cleanup [--apply]]'
+    'Usage: node scripts/backup-memory-db.mjs [--skip-integrity-check | --cleanup [--apply]]'
   );
 }
 
@@ -53,7 +55,8 @@ function countMemoryItems(backupPath) {
 const args = process.argv.slice(2);
 const cleanup = args[0] === '--cleanup';
 const apply = cleanup && args[1] === '--apply' && args.length === 2;
-const valid = args.length === 0 || (cleanup && (args.length === 1 || apply));
+const skipIntegrityCheck = args.length === 1 && args[0] === '--skip-integrity-check';
+const valid = args.length === 0 || skipIntegrityCheck || (cleanup && (args.length === 1 || apply));
 
 if (!valid) {
   failUsage();
@@ -110,7 +113,7 @@ source.pragma('busy_timeout = 10000');
 
 let backup;
 try {
-  backup = await manager.createBackup(source);
+  backup = await manager.createBackup(source, undefined, { skipIntegrityCheck });
 } catch (error) {
   const failure = safeBackupFailure(error);
   fail(

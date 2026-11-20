@@ -1,14 +1,23 @@
 #!/usr/bin/env node
 /**
- * 운영 Docker 배포를 한 명령으로 한다 (#1798).
+ * 운영 Docker 배포를 한 명령으로 한다 (#1798, #1802).
  *
- *   preflight recall -> build -> stop -> pre-docker-deploy(백업 + integrity_check) -> up -d -> /health -> 첫 recall
+ *   preflight recall -> build -> 백업 컨테이너 + 원본 integrity_check -> stop -> 복사 -> up -d
+ *   -> /health (사본 integrity_check 를 나란히) -> 첫 recall -> 오래된 백업 정리
  *
- * 단계가 실패하면 다음 단계로 가지 않는다. 백업이 실패하면 새 이미지로 바꾸지 않고
+ * 단계가 실패하면 다음 단계로 가지 않는다. 복사가 실패하면 새 이미지로 바꾸지 않고
  * 정지했던 컨테이너를 그대로 다시 띄운다. 끝에 끊긴 시간과 DB 상태를 한 줄로 찍는다.
  *
- * 정지 뒤에 백업하는 이유: online backup 은 복사 중 다른 프로세스가 원본을 쓰면 처음부터
+ * 정지 뒤에 복사하는 이유: online backup 은 복사 중 다른 프로세스가 원본을 쓰면 처음부터
  * 다시 복사해 writer 가 살아 있으면 끝나지 않는다 (#1041).
+ *
+ * 정지 구간에는 복사만 둔다. 원본 검사는 서버가 도는 동안 읽기 전용으로 하고, 사본 검사는 새 서버
+ * 기동과 나란히 한다. 그래서 정지 전 검사와 정지 사이 몇 초 동안 생긴 손상은 기동 전에 못 잡는다.
+ * 사본 검사가 실패하면 0 이 아닌 코드로 끝나고 직전 백업 경로를 찍으며, 오래된 백업을 지우지 않는다.
+ *
+ * 백업은 컨테이너 안에서 한다. 운영 DB 디렉터리는 컨테이너 사용자 소유라 호스트가 WAL DB 를
+ * 못 연다 (#1001). 컨테이너는 정지 전에 만들어 두고 docker exec 로 쓴다. 정지 구간에서 만들면
+ * 생성에 약 1초가 든다. uid, gid, 마운트는 scripts/backup-in-docker.sh 와 같다.
  *
  * Usage:
  *   npm run deploy:docker
@@ -18,8 +27,9 @@
  * 대상은 docker compose 의 표준 변수(COMPOSE_PROJECT_NAME, COMPOSE_FILE)와
  * MEMENTO_COMPOSE_SERVICE, MCP_SERVER_PORT 로 바꾼다. 시험은 별도 compose 프로젝트로 한다.
  */
-import { spawnSync } from 'node:child_process';
-import { readFileSync } from 'node:fs';
+import { spawn, spawnSync } from 'node:child_process';
+import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
+import os from 'node:os';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseEnv } from 'node:util';
@@ -110,21 +120,22 @@ const baseUrl = `http://${host}:${setting('MCP_SERVER_PORT') || '9001'}`;
  * /tools 는 15분에 100회 rate limit 이라 recall 은 maxAttempts 로 횟수를 막는다. 넘기면 배포 뒤
  * 에이전트 호출까지 429 로 막힌다.
  */
-async function waitFor(label, deadline, request, { intervalMs = POLL_MS, maxAttempts = Infinity } = {}) {
+async function waitFor(label, deadline, request, { intervalMs = POLL_MS, maxAttempts = Infinity, hint = '' } = {}) {
+  const suffix = hint ? `; ${hint}` : '';
   let last = 'no response';
   for (let attempt = 1; attempt <= maxAttempts && Date.now() < deadline; attempt++) {
     try {
       const res = await request();
       if (res.ok) return res;
       last = `HTTP ${res.status}`;
-      if (res.status < 500 && res.status !== 429) fail(`${label} returned ${last}: ${(await res.text()).slice(0, 200)}`);
+      if (res.status < 500 && res.status !== 429) fail(`${label} returned ${last}: ${(await res.text()).slice(0, 200)}${suffix}`);
     } catch (error) {
       last = error instanceof Error ? error.message : String(error);
     }
     await new Promise(resolve => setTimeout(resolve, intervalMs));
   }
   const limit = Number.isFinite(maxAttempts) ? ` or ${maxAttempts} attempts` : '';
-  fail(`${label} did not succeed within ${values['timeout-sec']}s${limit} (${last})`);
+  fail(`${label} did not succeed within ${values['timeout-sec']}s${limit} (${last})${suffix}`);
 }
 
 const getHealth = () => fetch(`${baseUrl}/health`, { signal: AbortSignal.timeout(5000) });
@@ -163,6 +174,65 @@ function dbStatus() {
   }
 }
 
+const backupDir = process.env.MEMENTO_BACKUP_DIR || path.join(os.homedir(), '.memento', 'backups');
+let backupContainer = null;
+
+/**
+ * 백업 컨테이너를 띄운다. 이 스크립트가 죽어 rm 을 못 해도 sleep 이 끝나면 --rm 으로 사라진다.
+ * 서비스 이미지를 쓰므로 build 뒤라면 새 이미지다.
+ */
+function startBackupContainer() {
+  mkdirSync(backupDir, { recursive: true });
+  const result = run(
+    'docker',
+    [
+      'compose', 'run', '-d', '--rm', '--no-deps',
+      '--user', `${process.env.MEMENTO_CONTAINER_UID ?? '1001'}:${process.getgid()}`,
+      '-v', `${backupDir}:${backupDir}`,
+      '-e', `MEMENTO_BACKUP_DIR=${backupDir}`,
+      '-e', 'MEMENTO_BACKUP_PRUNE=0',
+      '--entrypoint', 'sleep', service, '3600',
+    ],
+    { capture: true }
+  );
+  backupContainer = result.ok ? result.stdout.trim().split('\n').pop() || null : null;
+  return backupContainer;
+}
+
+process.on('exit', () => {
+  if (backupContainer) spawnSync('docker', ['rm', '-f', backupContainer], { stdio: 'ignore' });
+});
+
+// 인자로 받은 파일을, 없으면 컨테이너의 DB_PATH 를 읽기 전용으로 열어 integrity_check 첫 줄을 찍는다.
+const INTEGRITY_CHECK = [
+  "const db = new (require('better-sqlite3'))(process.argv[1] ?? process.env.DB_PATH, { readonly: true, fileMustExist: true });",
+  "console.log(db.pragma('integrity_check', { simple: true }));",
+].join(' ');
+
+/** 백업 컨테이너에서 integrity_check 를 돌린다. 'ok', 첫 오류 줄, 실행 실패면 null. */
+function integrityCheck(file) {
+  return new Promise(resolve => {
+    const args = ['exec', backupContainer, 'node', '-e', INTEGRITY_CHECK, ...(file ? [file] : [])];
+    const child = spawn('docker', args, { cwd: root, stdio: ['ignore', 'pipe', 'inherit'] });
+    let out = '';
+    child.stdout.on('data', chunk => (out += chunk));
+    child.on('error', () => resolve(null));
+    child.on('close', code => resolve(code === 0 ? out.trim().split('\n').pop() || null : null));
+  });
+}
+
+/** 이번 사본을 뺀 가장 최근 백업. 사본 검사가 실패했을 때 돌아갈 곳이다. */
+function previousBackup(current) {
+  try {
+    return readdirSync(backupDir)
+      .filter(name => /^memory-backup-.+\.db$/.test(name) && name !== path.basename(current))
+      .map(name => ({ file: path.join(backupDir, name), mtime: statSync(path.join(backupDir, name)).mtimeMs }))
+      .sort((a, b) => b.mtime - a.mtime)[0]?.file ?? null;
+  } catch {
+    return null;
+  }
+}
+
 const seconds = ms => `${(ms / 1000).toFixed(1)}s`;
 
 if (!(timeoutMs > 0)) fail(`--timeout-sec must be a positive number: ${values['timeout-sec']}`);
@@ -188,48 +258,97 @@ if (!values['skip-build']) {
 
 // preflight 가 답한 서버가 이 compose 프로젝트의 컨테이너인지 본다. 다른 프로젝트(예: worktree 이름)로
 // 돌리면 stop 이 아무것도 세우지 않아 운영 서버가 떠 있는 채로 백업이 돈다 (#1041).
-const wasRunning = run('docker', ['compose', 'ps', '-q', '--status', 'running', service], { capture: true }).stdout.trim() !== '';
+const runningId = run('docker', ['compose', 'ps', '-q', '--status', 'running', service], { capture: true }).stdout.trim();
+const wasRunning = runningId !== '';
 if (!values['skip-preflight'] && !wasRunning) {
   fail(`${service} is not running in this compose project (COMPOSE_PROJECT_NAME, run from the main checkout); server untouched`);
 }
+
+// up 이 컨테이너를 새로 만들면 옛 이미지 id 를 다시 알 길이 없어 지금 적어 둔다. /health 실패 때 되돌리는 명령에 쓴다.
+const [previousImage, imageName] = wasRunning
+  ? run('docker', ['inspect', '-f', '{{.Image}} {{.Config.Image}}', runningId], { capture: true }).stdout.trim().split(' ')
+  : [];
+
+log('start the backup container and run integrity_check on the live DB (read-only)');
+if (!startBackupContainer()) fail('docker compose run (backup container); server untouched');
+const liveCheck = await integrityCheck();
+if (liveCheck !== 'ok') fail(`integrity_check on the live DB returned ${liveCheck ?? 'nothing (check failed to run)'}; server untouched`);
 
 const stoppedAt = Date.now();
 log(`stop ${service}`);
 if (!compose('stop', service).ok) fail('docker compose stop');
 const stopDoneAt = Date.now();
 
-if (!run(process.execPath, [path.join(root, 'scripts', 'pre-docker-deploy.mjs')]).ok) {
-  if (!wasRunning) fail('pre-docker-deploy (backup or integrity_check); the server was already down and stays down');
-  log('backup failed; restarting the previous container without the new image');
+const copy = run('docker', ['exec', backupContainer, 'node', 'scripts/backup-memory-db.mjs', '--skip-integrity-check'], {
+  capture: true,
+});
+let backupPath = null;
+try {
+  backupPath = copy.ok ? JSON.parse(copy.stdout).backupPath : null;
+} catch {}
+if (!backupPath) {
+  if (!wasRunning) fail('backup copy failed; the server was already down and stays down');
+  log('backup copy failed; restarting the previous container without the new image');
   if (!compose('start', service).ok) {
-    fail(`pre-docker-deploy failed and docker compose start failed too; the server is down, run: docker compose start ${service}`);
+    fail(`backup copy failed and docker compose start failed too; the server is down, run: docker compose start ${service}`);
   }
-  fail('pre-docker-deploy (backup or integrity_check); the previous container is running again');
+  await waitFor('/health after restarting the previous container', Date.now() + timeoutMs, getHealth, {
+    hint: `the previous container is started but not healthy; see docker compose logs --tail 100 ${service}`,
+  });
+  fail('backup copy failed; the previous container is running again and healthy');
 }
-const backupDoneAt = Date.now();
+const copyDoneAt = Date.now();
+log(`copied to ${backupPath}`);
 
 log(`up -d ${service}`);
 if (!compose('up', '-d', '--no-build', service).ok) {
   fail(`docker compose up -d; the server is stopped, run: docker compose up -d ${service}`);
 }
 
-const health = await (await waitFor('/health', Date.now() + timeoutMs, getHealth)).json().catch(() => ({}));
+const copyCheck = integrityCheck(backupPath);
+const rollback = previousImage
+  ? `; to roll back: docker tag ${previousImage} ${imageName} && docker compose up -d --no-build ${service}`
+  : '';
+const healthRes = await waitFor('/health', Date.now() + timeoutMs, getHealth, {
+  hint: `the new container is running but not healthy; see docker compose logs --tail 100 ${service}${rollback}`,
+});
+const health = await healthRes.json().catch(() => ({}));
 const healthyAt = Date.now();
 await waitFor('first recall', Date.now() + timeoutMs, recall(token), { intervalMs: 2000, maxAttempts: 5 });
 const readyAt = Date.now();
+const copyResult = await copyCheck;
 
 const status = dbStatus();
 const line = [
   `downtime=${seconds(healthyAt - stoppedAt)}`,
   `recall_ready=${seconds(readyAt - stoppedAt)}`,
   `(stop=${seconds(stopDoneAt - stoppedAt)}`,
-  `backup=${seconds(backupDoneAt - stopDoneAt)}`,
-  `start=${seconds(healthyAt - backupDoneAt)}`,
+  `copy=${seconds(copyDoneAt - stopDoneAt)}`,
+  `start=${seconds(healthyAt - copyDoneAt)}`,
   `first_recall=${seconds(readyAt - healthyAt)})`,
+  `copy_check=${copyResult ?? 'unknown'}`,
   `memory_item=${status?.memory_item ?? 'unknown'}`,
   `quick_check=${status?.quick_check ?? 'unknown'}`,
   `version=${health.version ?? 'unknown'}`,
 ].join(' ');
 log(line);
+if (copyResult !== 'ok') {
+  console.error(
+    [
+      '[deploy] ==================================================================',
+      `[deploy] FAILED: integrity_check on the backup copy returned ${copyResult ?? 'nothing (check failed to run)'}`,
+      `[deploy]   copy:            ${backupPath}`,
+      `[deploy]   previous backup: ${previousBackup(backupPath) ?? 'none found'}`,
+      `[deploy]   The new server is running. The live DB passed integrity_check before stop and quick_check=${status?.quick_check ?? 'unknown'} after start.`,
+      '[deploy]   Damage written between that check and stop is not caught before start.',
+      '[deploy]   Old backups were not pruned.',
+      '[deploy] ==================================================================',
+    ].join('\n')
+  );
+  process.exit(1);
+}
+if (!run('docker', ['exec', backupContainer, 'node', 'scripts/backup-memory-db.mjs', '--cleanup', '--apply'], { capture: true }).ok) {
+  log('pruning old backups failed; the deploy itself succeeded');
+}
 if (!status) fail('the server is up, but the post-deploy DB check (docker compose exec) could not run; check by hand');
 if (status.quick_check !== 'ok') fail(`quick_check after deploy returned ${status.quick_check}`);

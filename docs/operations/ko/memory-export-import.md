@@ -53,7 +53,7 @@ Import는:
 
 ## DR 워크플로 (권장)
 
-1. **배포 때**: `npm run deploy:docker` 가 정지 뒤 `npm run db:pre-docker-deploy` (무결성 + 파일 백업)를 돌린다
+1. **배포 때**: `npm run deploy:docker` 가 정지 전 원본 무결성 검사, 정지 뒤 파일 백업, 기동과 나란히 사본 무결성 검사를 한다
 2. **논리 백업**: `npm run memory:export -- --output ./backup/daily-$(date +%F).jsonl --include-relations`
 3. **복구 연습** (스테이징):
    ```bash
