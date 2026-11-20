@@ -135,6 +135,29 @@ describe('일일 품질 리포트 미측정·죽은 지표·임계값 없음 (#1
     expect(entry).toMatchObject({ status: 'unmeasured', unmeasured_count: 1 });
   });
 
+  it('측정 상태가 없는 옛 이력이 있으면 0 값만 unknown_legacy 로 바꾸고 0 이 아닌 값은 그대로 둔다 (#1657)', async () => {
+    DatabaseUtils.run(
+      db,
+      `INSERT INTO quality_measurement_history (id, measurement_type, measured_at, metrics, status)
+       VALUES ('legacy-h', 'batch', '2026-10-05T01:11:06.060Z', ?, 'success')`,
+      [JSON.stringify({ namespace: 'legacy_ns', context: 'default', metrics: { zero: 0, nonzero: 0.7 } })]
+    );
+    for (const [key, value] of [['zero', 0], ['nonzero', 0.7]] as const) {
+      DatabaseUtils.run(
+        db,
+        `INSERT INTO quality_metrics (metric_namespace, metric_key, context, metric_value, measured_at, status)
+         VALUES ('legacy_ns', ?, 'default', ?, '2026-10-05T01:11:06.060Z', 'pass')`,
+        [key, value]
+      );
+    }
+
+    const report = await new QualityReporter(db).collectReportData();
+
+    const byKey = new Map(report.latest_metrics.filter(m => m.metric_namespace === 'legacy_ns').map(m => [m.metric_key, m]));
+    expect(byKey.get('zero')).toMatchObject({ measurement_state: 'unknown_legacy', status: 'unmeasured' });
+    expect(byKey.get('nonzero')?.measurement_state).not.toBe('unknown_legacy');
+  });
+
   it('임계값이 있고 통과한 지표만 pass 로 집계한다', async () => {
     new QualityThresholdManager(db).setThreshold('storage', 'data_integrity', {
       threshold_value: 0.5,

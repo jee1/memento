@@ -552,6 +552,7 @@ describe('QualityRecorder', () => {
 
     it('from 과 to 사이의 이력만 돌려준다', () => {
       for (const [id, measuredAt] of [
+        ['h-dec', '2025-12-15T00:00:00.000Z'],
         ['h-jan', '2026-01-15T00:00:00.000Z'],
         ['h-mar', '2026-03-15T00:00:00.000Z'],
       ]) {

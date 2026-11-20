@@ -233,16 +233,15 @@ describe('MigrationRunner', () => {
 
     it('마이그레이션 실패 시 트랜잭션이 롤백되어야 함', async () => {
       // Given: 실패하는 마이그레이션
-      const failingMigration: Migration = {
-        ...testMigration,
-        async up() {
-          db.exec('CREATE TABLE IF NOT EXISTS test_table (id TEXT PRIMARY KEY)');
-          throw new Error('Migration failed');
-        }
-      };
+      const up = vi.fn(async () => {
+        db.exec('CREATE TABLE IF NOT EXISTS test_table (id TEXT PRIMARY KEY)');
+        throw new Error('Migration failed');
+      });
+      const failingMigration = testMigrationWithUp(up);
 
       // When: 마이그레이션 실행 (autoRollback=true, createBackup=false)
       await runner.runMigration(failingMigration, { autoRollback: true, createBackup: false });
+      expect(up).toHaveBeenCalledTimes(1);
 
       // Then: 테이블이 생성되지 않아야 함 (롤백됨)
       const table = db.prepare(`

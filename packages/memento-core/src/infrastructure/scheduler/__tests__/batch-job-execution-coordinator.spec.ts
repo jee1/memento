@@ -462,6 +462,7 @@ describe('BatchJobExecutionCoordinator job_run append (#833)', () => {
 
 describe('BatchJobExecutionCoordinator 동시 실행 상한', () => {
   it('실행 중인 잡 수가 상한과 같으면 큐의 다음 잡을 시작하지 않는다', async () => {
+    vi.stubEnv('BATCH_JOB_PROCESSOR_INTERVAL_MS', '1000');
     vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
     const { coordinator, jobQueue } = createCoordinator({ maxConcurrentJobs: 1 });
     const queued = vi.fn().mockResolvedValue(undefined);
@@ -478,6 +479,7 @@ describe('BatchJobExecutionCoordinator 동시 실행 상한', () => {
     } finally {
       clearInterval(processor);
       vi.useRealTimers();
+      vi.unstubAllEnvs();
     }
   });
 });
