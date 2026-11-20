@@ -1,7 +1,7 @@
 import { spawn } from 'node:child_process';
 import { createServer, type Server } from 'node:http';
 import type { AddressInfo } from 'node:net';
-import { mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
+import { existsSync, mkdirSync, mkdtempSync, readFileSync, rmSync, writeFileSync } from 'node:fs';
 import { join, resolve } from 'node:path';
 import { tmpdir } from 'node:os';
 import { afterEach, describe, expect, it } from 'vitest';
@@ -34,10 +34,19 @@ const GREP = 'exec b4ckup grep -q -e --skip-integrity-check scripts/backup-memor
 /**
  * docker 대신 호출을 기록하는 가짜. failOn 에 든 compose 하위 명령은 1 로 끝난다.
  * notRunning 이면 compose ps 가 빈 출력을 내 서비스 컨테이너가 이 프로젝트에 없는 것처럼 보인다.
+ * liveCheckCannotStart 면 PATH 에서 진짜 docker 가 든 디렉터리를 빼고 GREP 뒤 자신을 지워, 다음 docker spawn 이 ENOENT 로 뜨지 못한다.
+ * 정리용 docker rm 도 같은 이유로 뜨지 못해 기록되지 않는다.
  * 백업 컨테이너 id 는 b4ckup 이고, 복사는 백업 디렉터리에 memory-backup-new.db 를 만든다.
  */
 function setup(
-  opts: { failOn?: string; notRunning?: boolean; liveCheck?: string; copyFails?: boolean; copyCheck?: string } = {}
+  opts: {
+    failOn?: string;
+    notRunning?: boolean;
+    liveCheck?: string;
+    liveCheckCannotStart?: boolean;
+    copyFails?: boolean;
+    copyCheck?: string;
+  } = {}
 ) {
   const root = mkdtempSync(join(tmpdir(), 'memento-deploy-docker-'));
   roots.push(root);
@@ -54,7 +63,7 @@ case "$*" in
   "compose ${opts.failOn ?? '__none__'} "*) exit 1 ;;
   "compose run "*) echo b4ckup ;;
   "inspect "*) echo 'sha256:0ld memento-img' ;;
-  *"--skip-integrity-check") ${
+${opts.liveCheckCannotStart ? `  "exec b4ckup grep "*) "${process.execPath}" -e 'require("fs").rmSync(process.argv[1])' "$0" ;;\n` : ''}  *"--skip-integrity-check") ${
     opts.copyFails
       ? 'exit 1'
       : `: > "${backupDir}/memory-backup-new.db"; echo '{"ok":true,"backupPath":"${backupDir}/memory-backup-new.db"}'`
@@ -71,7 +80,7 @@ exit 0
   return {
     backupDir,
     env: {
-      PATH: `${binDir}:${process.env.PATH ?? ''}`,
+      PATH: [binDir, ...(process.env.PATH ?? '').split(':').filter(dir => !(opts.liveCheckCannotStart && existsSync(join(dir, 'docker'))))].join(':'),
       MEMENTO_BACKUP_DIR: backupDir,
       MEMENTO_API_TOKENS: TOKENS,
       MCP_PUBLISH_HOST: '',
@@ -165,6 +174,17 @@ describe('deploy-docker (#1798, #1802)', () => {
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('integrity_check on the live DB returned *** in database main *** Page 7 is never used; server untouched');
     expect(t.calls()).toEqual([PS, INSPECT, RUN, GREP, LIVE_CHECK, RM]);
+  });
+
+  it('stops before touching the server when integrity_check on the live DB cannot start', async () => {
+    const t = setup({ liveCheckCannotStart: true });
+    const server = await fakeServer();
+
+    const result = await runDeploy({ ...t.env, MCP_SERVER_PORT: server.port }, ['--skip-build']);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('integrity_check on the live DB returned nothing (check failed to run); server untouched');
+    expect(t.calls()).toEqual([PS, INSPECT, RUN, GREP]);
   });
 
   it('stops before touching the server when the backup container cannot start', async () => {
