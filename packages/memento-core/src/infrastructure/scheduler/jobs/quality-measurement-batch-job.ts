@@ -5,7 +5,7 @@
  * 
  * 주요 기능:
  * - 모든 네임스페이스에 대한 품질 측정 실행
- * - 측정 결과 기록 및 리포트 생성
+ * - 측정 결과 기록
  * - 경고 및 실패 지표 감지
  * - 로깅 및 통계 수집
  * 
@@ -42,16 +42,6 @@ interface QualityMeasurementBatchJobConfig {
    * 측정 결과를 기록할지 여부 (기본값: true)
    */
   record?: boolean;
-
-  /**
-   * 리포트 생성 여부 (기본값: true)
-   */
-  generateReport?: boolean;
-
-  /**
-   * 리포트 형식 (기본값: 'markdown')
-   */
-  reportFormat?: 'markdown' | 'json' | 'html';
 
   /**
    * 작업 타임아웃 (밀리초, 기본값: 5분)
@@ -99,11 +89,6 @@ interface QualityMeasurementBatchResult extends BatchJobResult {
      * 보존 기간이 지나 삭제한 quality_measurement_history 행 수 (#908)
      */
     historyRowsPruned: number;
-
-    /**
-     * 리포트 파일 경로 (생성된 경우)
-     */
-    reportFilePath?: string;
   };
 }
 
@@ -127,8 +112,6 @@ export class QualityMeasurementBatchJob {
       context: config?.context ?? 'default',
       namespaces: config?.namespaces,
       record: config?.record ?? true,
-      generateReport: config?.generateReport ?? true,
-      reportFormat: config?.reportFormat ?? 'markdown',
       timeout: config?.timeout ?? 300000, // 5분
       ...config
     };
@@ -142,7 +125,7 @@ export class QualityMeasurementBatchJob {
    * 
    * PRD FR-5.6: 일일 품질 측정 배치 작업
    * - 모든 네임스페이스에 대한 품질 측정 실행
-   * - 측정 결과 기록 및 리포트 생성
+   * - 측정 결과 기록
    * - 경고 및 실패 지표 감지
    * 
    * @param db 데이터베이스 연결
@@ -230,28 +213,6 @@ export class QualityMeasurementBatchJob {
         overallStatus = 'warning';
       }
 
-      // 리포트 생성 (옵션)
-      let reportFilePath: string | undefined;
-      if (this.config.generateReport) {
-        try {
-          await this.qualityService.generateReport({
-            format: this.config.reportFormat,
-            context: this.config.context,
-            namespace: this.config.namespaces?.[0] // 첫 번째 네임스페이스만 필터링 (또는 전체)
-          });
-
-          // 리포트 파일 경로는 QualityReporter의 saveReportToFile에서 자동 생성됨
-          // 로그에서 확인 가능하므로 여기서는 undefined로 설정
-          reportFilePath = undefined;
-        } catch (error) {
-          const errorMessage = error instanceof Error ? error.message : String(error);
-          result.warnings.push(`리포트 생성 실패: ${errorMessage}`);
-          logger.warn('품질 리포트 생성 실패', {
-            error: errorMessage
-          });
-        }
-      }
-
       // 결과 업데이트
       result.details = {
         namespacesMeasured,
@@ -260,7 +221,6 @@ export class QualityMeasurementBatchJob {
         failedMetrics,
         warningMetrics,
         overallStatus,
-        reportFilePath,
         historyRowsPruned
       };
 

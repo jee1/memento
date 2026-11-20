@@ -25,8 +25,6 @@ export async function runQualityMeasurementBatch(ctx: BatchSchedulerRunContext):
         measurementType: 'batch',
         context: 'default',
         record: true,
-        generateReport: true,
-        reportFormat: 'markdown',
         timeout: ctx.config.jobTimeout
       });
     }

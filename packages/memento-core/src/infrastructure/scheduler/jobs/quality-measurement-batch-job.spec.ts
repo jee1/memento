@@ -7,7 +7,7 @@ import { DAY_MS } from '../../../shared/utils/date.js';
 /**
  * #908: quality_measurement_history 보존 정리.
  * 측정 자체는 이 테스트의 대상이 아니므로 QualityAssuranceService 는 빈 결과를 돌려주는
- * 스텁으로 주입하고, 리포트 생성은 끈다.
+ * 스텁으로 주입한다.
  */
 describe('QualityMeasurementBatchJob — quality_measurement_history 보존 정리', () => {
   let db: Database.Database;
@@ -18,7 +18,7 @@ describe('QualityMeasurementBatchJob — quality_measurement_history 보존 정�
 
   const makeJob = () =>
     new QualityMeasurementBatchJob(
-      { record: false, generateReport: false },
+      { record: false },
       { qualityService: stubService },
     );
 

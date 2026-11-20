@@ -88,8 +88,6 @@ describe('QualityMeasurementBatchJob', () => {
         measurementType: 'batch',
         context: 'default',
         record: true,
-        generateReport: true,
-        reportFormat: 'markdown',
         timeout: 300000 // 5분
       },
       {
@@ -118,7 +116,6 @@ describe('QualityMeasurementBatchJob', () => {
         measurementType: 'test',
         context: 'ci',
         record: false,
-        generateReport: false,
         timeout: 60000
       });
 
@@ -183,26 +180,6 @@ describe('QualityMeasurementBatchJob', () => {
 
       // Then: 배치 작업은 성공하지만 측정 결과는 기록되지 않을 수 있음
       expect(result.success).toBe(true);
-    });
-
-    it('should generate report when generateReport=true', async () => {
-      // Given: generateReport=true로 설정된 배치 작업
-      const job = new QualityMeasurementBatchJob(
-        {
-          generateReport: true,
-          reportFormat: 'markdown'
-        },
-        {
-          qualityService
-        }
-      );
-
-      // When: 배치 작업 실행
-      const result = await job.execute(db);
-
-      // Then: 리포트가 생성되어야 함
-      expect(result.success).toBe(true);
-      expect(result.details).toBeDefined();
     });
 
     it('should handle timeout correctly', async () => {
