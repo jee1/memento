@@ -495,10 +495,16 @@ describe('QualityReporter', () => {
 
   describe('미측정 전환과 이력 보강 (#1812)', () => {
     async function record(metrics: CollectedMetrics): Promise<void> {
-      await recorder.recordMeasurement(metrics, await evaluator.evaluateMetrics(metrics));
+      await recorder.recordMeasurement(metrics, await evaluator.evaluateMetrics(metrics), { context: metrics.context });
     }
 
     it('should drop the old number of a metric that became unmeasured and keep the measured one', async () => {
+      await record({
+        namespace: 'search',
+        context: 'nightly',
+        measured_at: '2026-11-19T00:00:00.000Z',
+        metrics: { precision_at_5: 0.7 }
+      });
       await record({
         namespace: 'search',
         context: 'default',
@@ -516,8 +522,17 @@ describe('QualityReporter', () => {
       const reportData = await reporter.collectReportData({ namespace: 'search' });
 
       const byKey = Object.fromEntries(reportData.latest_metrics.map(m => [m.metric_key, m]));
-      expect(byKey.precision_at_5).toMatchObject({ metric_value: null, status: 'unmeasured' });
+      expect(byKey.precision_at_5).toMatchObject({
+        metric_value: null,
+        status: 'unmeasured',
+        measurement_state: 'unmeasured_no_ground_truth'
+      });
       expect(byKey.recall_at_5).toMatchObject({ metric_value: 0.6 });
+
+      const nightly = db.prepare(
+        `SELECT metric_value FROM quality_metrics WHERE metric_namespace = 'search' AND metric_key = 'precision_at_5' AND context = 'nightly'`
+      ).get();
+      expect(nightly).toEqual({ metric_value: 0.7 });
     });
 
     it('should stamp an unmeasured row with the measurement time, not the report time', async () => {
@@ -544,8 +559,10 @@ describe('QualityReporter', () => {
 
       const reportData = await reporter.collectReportData();
 
-      expect(reportData.history.map(h => h.id)).toContain('quality_broken');
-      expect(() => reporter.generateMarkdownReport(reportData)).not.toThrow();
+      const broken = reportData.history.find(h => h.id === 'quality_broken');
+      expect(broken).toBeDefined();
+      expect(broken?.namespace).toBeUndefined();
+      expect(reporter.generateMarkdownReport(reportData)).toContain('| quality_broken... | batch | N/A | N/A |');
     });
   });
 });
