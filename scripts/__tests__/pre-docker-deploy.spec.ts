@@ -139,6 +139,36 @@ describe('pre-docker-deploy operator script', () => {
     }
   });
 
+  it('falls back to the container after a host attempt fails with source-dir-unwritable (#1001)', () => {
+    const root = makeTempRoot();
+    const dataDir = join(root, 'data');
+    const backupsDir = join(root, 'backups');
+    const markerPath = join(root, 'docker-called');
+    const binDir = join(root, 'bin');
+    mkdirSync(dataDir);
+    mkdirSync(backupsDir);
+    mkdirSync(binDir);
+    const dbPath = createWalDbWithoutSidecars(dataDir);
+    // -shm 은 쓸 수 있어 사전 판정은 호스트 경로를 고르지만, -wal 을 만들 디렉터리 쓰기 권한이 없어 호스트 시도가 실패한다.
+    writeFileSync(`${dbPath}-shm`, '');
+    chmodSync(dataDir, 0o500);
+
+    try {
+      const result = runPreDockerDeploy({
+        DB_PATH: dbPath,
+        MEMENTO_BACKUP_DIR: backupsDir,
+        PATH: setupFakeDocker(binDir, { markerPath, mode: 'success' }),
+      });
+
+      expect(result.stderr).toContain('"reason":"source-dir-unwritable"');
+      expect(result.stdout).toContain('[pre-docker-deploy] host backup blocked (source-dir-unwritable); backing up inside the container');
+      expect(existsSync(markerPath)).toBe(true);
+      expect(result.status).toBe(0);
+    } finally {
+      chmodSync(dataDir, 0o700);
+    }
+  });
+
   it('does not fall back when host backup fails for another reason (#1001)', () => {
     const root = makeTempRoot();
     const dbPath = join(root, 'missing.db');

@@ -119,6 +119,22 @@ describe('일일 품질 리포트 미측정·죽은 지표·임계값 없음 (#1
     expect(storage?.passed_count).toBe(0);
   });
 
+  it('측정 상태가 없는 옛 기록의 0 값은 통과가 아니라 unknown_legacy 미측정으로 드러낸다 (#1657)', async () => {
+    DatabaseUtils.run(
+      db,
+      `INSERT INTO quality_metrics (metric_namespace, metric_key, context, metric_value, measured_at, status)
+       VALUES ('legacy_ns', 'old_metric', 'default', 0, '2026-10-05T01:11:06.060Z', 'pass')`
+    );
+
+    const report = await new QualityReporter(db).collectReportData();
+
+    const row = report.latest_metrics.find(m => m.metric_namespace === 'legacy_ns');
+    expect(row).toMatchObject({ measurement_state: 'unknown_legacy', status: 'unmeasured' });
+    // QUALITY_NAMESPACES 밖의 옛 네임스페이스도 namespace_status 에 남아야 운영자가 본다.
+    const entry = report.summary.namespace_status.find(ns => ns.namespace === 'legacy_ns');
+    expect(entry).toMatchObject({ status: 'unmeasured', unmeasured_count: 1 });
+  });
+
   it('임계값이 있고 통과한 지표만 pass 로 집계한다', async () => {
     new QualityThresholdManager(db).setThreshold('storage', 'data_integrity', {
       threshold_value: 0.5,

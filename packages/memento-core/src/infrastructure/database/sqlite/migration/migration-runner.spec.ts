@@ -200,19 +200,35 @@ describe('MigrationRunner', () => {
 
     it('마이그레이션 실패 시 롤백해야 함', async () => {
       // Given: 실패하는 마이그레이션
+      // 클래스 인스턴스를 펼치면 prototype 의 validateBefore 가 빠져 up 전에 실패하므로 평범한 객체로 만든다.
+      const down = vi.fn(async () => {});
       const failingMigration: Migration = {
-        ...testMigration,
-        async up() {
-          throw new Error('Migration failed');
-        }
+        ...testMigrationWithUp(vi.fn().mockRejectedValue(new Error('Migration failed'))),
+        down
       };
 
       // When: 마이그레이션 실행 (autoRollback=true, createBackup=false)
       const result = await runner.runMigration(failingMigration, { autoRollback: true, createBackup: false });
 
-      // Then: 롤백되어야 함
+      // Then: 자동 롤백이 down() 을 실제로 부른 뒤에만 rollbackSuccess 를 올린다
       expect(result.success).toBe(false);
       expect(result.error).toBeDefined();
+      expect(down).toHaveBeenCalledTimes(1);
+      expect(result.rollbackSuccess).toBe(true);
+    });
+
+    it('자동 롤백의 down() 이 실패하면 rollbackSuccess 를 false 로 남긴다', async () => {
+      const failingMigration: Migration = {
+        ...testMigrationWithUp(vi.fn().mockRejectedValue(new Error('Migration failed'))),
+        async down() {
+          throw new Error('down failed');
+        }
+      };
+
+      const result = await runner.runMigration(failingMigration, { autoRollback: true, createBackup: false });
+
+      expect(result.success).toBe(false);
+      expect(result.rollbackSuccess).toBe(false);
     });
 
     it('마이그레이션 실패 시 트랜잭션이 롤백되어야 함', async () => {
