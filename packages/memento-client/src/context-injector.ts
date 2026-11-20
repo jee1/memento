@@ -19,6 +19,7 @@
  */
 
 import { MementoClient } from './memento-client.js';
+import { fenceStoredMaterial } from './stored-material-fence.js';
 import type {
   ContextInjectionResult,
   SearchResult,
@@ -233,7 +234,7 @@ export class ContextInjector {
     const memorySections = this.formatMemories(memories);
     const contextFooter = this.getContextFooter(query, memories.length);
 
-    return `${contextHeader}\n\n${memorySections}\n\n${contextFooter}`;
+    return `${contextHeader}\n\n${fenceStoredMaterial(memorySections)}\n\n${contextFooter}`;
   }
 
   /**
