@@ -240,6 +240,27 @@ describe('deploy-docker (#1798, #1802)', () => {
     expect(server.seen.recall).toBe(3);
   });
 
+  it('retries the first recall on 5xx up to the fifth attempt', { timeout: 30_000 }, async () => {
+    const t = setup();
+    const server = await fakeServer({ recallStatuses: [200, 500, 500, 500, 500, 200] });
+
+    const result = await runDeploy({ ...t.env, MCP_SERVER_PORT: server.port }, ['--skip-build']);
+
+    expect(result.status, result.stderr).toBe(0);
+    expect(server.seen.recall).toBe(6);
+  });
+
+  it('gives up on the first recall after five 5xx answers (keeps the /tools rate limit)', { timeout: 30_000 }, async () => {
+    const t = setup();
+    const server = await fakeServer({ recallStatuses: [200, 500] });
+
+    const result = await runDeploy({ ...t.env, MCP_SERVER_PORT: server.port }, ['--skip-build']);
+
+    expect(result.status).toBe(1);
+    expect(result.stderr).toContain('or 5 attempts');
+    expect(server.seen.recall).toBe(6);
+  });
+
   it('rejects a misspelled flag instead of ignoring it', async () => {
     const t = setup();
 

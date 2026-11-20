@@ -550,6 +550,30 @@ describe('QualityRecorder', () => {
       expect(history.length).toBeGreaterThan(0);
     });
 
+    it('from 과 to 사이의 이력만 돌려준다', () => {
+      for (const [id, measuredAt] of [
+        ['h-dec', '2025-12-15T00:00:00.000Z'],
+        ['h-jan', '2026-01-15T00:00:00.000Z'],
+        ['h-mar', '2026-03-15T00:00:00.000Z'],
+      ]) {
+        DatabaseUtils.run(
+          db,
+          `INSERT INTO quality_measurement_history (id, measurement_type, measured_at, metrics, status)
+           VALUES (?, 'batch', ?, ?, 'success')`,
+          [id, measuredAt, JSON.stringify({ namespace: 'search', context: 'default' })]
+        );
+      }
+
+      const history = recorder.getMeasurementHistory(
+        'search',
+        'default',
+        '2026-01-01T00:00:00.000Z',
+        '2026-02-01T00:00:00.000Z'
+      );
+
+      expect(history.map(h => h.id)).toEqual(['h-jan']);
+    });
+
     it('should limit results', () => {
       // Given: 여러 측정 결과 기록
       // When: limit 적용

@@ -460,6 +460,30 @@ describe('BatchJobExecutionCoordinator job_run append (#833)', () => {
   });
 });
 
+describe('BatchJobExecutionCoordinator 동시 실행 상한', () => {
+  it('실행 중인 잡 수가 상한과 같으면 큐의 다음 잡을 시작하지 않는다', async () => {
+    vi.stubEnv('BATCH_JOB_PROCESSOR_INTERVAL_MS', '1000');
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    const { coordinator, jobQueue } = createCoordinator({ maxConcurrentJobs: 1 });
+    const queued = vi.fn().mockResolvedValue(undefined);
+    jobQueue.markRunning('busy');
+    jobQueue.add('queued', queued, 1);
+    const processor = coordinator.startJobProcessor();
+    try {
+      await vi.advanceTimersByTimeAsync(3_000);
+      expect(queued).not.toHaveBeenCalled();
+
+      jobQueue.markCompleted('busy');
+      await vi.advanceTimersByTimeAsync(1_000);
+      expect(queued).toHaveBeenCalledTimes(1);
+    } finally {
+      clearInterval(processor);
+      vi.useRealTimers();
+      vi.unstubAllEnvs();
+    }
+  });
+});
+
 describe('BatchJobExecutionCoordinator 결과 상태 (#1753)', () => {
   it('success:false 를 돌려준 잡도 오류 수를 올린다', async () => {
     const { coordinator, retryManager } = createCoordinator({});

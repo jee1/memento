@@ -1,6 +1,7 @@
 import Database from 'better-sqlite3';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { BatchScheduler } from '../../batch-scheduler/batch-scheduler.js';
+import { BatchJobAlreadyRunningError } from '../../batch-scheduler/batch-scheduler-types.js';
 
 describe('BatchScheduler infrastructure jobs manual control', () => {
   const schedulers: BatchScheduler[] = [];
@@ -89,6 +90,32 @@ describe('BatchScheduler infrastructure jobs manual control', () => {
     expect(resumeResult).toEqual({ ok: true });
     expect(scheduler.isJobPaused('lock_monitor')).toBe(false);
     expect(scheduler.getStatus().activeJobs).toContain('lock_monitor');
+  });
+
+  it('rejects a second manual run while the first is still in flight (#834 SC-003)', async () => {
+    let release!: () => void;
+    const walCheckpoint = vi.fn(() => new Promise(resolve => { release = () => resolve({ success: true }); }));
+    const { scheduler } = await startSchedulerWithWal(walCheckpoint);
+
+    const first = scheduler.runJob('wal_checkpoint');
+    await expect(scheduler.runJob('wal_checkpoint')).rejects.toBeInstanceOf(BatchJobAlreadyRunningError);
+    release();
+
+    await expect(first).resolves.toMatchObject({ success: true });
+    expect(walCheckpoint).toHaveBeenCalledTimes(1);
+  });
+
+  it('resumeJob on a scheduled (not paused) job replaces its interval instead of adding a second one (#834)', async () => {
+    vi.useFakeTimers({ toFake: ['setInterval', 'clearInterval'] });
+    const { scheduler } = await startSchedulerWithLockMonitor();
+    const jobQueue = (scheduler as unknown as { jobQueue: { isQueued(n: string): boolean } }).jobQueue;
+
+    expect(scheduler.resumeJob('lock_monitor')).toEqual({ ok: true });
+    await scheduler.stop();
+    await vi.advanceTimersByTimeAsync(180_000);
+
+    // 옛 interval 이 남으면 stop 뒤에도 주기마다 잡을 큐에 다시 넣는다.
+    expect(jobQueue.isQueued('lock_monitor')).toBe(false);
   });
 
   it('runJob rejects unknown job names', async () => {
