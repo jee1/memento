@@ -168,9 +168,11 @@ git worktree remove ~/git/memento-worktrees/issue-123-feature-name   # 브랜치
 
 ## Docker 및 DB 운영
 
-DB 백업과 복구, Docker 배포는 자주 쓰는 운영 명령입니다. Docker 배포 전에는 **반드시** `npm run db:pre-docker-deploy`로 DB 무결성을 먼저 점검하세요. 이 단계를 건너뛰면 손상된 DB가 컨테이너로 올라갈 수 있습니다.
+DB 백업과 복구, Docker 배포는 자주 쓰는 운영 명령입니다. 운영 배포는 `npm run deploy:docker` 한 명령으로 합니다. build, 정지, `db:pre-docker-deploy`(백업과 integrity_check), `up -d`, `/health`, 첫 recall 을 차례로 돌고 단계가 실패하면 멈춥니다. 백업이 실패하면 새 이미지로 바꾸지 않고 정지했던 컨테이너를 다시 띄웁니다. 끝에 끊긴 시간과 `memory_item`, `quick_check`, 버전을 한 줄로 찍습니다. 손으로 배포할 때도 `npm run db:pre-docker-deploy`는 **반드시** 정지 뒤, 기동 전에 돌립니다. 이 단계를 건너뛰면 손상된 DB가 컨테이너로 올라갈 수 있습니다.
 
 ```bash
+npm run deploy:docker             # 운영 배포 (build -> stop -> 백업 -> up -> 첫 recall 확인)
+npm run deploy:docker -- --skip-build  # 이미 빌드한 이미지로 배포
 npm run db:backup                 # 메모리 DB 백업
 npm run db:backup:cleanup         # 백업 backlog 정리 preview (기본, 삭제 없음)
 npm run db:backup:cleanup -- --apply # preview와 같은 선택자를 실제 삭제에 적용
@@ -190,7 +192,7 @@ npm run docker:logs               # 컨테이너 로그 추적
 npm run docker:down               # 컨테이너 삭제 — 아래 주의 참고
 ```
 
-> **`docker:down` 주의.** 네 `docker:*` 스크립트는 저장소 루트의 `docker-compose.yml` 에 작용합니다. 이 파일은 운영 배포 설정이고 Compose 프로젝트 이름은 디렉터리명인 `memento` 입니다. 즉 `npm run docker:down` 은 **운영 컨테이너를 정지가 아니라 삭제**합니다. 정식 배포 절차는 `down` 대신 `docker compose stop memento-mcp-server` 를 씁니다. DB 와 로그는 호스트 바인드 마운트(`$HOME/.memento/data`, `$HOME/.memento/logs`)라 삭제해도 남지만, 재기동 전까지 서비스는 내려갑니다.
+> **`docker:down` 주의.** 네 `docker:*` 스크립트는 저장소 루트의 `docker-compose.yml` 에 작용합니다. 이 파일은 운영 배포 설정이고 Compose 프로젝트 이름은 디렉터리명인 `memento` 입니다. 즉 `npm run docker:down` 은 **운영 컨테이너를 정지가 아니라 삭제**합니다. 정식 배포 절차(`npm run deploy:docker`)는 `down` 대신 `docker compose stop memento-mcp-server` 를 씁니다. DB 와 로그는 호스트 바인드 마운트(`$HOME/.memento/data`, `$HOME/.memento/logs`)라 삭제해도 남지만, 재기동 전까지 서비스는 내려갑니다.
 
 `db:backup`의 무인자 JSON 성공 출력은 기존 계약을 유지합니다. `db:backup:cleanup`은 기본이 preview라 파일을 지우지 않고, `-- --apply`를 명시해야 삭제합니다. Apply 전에는 MCP 서버, restore 명령, 다른 cleanup/backup 작업을 모두 중지하세요. `DB_PATH`는 프로덕션에서 절대 경로를 쓰고, 환경 변수 안의 `~`는 확장되지 않습니다. Cleanup은 operator 백업도 최근 10개만 남기고 초과분을 지우며, 실패 보고에는 절대 DB 경로나 백업 디렉터리를 싣지 않습니다.
 

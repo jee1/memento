@@ -109,7 +109,7 @@ describe('pre-docker-deploy operator script', () => {
     expect(existsSync(markerPath)).toBe(false);
   });
 
-  it('retries inside the container when host backup is source-dir-unwritable (#1001)', () => {
+  it('backs up inside the container without a failing host attempt when the DB directory is unwritable (#1001, #1798)', () => {
     const root = makeTempRoot();
     const dataDir = join(root, 'data');
     const backupsDir = join(root, 'backups');
@@ -129,8 +129,9 @@ describe('pre-docker-deploy operator script', () => {
 
       expect(result.status).toBe(0);
       expect(result.stdout).toContain(
-        '[pre-docker-deploy] host backup blocked (source-dir-unwritable); retrying inside the container'
+        '[pre-docker-deploy] DB directory is not writable by this user (source-dir-unwritable); backing up inside the container'
       );
+      expect(result.stderr).not.toContain('"reason":"source-dir-unwritable"');
       expect(result.stdout).toContain('target=/fake/memory.db (container path)');
       expect(result.stdout).toContain('[pre-docker-deploy] Backup OK; safe to restart Docker.');
     } finally {
@@ -150,6 +151,22 @@ describe('pre-docker-deploy operator script', () => {
     const result = runPreDockerDeploy({
       DB_PATH: dbPath,
       MEMENTO_BACKUP_DIR: backupsDir,
+      PATH: setupFakeDocker(binDir, { markerPath, mode: 'success' }),
+    });
+
+    expect(result.status).toBe(1);
+    expect(existsSync(markerPath)).toBe(false);
+  });
+
+  it('does not pick the container route when the DB directory does not exist (#1798)', () => {
+    const root = makeTempRoot();
+    const markerPath = join(root, 'docker-called');
+    const binDir = join(root, 'bin');
+    mkdirSync(binDir);
+
+    const result = runPreDockerDeploy({
+      DB_PATH: join(root, 'no-such-dir', 'memory.db'),
+      MEMENTO_BACKUP_DIR: join(root, 'backups'),
       PATH: setupFakeDocker(binDir, { markerPath, mode: 'success' }),
     });
 
@@ -177,8 +194,9 @@ describe('pre-docker-deploy operator script', () => {
 
       expect(result.status).toBe(1);
       expect(result.stdout).toContain(
-        '[pre-docker-deploy] host backup blocked (source-dir-unwritable); retrying inside the container'
+        '[pre-docker-deploy] DB directory is not writable by this user (source-dir-unwritable); backing up inside the container'
       );
+      expect(result.stderr).not.toContain('"reason":"source-dir-unwritable"');
     } finally {
       chmodSync(dataDir, 0o700);
     }

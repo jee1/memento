@@ -1,5 +1,5 @@
 #!/usr/bin/env node
-import { parseArgs as parseCliArgs } from './lib/cli-runtime.js';
+import { parseArgs as parseCliArgs, resolveDbPath } from './lib/cli-runtime.js';
 /**
  * Safe guard before `docker compose up` / image rebuild:
  * 1) online backup via sqlite backup API
@@ -10,6 +10,7 @@ import { parseArgs as parseCliArgs } from './lib/cli-runtime.js';
  *   node scripts/pre-docker-deploy.mjs --force
  */
 import { spawnSync } from 'node:child_process';
+import { accessSync, constants, existsSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -70,6 +71,43 @@ function writeChildOutput(child) {
   }
 }
 
+function writable(file) {
+  try {
+    accessSync(file, constants.W_OK);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+// WAL 읽기에는 -shm 을 쓸 수 있어야 한다. 디렉터리도 -shm 도 못 쓰면 호스트 백업은 반드시
+// source-dir-unwritable 로 끝나므로 시도하지 않는다. 운영(uid 1001 소유)에서는 매번 이 경우이고,
+// 실패하는 호스트 시도가 정지 구간에 1.1~1.6초를 더했다 (#1798).
+// 디렉터리가 없으면 여기서 고르지 않는다. 호스트 시도가 db-not-found 로 끝나야 잘못된 DB_PATH 가 드러난다.
+function hostCannotOpenSource() {
+  const dbPath = resolveDbPath();
+  const dir = path.dirname(dbPath);
+  return existsSync(dir) && !writable(dir) && !writable(`${dbPath}-shm`);
+}
+
+function backupInContainer(message) {
+  console.log(`[pre-docker-deploy] ${message}; backing up inside the container`);
+  const fallback = spawnSync('sh', [dockerBackupScript], {
+    cwd: root,
+    encoding: 'utf8',
+    env: process.env,
+  });
+  writeChildOutput(fallback);
+  if (fallback.status === 0) {
+    finishSuccess(fallback.stdout, true);
+  }
+  finishFailure(fallback.status);
+}
+
+if (hostCannotOpenSource()) {
+  backupInContainer('DB directory is not writable by this user (source-dir-unwritable)');
+}
+
 const backup = spawnSync(process.execPath, [backupScript], {
   cwd: root,
   encoding: 'utf8',
@@ -82,21 +120,8 @@ if (backup.status === 0) {
   finishSuccess(backup.stdout);
 }
 
-const failureReason = parseBackupFailureReason(backup.stderr ?? '');
-if (failureReason === 'source-dir-unwritable') {
-  console.log(
-    '[pre-docker-deploy] host backup blocked (source-dir-unwritable); retrying inside the container'
-  );
-  const fallback = spawnSync('sh', [dockerBackupScript], {
-    cwd: root,
-    encoding: 'utf8',
-    env: process.env,
-  });
-  writeChildOutput(fallback);
-  if (fallback.status === 0) {
-    finishSuccess(fallback.stdout, true);
-  }
-  finishFailure(fallback.status);
+if (parseBackupFailureReason(backup.stderr ?? '') === 'source-dir-unwritable') {
+  backupInContainer('host backup blocked (source-dir-unwritable)');
 }
 
 finishFailure(backup.status);
