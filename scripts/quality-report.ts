@@ -9,21 +9,20 @@ import { isMain, parseArgs as parseCliArgs } from './lib/cli.js';
  *   npm run quality:report -- --namespace search
  *   npm run quality:report -- --from 2024-01-01T00:00:00Z --to 2024-12-31T23:59:59Z
  *   npm run quality:report -- --output report.md
- *   npm run quality:report -- --format html --output report.html
+ *   npm run quality:report -- --format json --output report.json
  * 
  * 예제:
  *   npm run quality:report
  *   npm run quality:report -- --format json
  *   npm run quality:report -- --namespace search --format markdown
  *   npm run quality:report -- --from 2024-01-01T00:00:00Z --to 2024-12-31T23:59:59Z --output report.md
- *   npm run quality:report -- --format html --output report.html --context ci
+ *   npm run quality:report -- --format json --output report.json --context ci
  */
 
 import { writeFileSync, mkdirSync, existsSync } from 'fs';
 import { join } from 'path';
-import { QualityAssuranceService, initializeDatabase, sqliteRepositoryProvider } from '@memento/core';
+import { QualityAssuranceService, REPORT_FORMATS, initializeDatabase, isReportFormat, sqliteRepositoryProvider, type ReportFormat } from '@memento/core';
 
-type ReportFormat = 'markdown' | 'json' | 'html';
 interface ReportOptions {
   format?: ReportFormat;
   namespace?: string;
@@ -56,10 +55,12 @@ function parseArgs(): CliOptions {
   for (let i = 0; i < args.length; i++) {
     const arg = args[i];
     if (arg === '--format' && args[i + 1]) {
-      const format = args[i + 1] as ReportFormat;
-      if (['markdown', 'json', 'html'].includes(format)) {
-        options.format = format;
+      const format = args[i + 1];
+      if (!isReportFormat(format)) {
+        console.error(`지원하지 않는 리포트 형식입니다: ${format} (${REPORT_FORMATS.join(', ')})`);
+        process.exit(1);
       }
+      options.format = format;
       i++;
     } else if (arg === '--namespace' && args[i + 1]) {
       options.namespace = args[i + 1];
@@ -98,7 +99,7 @@ function printHelp(): void {
   npm run quality:report [options]
 
 옵션:
-  --format <format>        리포트 형식 (markdown, json, html, 기본값: markdown)
+  --format <format>        리포트 형식 (markdown, json, 기본값: markdown)
   --namespace <namespace>  네임스페이스 필터 (예: search, relation, consolidation, storage)
   --context <context>      컨텍스트 필터 (기본값: default)
   --from <iso8601>         시작 시간 (ISO 8601 형식, 예: 2024-01-01T00:00:00Z)
@@ -112,7 +113,7 @@ function printHelp(): void {
   npm run quality:report -- --format json
   npm run quality:report -- --namespace search --format markdown
   npm run quality:report -- --from 2024-01-01T00:00:00Z --to 2024-12-31T23:59:59Z --output report.md
-  npm run quality:report -- --format html --output report.html --context ci
+  npm run quality:report -- --format json --output report.json --context ci
 `);
 }
 
