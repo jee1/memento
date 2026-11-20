@@ -549,10 +549,9 @@ fs.unlinkSync = function(target) {
 import { createRequire } from 'node:module';
 
 const require = createRequire(process.cwd() + '/package.json');
-const core = require('@memento/core');
+const { BackupManager } = require('@memento/core/infrastructure/database/sqlite/migration/backup-manager.js');
 
-const realCleanup = core.BackupManager.prototype.cleanupBackups;
-core.BackupManager.prototype.cleanupBackups = async function() {
+BackupManager.prototype.cleanupBackups = async function() {
   throw new Error('injected cleanup failure');
 };
 `);

@@ -195,7 +195,6 @@ export { QualityThresholdManager } from './domains/monitoring/services/quality-a
 export { PIIMasker } from './shared/utils/pii-masker.js';
 export { SchemaVersionManager } from './infrastructure/database/sqlite/migration/schema-version-manager.js';
 export { MigrationDetector } from './infrastructure/database/sqlite/migration/migration-detector.js';
-export { BackupManager } from './infrastructure/database/sqlite/migration/backup-manager.js';
 export type {
   BackupResult,
   CleanupOptions,
