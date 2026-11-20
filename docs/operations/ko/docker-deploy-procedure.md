@@ -51,12 +51,12 @@ npm run deploy:docker -- --skip-preflight  # 서버가 이미 내려가 있을 �
 2. 떠 있는 서버에 `/tools/recall` 을 한 번 부른다. 토큰, 포트(`MCP_SERVER_PORT`), 게시 주소(`MCP_PUBLISH_HOST`)가 틀리면 여기서 서버를 건드리지 않고 끝난다.
 3. `docker compose build` (서버가 떠 있는 동안). 실패하면 서버를 건드리지 않고 끝난다.
 4. 서비스 컨테이너가 이 compose 프로젝트에서 돌고 있는지 `docker compose ps` 로 본다. worktree 처럼 프로젝트 이름이 다른 곳에서 돌리면 `stop` 이 운영 서버를 세우지 못하므로 여기서 끝난다. 배포는 메인 체크아웃에서 한다. 이때 도는 컨테이너의 이미지 id 를 적어 둔다. 8단계가 실패하면 되돌리는 명령에 쓴다.
-5. 백업 컨테이너를 띄운다(`docker compose run -d`, 새 이미지, `npm run db:backup:docker` 와 같은 uid, gid, 마운트). 그 안에서 원본 DB 에 읽기 전용으로 `integrity_check` 를 돌린다. 서버는 그대로 돈다. 실패하면 서버를 건드리지 않고 끝난다.
+5. 백업 컨테이너를 띄운다(`docker compose run -d`, 새 이미지, `npm run db:backup:docker` 와 같은 uid, gid, 마운트). 이미지가 #1802 이후인지(`backup-memory-db.mjs --skip-integrity-check` 가 있는지) 먼저 본다. `--skip-build` 로 옛 이미지를 쓰면 여기서 끝난다. 그 안에서 원본 DB 에 읽기 전용으로 `integrity_check` 를 돌린다. 서버는 그대로 돈다. 실패하면 서버를 건드리지 않고 끝난다.
 6. `docker compose stop` 뒤 백업 컨테이너에서 복사만 한다(`backup-memory-db.mjs --skip-integrity-check`, 오래된 백업 정리도 미룬다). 컨테이너는 5단계에서 만들어 두었으므로 `docker exec` 만 든다. 복사가 실패하면 새 이미지로 바꾸지 않고 `docker compose start` 로 정지했던 컨테이너를 다시 띄우고 `/health` 가 200 이 될 때까지 기다린 뒤 실패로 끝난다. `--skip-preflight` 로 이미 내려가 있던 서버는 다시 띄우지 않는다. 다시 띄우기도 실패하면 서버가 내려가 있다고 알린다.
 7. `docker compose up -d --no-build`. 이와 나란히 백업 컨테이너에서 사본에 `integrity_check` 를 돌린다.
 8. `/health` 가 200 이 될 때까지 기다린다. 끝내 안 되면 새 컨테이너가 떠 있지만 응답하지 않는다고 알리고, 로그를 보는 명령과 4단계 이미지로 되돌리는 명령(`docker tag <옛 이미지 id> <이미지 이름> && docker compose up -d --no-build memento-mcp-server`)을 찍는다.
 9. `/tools/recall` 을 한 번 부른다. 임베딩 모델은 첫 기억 호출 때 올라온다. `/health` 200 만으로는 기억 호출이 된다고 보장하지 못한다. recall 은 5xx, 429, 연결 오류에만 다시 묻고(최대 5회), 그 밖의 4xx 는 바로 실패로 끝난다. `/tools` 는 15분에 100회 rate limit 이다. 확인 recall 은 앵커를 바꾸지 않는다(`auto_set_anchor: false`).
-10. 사본 검사 결과를 기다린다. 서비스 컨테이너 안에서 `quick_check` 와 `memory_item` 건수를 읽고 한 줄로 찍는다. 사본 검사가 실패하면 눈에 띄는 경고 블록에 사본 경로와 직전 백업 경로를 찍고 종료 코드 1 로 끝난다. 이때 오래된 백업은 지우지 않는다. 통과하면 오래된 백업을 정리한다(`--cleanup --apply`, 운영자 백업 10개 유지).
+10. 사본 검사 결과를 기다린다. 서비스 컨테이너 안에서 `quick_check` 와 `memory_item` 건수를 읽고 한 줄로 찍는다. 사본 검사가 실패하면 눈에 띄는 경고 블록에 사본 경로와 직전 백업 경로를 찍고 종료 코드 1 로 끝난다. 이때 오래된 백업은 지우지 않는다. 통과하면 오래된 백업을 정리한다(`--cleanup --apply`, 운영자 백업 10개 유지). 검사를 통과하지 못했거나 검사 전에 배포가 실패한 사본은 이름 뒤에 `.unverified` 를 붙여 정리와 직전 백업 선택에서 뺀다. 이 파일은 자동으로 지우지 않는다. `up` 뒤의 모든 실패 메시지에는 4단계 이미지로 되돌리는 명령이 붙는다.
 
 ```text
 [deploy] downtime=4.7s recall_ready=6.6s (stop=0.5s copy=0.6s start=3.6s first_recall=2.0s) copy_check=ok memory_item=13863 quick_check=ok version=2.3.12
