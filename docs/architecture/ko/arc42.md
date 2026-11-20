@@ -90,7 +90,7 @@ AI 에이전트(LLM 기반)는 기본적으로 **무상태(stateless)** 입니�
 | **npm 발행** | `memento-mcp-server`, `@jee1/memento-client`, `@jee1/memento-assistant`만 공개 발행 |
 | **내부 패키지** | `@memento/core`, `@memento/agent-integration` — tarball 번들, scope `@memento` 미사용 |
 | **DB 경로** | `DB_PATH`는 절대 경로; `~` 미확장 |
-| **Docker 배포** | 배포 전 `npm run db:pre-docker-deploy` 필수 |
+| **Docker 배포** | `npm run deploy:docker` (정지 뒤 `db:pre-docker-deploy` 포함) |
 | **라이선스** | MIT (LoCoMo 벤치마크 데이터 CC BY-NC 4.0 — 커밋 금지) |
 
 ### 2.3 아키텍처·코딩 제약
@@ -330,7 +330,7 @@ rateLimit → programmaticAuth → resolveCaller → ownerScope → httpAudit �
 └─────────────────────────────────────────┘
 ```
 
-**필수 절차:** 컨테이너 stop → `npm run db:pre-docker-deploy` → build → up  
+**필수 절차:** `npm run deploy:docker` (build, 컨테이너 stop, `npm run db:pre-docker-deploy`, up, 첫 recall 확인)  
 상세: [Docker 배포 절차](../../operations/ko/docker-deploy-procedure.md)
 
 ### 7.3 환경 변수 (핵심)

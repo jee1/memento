@@ -94,6 +94,7 @@
     "debug:embeddings": "node scripts/debug-embeddings.js",
     "fix:vector-dimensions": "node scripts/fix-vector-dimensions.js",
     "fix:tfidf-dimensions": "tsx scripts/fix-tfidf-dimensions.ts",
+    "deploy:docker": "node scripts/deploy-docker.mjs",
     "docker:build": "docker compose build",
     "docker:up": "docker compose up -d",
     "docker:down": "docker compose down",

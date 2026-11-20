@@ -109,7 +109,7 @@ describe('pre-docker-deploy operator script', () => {
     expect(existsSync(markerPath)).toBe(false);
   });
 
-  it('retries inside the container when host backup is source-dir-unwritable (#1001)', () => {
+  it('backs up inside the container without a failing host attempt when the DB directory is unwritable (#1001, #1798)', () => {
     const root = makeTempRoot();
     const dataDir = join(root, 'data');
     const backupsDir = join(root, 'backups');
@@ -129,8 +129,9 @@ describe('pre-docker-deploy operator script', () => {
 
       expect(result.status).toBe(0);
       expect(result.stdout).toContain(
-        '[pre-docker-deploy] host backup blocked (source-dir-unwritable); retrying inside the container'
+        '[pre-docker-deploy] DB directory is not writable by this user (source-dir-unwritable); backing up inside the container'
       );
+      expect(result.stderr).not.toContain('"reason":"source-dir-unwritable"');
       expect(result.stdout).toContain('target=/fake/memory.db (container path)');
       expect(result.stdout).toContain('[pre-docker-deploy] Backup OK; safe to restart Docker.');
     } finally {
@@ -157,6 +158,55 @@ describe('pre-docker-deploy operator script', () => {
     expect(existsSync(markerPath)).toBe(false);
   });
 
+  it('keeps a rollback-journal DB in an unwritable directory on the host route (#1798)', () => {
+    const root = makeTempRoot();
+    const dataDir = join(root, 'data');
+    const markerPath = join(root, 'docker-called');
+    const binDir = join(root, 'bin');
+    mkdirSync(dataDir);
+    mkdirSync(binDir);
+    const dbPath = join(dataDir, 'memory.db');
+    createDb(dbPath);
+    chmodSync(dataDir, 0o500);
+
+    try {
+      const result = runPreDockerDeploy({
+        DB_PATH: dbPath,
+        MEMENTO_BACKUP_DIR: join(root, 'backups'),
+        PATH: setupFakeDocker(binDir, { markerPath, mode: 'success' }),
+      });
+
+      expect(result.status, result.stderr).toBe(0);
+      expect(existsSync(markerPath)).toBe(false);
+    } finally {
+      chmodSync(dataDir, 0o700);
+    }
+  });
+
+  it('does not pick the container route when DB_PATH names a missing file in an unwritable directory (#1798)', () => {
+    const root = makeTempRoot();
+    const dataDir = join(root, 'data');
+    const markerPath = join(root, 'docker-called');
+    const binDir = join(root, 'bin');
+    mkdirSync(dataDir);
+    mkdirSync(binDir);
+    createWalDbWithoutSidecars(dataDir);
+    chmodSync(dataDir, 0o500);
+
+    try {
+      const result = runPreDockerDeploy({
+        DB_PATH: join(dataDir, 'memroy.db'),
+        MEMENTO_BACKUP_DIR: join(root, 'backups'),
+        PATH: setupFakeDocker(binDir, { markerPath, mode: 'success' }),
+      });
+
+      expect(result.status).toBe(1);
+      expect(existsSync(markerPath)).toBe(false);
+    } finally {
+      chmodSync(dataDir, 0o700);
+    }
+  });
+
   it('exits 1 when the container fallback also fails (#1001)', () => {
     const root = makeTempRoot();
     const dataDir = join(root, 'data');
@@ -177,8 +227,9 @@ describe('pre-docker-deploy operator script', () => {
 
       expect(result.status).toBe(1);
       expect(result.stdout).toContain(
-        '[pre-docker-deploy] host backup blocked (source-dir-unwritable); retrying inside the container'
+        '[pre-docker-deploy] DB directory is not writable by this user (source-dir-unwritable); backing up inside the container'
       );
+      expect(result.stderr).not.toContain('"reason":"source-dir-unwritable"');
     } finally {
       chmodSync(dataDir, 0o700);
     }

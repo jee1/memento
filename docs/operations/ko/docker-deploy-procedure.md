@@ -36,7 +36,45 @@ Memento MCP/HTTP 서버를 Docker로 **재배포·재시작**할 때 따르는 �
 
 ---
 
-## 표준 배포 절차
+## 표준 배포: `npm run deploy:docker`
+
+```bash
+cd /path/to/memento
+npm run deploy:docker                  # build 부터
+npm run deploy:docker -- --skip-build  # 이미 빌드한 이미지로
+npm run deploy:docker -- --skip-preflight  # 서버가 이미 내려가 있을 때
+```
+
+아래 손 절차를 이 순서로 한 번에 돌린다 (#1798).
+
+1. `.env` 의 `MEMENTO_API_TOKENS` 에서 recall 을 부를 수 있는 `tools:invoke` 나 `tools:read` 토큰을 고른다. agent 에 묶이지 않은 토큰을 먼저 쓴다. `ADMIN_API_KEY` 는 #1241 부터 `/tools` 를 열지 않아 쓰지 않는다. 쓸 토큰이 없으면 서버를 건드리지 않고 끝난다.
+2. 떠 있는 서버에 `/tools/recall` 을 한 번 부른다. 토큰, 포트(`MCP_SERVER_PORT`), 게시 주소(`MCP_PUBLISH_HOST`)가 틀리면 여기서 서버를 건드리지 않고 끝난다.
+3. `docker compose build` (서버가 떠 있는 동안). 실패하면 서버를 건드리지 않고 끝난다.
+4. 서비스 컨테이너가 이 compose 프로젝트에서 돌고 있는지 `docker compose ps` 로 본다. worktree 처럼 프로젝트 이름이 다른 곳에서 돌리면 `stop` 이 운영 서버를 세우지 못하므로 여기서 끝난다. 배포는 메인 체크아웃에서 한다.
+5. `docker compose stop` 뒤 `npm run db:pre-docker-deploy`. 백업이 실패하면 새 이미지로 바꾸지 않고 `docker compose start` 로 정지했던 컨테이너를 다시 띄운 뒤 실패로 끝난다. `--skip-preflight` 로 이미 내려가 있던 서버는 다시 띄우지 않는다. 다시 띄우기도 실패하면 서버가 내려가 있다고 알린다.
+6. `docker compose up -d --no-build`.
+7. `/health` 가 200 이 될 때까지 기다린 뒤 `/tools/recall` 을 한 번 부른다. 임베딩 모델은 첫 기억 호출 때 올라온다. `/health` 200 만으로는 기억 호출이 된다고 보장하지 못한다. recall 은 5xx, 429, 연결 오류에만 다시 묻고(최대 5회), 그 밖의 4xx 는 바로 실패로 끝난다. `/tools` 는 15분에 100회 rate limit 이다. 확인 recall 은 앵커를 바꾸지 않는다(`auto_set_anchor: false`).
+8. 컨테이너 안에서 `quick_check` 와 `memory_item` 건수를 읽고 한 줄로 찍는다.
+
+```text
+[deploy] downtime=10.9s recall_ready=13.3s (stop=0.7s backup=5.7s start=4.4s first_recall=2.4s) memory_item=13836 quick_check=ok version=2.3.12
+```
+
+(2026-11-20, 256MB DB 사본, 운영과 같은 uid 1001 소유 디렉터리, 별도 compose 프로젝트에서 잰 값)
+
+- `downtime`: 정지 명령부터 `/health` 200 까지.
+- `recall_ready`: 정지 명령부터 첫 recall 성공까지. 에이전트가 실제로 기억을 못 쓰는 시간이다.
+- 괄호 안은 단계별 시간이다. `stop` 이 30초 가까이 나오면 종료 시점에 배치 작업이 돌아 `stop_grace_period` 를 다 썼다.
+
+시험은 `COMPOSE_PROJECT_NAME`, `COMPOSE_FILE`, `MCP_SERVER_PORT`, `DB_PATH`, `MEMENTO_BACKUP_DIR` 를 바꿔 별도 compose 프로젝트로 한다. 운영 컨테이너에는 영향이 없다.
+
+## 손 절차
+
+`npm run deploy:docker` 를 쓸 수 없을 때 같은 순서로 손으로 한다. 이미지 빌드는 정지 전에 끝낸다. 정지 뒤에 빌드하면 빌드 시간만큼 더 끊긴다.
+
+```bash
+docker compose build memento-mcp-server
+```
 
 ### 1. 서버 중지
 
@@ -58,8 +96,8 @@ npm run db:pre-docker-deploy
 이 명령은 다음을 수행합니다.
 
 1. `npm run db:backup` — SQLite **online backup API**로 일관된 스냅샷 생성 (`copy` / `copyFileSync` 사용 안 함)
-2. `~/.memento/data` 가 컨테이너 소유(uid 1001)라 호스트 백업이 막히면(`source-dir-unwritable`) 컨테이너 안에서 자동 재시도 (#1001). 독립 실행 등가물: `npm run db:backup:docker`
-3. 백업 파일에 대해 `PRAGMA integrity_check` 실행 (276MB 기준 약 0.9초)
+2. `~/.memento/data` 가 컨테이너 소유(uid 1001)라 호스트가 DB 디렉터리와 `-shm` 에 쓸 수 없으면 호스트 백업을 시도하지 않고 바로 컨테이너 안에서 백업한다 (#1001, #1798). 운영에서는 매번 이 경로다. 전에는 실패하는 호스트 시도가 정지 구간에 1.1~1.6초를 더했다. 그 밖의 이유로 호스트 백업이 `source-dir-unwritable` 로 실패해도 컨테이너 안에서 다시 한다. 독립 실행 등가물: `npm run db:backup:docker`
+3. 백업 파일에 대해 `PRAGMA integrity_check` 실행 (256MB 기준 약 2.5초, 2026-11-20 측정)
 4. 실패 시 **종료 코드 1** (배포 중단)
 
 성공 시 JSON 예시:
@@ -91,11 +129,10 @@ npm run db:backup:cleanup -- --apply
 npm run lint && npm run type-check && npm test
 ```
 
-### 4. 이미지 빌드 및 기동
+### 4. 기동
 
 ```bash
-docker compose build memento-mcp-server
-docker compose up -d memento-mcp-server
+docker compose up -d --no-build memento-mcp-server
 ```
 
 `docker-compose.base.yml`에는 `stop_grace_period: 30s`가 설정되어 있어, 정상 `stop` 시 WAL flush 시간을 확보합니다. 컨테이너 기동 시 `scripts/start-container.sh`가 `PRAGMA wal_checkpoint(PASSIVE)`를 시도합니다.
@@ -116,10 +153,16 @@ sqlite3 ~/.memento/data/memory.db "PRAGMA quick_check; SELECT count(*) FROM memo
 ## 한 줄 요약 (체크리스트)
 
 ```bash
+npm run deploy:docker
+```
+
+손으로 할 때:
+
+```bash
+docker compose build memento-mcp-server
 docker compose stop memento-mcp-server
 npm run db:pre-docker-deploy
-docker compose build memento-mcp-server
-docker compose up -d memento-mcp-server
+docker compose up -d --no-build memento-mcp-server
 curl -sf http://localhost:9001/health
 ```
 
@@ -129,6 +172,7 @@ curl -sf http://localhost:9001/health
 
 | 명령 | 용도 |
 |------|------|
+| `npm run deploy:docker` | build, 정지, 백업과 `integrity_check`, 기동, 첫 recall 확인을 한 번에; 끊긴 시간을 한 줄로 출력 |
 | `npm run db:backup` | online backup만 수행 (서버 중지 후 권장) |
 | `npm run db:backup:docker` | 컨테이너 안에서 online backup; 출력은 호스트 소유 `~/.memento/backups` (#1001) |
 | `npm run db:backup:cleanup` | 기존 backup directory 정리 preview; 삭제 없음 |
@@ -252,7 +296,7 @@ node scripts/restore-memory-db-from-corrupt.mjs \
 
 ## 재발 방지 요약
 
-1. **배포 전** `npm run db:pre-docker-deploy` (이 문서의 표준 절차)
+1. **배포는** `npm run deploy:docker` (정지 뒤 `npm run db:pre-docker-deploy` 를 포함한다)
 2. **Docker와 로컬 dev 동시 접근 금지** — 같은 `memory.db`에 writer 2개 금지
 3. **정상 종료** — `docker compose stop` (kill -9 지양); `stop_grace_period: 30s` 활용
 4. **백업 보관** — `~/.memento/backups/`에 타임스탬프 백업 유지; 오래된 quarantine 중복본은 정리 검토
