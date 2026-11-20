@@ -50,6 +50,7 @@ ADR은 되돌리기 어렵고, 맥락 없이 보면 놀랍고, 실제 대안을 
 ## 3.1 Gotchas
 
 - **Docker 배포**: `npm run deploy:docker` (정지 전 DB 무결성 점검, 정지 뒤 복사, 기동과 사본 점검, 첫 recall 확인). 손으로 할 때는 정지 뒤 `npm run db:pre-docker-deploy`
+- **배포와 릴리스**: main 에 머지되면 바로 운영 docker 에 배포한다(몰리면 묶어서 한 번). 릴리스는 매주 월요일, 운영에서 돈 커밋에 태그를 걸어 `gh release create <버전> --verify-tag` 로 발행하고 `release.yml` 이 npm 게시까지 한다(OIDC, 손 게시 없음). 릴리스 때문에 PR 을 묶어 두지 않는다. 절차: [github-release-workflow.md](./docs/operations/ko/github-release-workflow.md)
 - **Node 24 정합**: 루트 `.nvmrc`=`24`; `nvm use` 후 `node -v`·`which node` 확인(Cursor agent PATH가 nvm을 가릴 수 있음). major 전환 후 `npm run rebuild-native`. Docker 베이스는 `node:24.22.1-alpine`(builder, log-issue-monitor) / `node:24.22.1-slim`(production). 플로팅 `node:24-*` 는 로컬 캐시가 2026-10 패치 이전에 남으면 구버전이 들어가므로 쓰지 않는다 (#702 는 major 24)
 - **`DB_PATH`**: 프로덕션은 절대 경로; `~`는 확장되지 않음
 - **memory_embedding migrate rebuild (#755)**: create/copy/drop/rename + `memory_embedding_vec_*` DROP은 단일 `db.transaction()`; 실패 시 live 테이블·트리거 함께 롤백. `recreateVecTriggers`는 성공 후 트랜잭션 밖
@@ -66,7 +67,7 @@ ADR은 되돌리기 어렵고, 맥락 없이 보면 놀랍고, 실제 대안을 
 - **debt markers**: BUG/TODO 판단은 `npm run check-debt-markers -- --production-only` 우선 (`tech-debt-analyzer`는 `debug` 등 false positive)
 - **@deprecated**: merge 전 `docs/architecture/core-deprecated-inventory.md` 갱신
 - **기술 부채 추적**: GitHub #593 (완료 #580)
-- **git worktree**: 브랜치 삭제·`gh pr merge --delete-branch` 전에 `git worktree remove <path>` 필수 (attach 상태면 로컬 브랜치 삭제 실패)
+- **git worktree**: 작업이 끝나면(PR 머지 또는 닫힘) `git worktree remove <path>` 로 정리한다(강제 옵션 없이). 브랜치 삭제·`gh pr merge --delete-branch` 전에도 필수 (attach 상태면 로컬 브랜치 삭제 실패)
 - **gh pr merge**: 머지는 성공해도 worktree 미제거 시 로컬 브랜치 삭제만 실패 — `worktree remove` 후 `git branch -D`(squash merge는 `-d` 불가)·`git fetch --prune`
 - **병렬 HTTP 보안 PR**: #662→#663→#664 순 merge·rebase 권장(토큰→audit `keyId`→owner scope); 독립 CI(#665)는 선행 가능 — **CHANGELOG·http-server 충돌** 예상
 - **rate limit 키 (#1161)**: `express-rate-limit` 기본 키(`req.ip`)는 Docker 포트 퍼블리싱·프록시 뒤에서 전원 공용 버킷이 된다 — 버킷 추가 시 `keyGenerator: resolveRateLimitKey` 유지(API 키 해시 → 세션 id 해시 → `ipKeyGenerator(req.ip)`). rate limit 은 인증 **앞**이라 `req.programmaticAuth` 없음 전제; 감사 로그의 `'session'` 상수를 키로 재사용 금지(세션 뭉침). `trust proxy` 는 `MEMENTO_TRUST_PROXY` 로만 켠다 — 기본 미설정(=XFF 무시)이 스펙이고 `true` 는 헤더 위조로 한도 우회

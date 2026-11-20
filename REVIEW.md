@@ -57,7 +57,7 @@
 
 ## PR 열기 전 사전 리뷰
 
-PR 을 만드는 쪽이 PR 열기 직전에 브랜치 변경분에 코드 리뷰와 보안 리뷰를 돌리고 지적을 고친 뒤 올린다. Claude Code 는 `/code-review`, `/security-review` 를 쓴다. 이 명령이 없는 도구(Cursor 등)는 아래 점검 목록을 직접 따른다. 문서만 바꾼 PR 은 제외한다.
+PR 을 만드는 쪽이 PR 열기 직전에 브랜치 변경분에 코드 리뷰와 보안 리뷰를 돌리고 지적을 고친 뒤 올린다. Claude Code 는 `/code-review`, `/security-review` 를 쓴다. 코드 리뷰는 `/code-review high <worktree 절대경로 또는 PR 번호>` 로 부른다. `medium` 은 `high` 와 똑같이 돌므로 쓰지 않는다. 대상을 빼면 메인 체크아웃의 마지막 커밋을 리뷰하므로 대상을 꼭 적는다. 이 명령이 없는 도구(Cursor 등)는 아래 점검 목록을 직접 따른다. 문서만 바꾼 PR 은 제외한다.
 
 점검 목록.
 

@@ -331,7 +331,8 @@ rateLimit → programmaticAuth → resolveCaller → ownerScope → httpAudit �
 ```
 
 **필수 절차:** `npm run deploy:docker` (build, 원본 integrity_check, 컨테이너 stop, 복사, up 과 사본 integrity_check, 첫 recall 확인)  
-상세: [Docker 배포 절차](../../operations/ko/docker-deploy-procedure.md)
+상세: [Docker 배포 절차](../../operations/ko/docker-deploy-procedure.md)  
+**시점:** main 머지마다 배포(몰리면 묶어서 한 번). 릴리스는 매주 월요일 운영에서 돈 커밋에 태그를 걸어 낸다([릴리스 워크플로우](../../operations/ko/github-release-workflow.md)).
 
 ### 7.3 환경 변수 (핵심)
 

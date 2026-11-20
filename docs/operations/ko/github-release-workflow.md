@@ -1,6 +1,16 @@
 # GitHub Release 워크플로우 가이드
 
-릴리스 태그를 푸시하면 GitHub Actions가 npm 게시·Release 노트 생성까지 이어집니다. 그런데 **Release를 수동으로 먼저 만들어 두면** 워크플로가 같은 `tag_name`으로 다시 만들려다 `already_exists`에 걸릴 수 있습니다. 이 문서는 그 충돌이 왜 생기는지, 현재 워크플로가 어떻게 완화하는지, 트리거를 어떻게 바꾸면 깔끔한지를 정리합니다.
+GitHub Release 를 발행하면 `release.yml` 이 npm 게시까지 자동으로 합니다. 게시는 OIDC 신뢰 게시(trusted publishing)라 npm 토큰을 쓰지 않고, 손으로 게시하는 단계는 없습니다. 그런데 **Release를 수동으로 먼저 만들어 두면** 워크플로가 같은 `tag_name`으로 다시 만들려다 `already_exists`에 걸릴 수 있습니다. 이 문서는 그 충돌이 왜 생기는지, 현재 워크플로가 어떻게 완화하는지, 트리거를 어떻게 바꾸면 깔끔한지를 정리합니다.
+
+## 릴리스 주기와 순서 (2026-11-19, 2026-11-20 결정)
+
+- **배포와 릴리스는 따로 간다.** main 에 머지된 PR 은 바로 운영 docker 에 배포한다([Docker 배포 절차](docker-deploy-procedure.md)). 릴리스 때문에 PR 머지를 미루지 않는다.
+- **릴리스는 매주 월요일.** 직전 릴리스 뒤 바뀐 것이 있을 때만 낸다. 보안 수정, 데이터 손실, 운영 장애, npm 설치나 실행 불가 같은 긴급건은 바로 낸다.
+- **태그는 운영에서 돈 커밋에 건다.** main 끝이 아니라 운영 docker 에서 돌려 확인한 릴리스 준비 커밋이다. 순서는 아래와 같다.
+  1. 릴리스 준비 PR 에서 버전을 올리고 `npm run release:changelog -- --version <버전>` 으로 CHANGELOG 절을 만든다.
+  2. 머지한 뒤 운영에 배포해 돌려 본다.
+  3. 그 커밋에 `git tag <버전> <sha>` 를 걸어 푸시하고 `gh release create <버전> --verify-tag` 로 Release 를 발행한다. `release.yml` 이 npm 게시까지 한다.
+  4. 릴리스 준비 PR 머지 직후 main 버전을 다음 번호로 올린다(아래 「릴리스 준비 PR 머지 직후 다음 버전으로 올린다」, #1792).
 
 ## 🚨 문제: "already_exists" 오류
 
@@ -110,16 +120,18 @@ on:
 
 ### 1. 태그 생성 및 푸시
 ```bash
-git tag v1.7.3
-git push origin v1.7.3
+git tag 2.3.12 <운영에서 돈 커밋 sha>
+git push origin 2.3.12
 ```
 
-### 2. GitHub에서 Release 생성 (선택)
-- GitHub UI에서 Release 생성
-- 또는 워크플로우에서 자동 생성
+### 2. GitHub Release 발행 (필수)
+```bash
+gh release create 2.3.12 --verify-tag --notes-file <노트 파일>
+```
+`release.yml` 은 `release: published` 로 시작하므로 태그만 푸시해서는 게시가 일어나지 않는다.
 
 ### 3. 워크플로우 자동 실행
-- npm publish 수행
+- npm 게시(OIDC 신뢰 게시)
 - Release가 없으면 생성, 있으면 스킵
 
 ### 4. CHANGELOG 버전 절 만들기 (이슈 #1049)
