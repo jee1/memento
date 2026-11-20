@@ -314,11 +314,4 @@ export class MigrationRunner {
   getBackupManager(): BackupManager {
     return this.backupManager;
   }
-
-  /**
-   * 버전 매니저 반환
-   */
-  getVersionManager(): SchemaVersionManager {
-    return this.versionManager;
-  }
 }
