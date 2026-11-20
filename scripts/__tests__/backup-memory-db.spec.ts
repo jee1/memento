@@ -218,16 +218,13 @@ describe('backup-memory-db operator script', () => {
     expect(readdirSync(backupsDir).filter(name => name.endsWith('.db'))).toHaveLength(1);
   });
 
-  it('leaves integrity_check to the caller with --skip-integrity-check and still prints the copy path (#1802)', () => {
+  it('leaves integrity_check to the caller with --skip-integrity-check and does not prune after an unchecked copy (#1802)', () => {
     const root = makeTempRoot();
     const dbPath = join(root, 'memory.db');
     const backupsDir = join(root, 'backups');
     createDb(dbPath);
 
-    const result = runBackupScript(dbPath, ['--skip-integrity-check'], [], {
-      MEMENTO_BACKUP_DIR: backupsDir,
-      MEMENTO_BACKUP_PRUNE: '0',
-    });
+    const result = runBackupScript(dbPath, ['--skip-integrity-check'], [], { MEMENTO_BACKUP_DIR: backupsDir });
 
     expect(result.status, result.stderr).toBe(0);
     const output = parseJson(result.stdout);

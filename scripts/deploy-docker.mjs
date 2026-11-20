@@ -28,12 +28,11 @@
  * MEMENTO_COMPOSE_SERVICE, MCP_SERVER_PORT 로 바꾼다. 시험은 별도 compose 프로젝트로 한다.
  */
 import { spawn, spawnSync } from 'node:child_process';
-import { mkdirSync, readdirSync, readFileSync, statSync } from 'node:fs';
-import os from 'node:os';
+import { mkdirSync, readdirSync, readFileSync, renameSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { parseEnv } from 'node:util';
-import { parseArgs } from './lib/cli-runtime.js';
+import { parseArgs, resolveBackupDir } from './lib/cli-runtime.js';
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const { values } = parseArgs({
@@ -53,8 +52,11 @@ function log(message) {
   console.log(`[deploy] ${message}`);
 }
 
+// up 뒤에는 새 이미지 서버가 떠 있으므로 어떤 실패에도 되돌리는 명령을 붙인다.
+let afterUpHint = '';
+
 function fail(message) {
-  console.error(`[deploy] FAILED: ${message}`);
+  console.error(`[deploy] FAILED: ${message}${afterUpHint}`);
   process.exit(1);
 }
 
@@ -174,8 +176,12 @@ function dbStatus() {
   }
 }
 
-const backupDir = process.env.MEMENTO_BACKUP_DIR || path.join(os.homedir(), '.memento', 'backups');
+// 컨테이너 안 backup-memory-db.mjs 와 같은 규칙으로 푼다(~ 와 상대 경로를 절대 경로로). -v 는 절대 경로만 받는다.
+const backupDir = resolveBackupDir(process.env.MEMENTO_BACKUP_DIR || undefined);
 let backupContainer = null;
+let backupPath = null;
+let copyVerified = false;
+const unverifiedName = file => `${file}.unverified`;
 
 /**
  * 백업 컨테이너를 띄운다. 이 스크립트가 죽어 rm 을 못 해도 sleep 이 끝나면 --rm 으로 사라진다.
@@ -187,10 +193,9 @@ function startBackupContainer() {
     'docker',
     [
       'compose', 'run', '-d', '--rm', '--no-deps',
-      '--user', `${process.env.MEMENTO_CONTAINER_UID ?? '1001'}:${process.getgid()}`,
+      '--user', `${process.env.MEMENTO_CONTAINER_UID || '1001'}:${process.getgid()}`,
       '-v', `${backupDir}:${backupDir}`,
       '-e', `MEMENTO_BACKUP_DIR=${backupDir}`,
-      '-e', 'MEMENTO_BACKUP_PRUNE=0',
       '--entrypoint', 'sleep', service, '3600',
     ],
     { capture: true }
@@ -199,9 +204,20 @@ function startBackupContainer() {
   return backupContainer;
 }
 
+// 검사를 통과하지 못한(또는 끝내지 못한) 사본은 완성 백업 이름을 떼어, 정리의 개수 상한에 들거나
+// 직전 백업으로 골라지지 않게 한다.
 process.on('exit', () => {
   if (backupContainer) spawnSync('docker', ['rm', '-f', backupContainer], { stdio: 'ignore' });
+  if (backupPath && !copyVerified) {
+    try {
+      renameSync(backupPath, unverifiedName(backupPath));
+      console.error(`[deploy] the backup copy was not verified; renamed to ${unverifiedName(backupPath)}`);
+    } catch {
+      console.error(`[deploy] the backup copy was not verified and could not be renamed: ${backupPath}`);
+    }
+  }
 });
+for (const signal of ['SIGINT', 'SIGTERM']) process.on(signal, () => process.exit(130));
 
 // 인자로 받은 파일을, 없으면 컨테이너의 DB_PATH 를 읽기 전용으로 열어 integrity_check 첫 줄을 찍는다.
 const INTEGRITY_CHECK = [
@@ -271,6 +287,10 @@ const [previousImage, imageName] = wasRunning
 
 log('start the backup container and run integrity_check on the live DB (read-only)');
 if (!startBackupContainer()) fail('docker compose run (backup container); server untouched');
+// --skip-build 로 #1802 전에 만든 이미지를 쓰면 복사 단계가 정지 뒤에야 인자 오류로 실패한다. 정지 전에 거른다.
+if (!run('docker', ['exec', backupContainer, 'grep', '-q', '-e', '--skip-integrity-check', 'scripts/backup-memory-db.mjs']).ok) {
+  fail('the image predates #1802 (backup-memory-db.mjs has no --skip-integrity-check); rebuild without --skip-build; server untouched');
+}
 const liveCheck = await integrityCheck();
 if (liveCheck !== 'ok') fail(`integrity_check on the live DB returned ${liveCheck ?? 'nothing (check failed to run)'}; server untouched`);
 
@@ -282,7 +302,6 @@ const stopDoneAt = Date.now();
 const copy = run('docker', ['exec', backupContainer, 'node', 'scripts/backup-memory-db.mjs', '--skip-integrity-check'], {
   capture: true,
 });
-let backupPath = null;
 try {
   backupPath = copy.ok ? JSON.parse(copy.stdout).backupPath : null;
 } catch {}
@@ -300,17 +319,17 @@ if (!backupPath) {
 const copyDoneAt = Date.now();
 log(`copied to ${backupPath}`);
 
+const copyCheck = integrityCheck(backupPath);
 log(`up -d ${service}`);
 if (!compose('up', '-d', '--no-build', service).ok) {
   fail(`docker compose up -d; the server is stopped, run: docker compose up -d ${service}`);
 }
+if (previousImage) {
+  afterUpHint = `; to roll back: docker tag ${previousImage} ${imageName} && docker compose up -d --no-build ${service}`;
+}
 
-const copyCheck = integrityCheck(backupPath);
-const rollback = previousImage
-  ? `; to roll back: docker tag ${previousImage} ${imageName} && docker compose up -d --no-build ${service}`
-  : '';
 const healthRes = await waitFor('/health', Date.now() + timeoutMs, getHealth, {
-  hint: `the new container is running but not healthy; see docker compose logs --tail 100 ${service}${rollback}`,
+  hint: `the new container is running but not healthy; see docker compose logs --tail 100 ${service}`,
 });
 const health = await healthRes.json().catch(() => ({}));
 const healthyAt = Date.now();
@@ -332,12 +351,13 @@ const line = [
   `version=${health.version ?? 'unknown'}`,
 ].join(' ');
 log(line);
-if (copyResult !== 'ok') {
+copyVerified = copyResult === 'ok';
+if (!copyVerified) {
   console.error(
     [
       '[deploy] ==================================================================',
       `[deploy] FAILED: integrity_check on the backup copy returned ${copyResult ?? 'nothing (check failed to run)'}`,
-      `[deploy]   copy:            ${backupPath}`,
+      `[deploy]   copy:            ${unverifiedName(backupPath)}`,
       `[deploy]   previous backup: ${previousBackup(backupPath) ?? 'none found'}`,
       `[deploy]   The new server is running. The live DB passed integrity_check before stop and quick_check=${status?.quick_check ?? 'unknown'} after start.`,
       '[deploy]   Damage written between that check and stop is not caught before start.',

@@ -129,7 +129,8 @@ try {
 // 배포 게이트가 매 배포마다 이 스크립트를 부르므로, 정리하지 않으면 백업이 단조 증가한다 (#1043).
 // migration-runner 와 같은 soft-fail 규약: 정리 실패는 백업 실패가 아니다.
 let cleanupSummary = null;
-if (process.env.MEMENTO_BACKUP_PRUNE !== '0') {
+// 검사하지 않은 사본이 검사한 옛 백업을 개수 상한 밖으로 밀어내지 않게, 검사를 건너뛰면 정리도 건너뛴다 (#1802).
+if (process.env.MEMENTO_BACKUP_PRUNE !== '0' && !skipIntegrityCheck) {
   try {
     const report = await manager.cleanupBackups({ mode: 'apply', includeInterrupted: false });
     cleanupSummary = {

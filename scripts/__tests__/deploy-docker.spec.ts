@@ -29,6 +29,7 @@ const COPY = 'exec b4ckup node scripts/backup-memory-db.mjs --skip-integrity-che
 const COPY_CHECK = expect.stringMatching(/^exec b4ckup node -e .*integrity_check.* \S+\/memory-backup-new\.db$/);
 const PRUNE = 'exec b4ckup node scripts/backup-memory-db.mjs --cleanup --apply';
 const RM = 'rm -f b4ckup';
+const GREP = 'exec b4ckup grep -q -e --skip-integrity-check scripts/backup-memory-db.mjs';
 
 /**
  * docker 대신 호출을 기록하는 가짜. failOn 에 든 compose 하위 명령은 1 로 끝난다.
@@ -123,16 +124,17 @@ describe('deploy-docker (#1798, #1802)', () => {
     const result = await runDeploy({ ...t.env, MCP_SERVER_PORT: server.port });
 
     expect(result.status, result.stderr).toBe(0);
-    expect(t.calls()).toEqual([
+    expect(t.calls()).toContainEqual(COPY_CHECK);
+    expect(t.calls().filter(call => !/memory-backup-new\.db$/.test(call))).toEqual([
       `compose build ${SVC}`,
       PS,
       INSPECT,
       RUN,
+      GREP,
       LIVE_CHECK,
       `compose stop ${SVC}`,
       COPY,
       `compose up -d --no-build ${SVC}`,
-      COPY_CHECK,
       expect.stringMatching(new RegExp(`^compose exec -T ${SVC} node -e `)),
       PRUNE,
       RM,
@@ -162,7 +164,7 @@ describe('deploy-docker (#1798, #1802)', () => {
 
     expect(result.status).toBe(1);
     expect(result.stderr).toContain('integrity_check on the live DB returned *** in database main *** Page 7 is never used; server untouched');
-    expect(t.calls()).toEqual([PS, INSPECT, RUN, LIVE_CHECK, RM]);
+    expect(t.calls()).toEqual([PS, INSPECT, RUN, GREP, LIVE_CHECK, RM]);
   });
 
   it('stops before touching the server when the backup container cannot start', async () => {
@@ -183,7 +185,7 @@ describe('deploy-docker (#1798, #1802)', () => {
     const result = await runDeploy({ ...t.env, MCP_SERVER_PORT: server.port }, ['--skip-build']);
 
     expect(result.status).toBe(1);
-    expect(t.calls()).toEqual([PS, INSPECT, RUN, LIVE_CHECK, `compose stop ${SVC}`, COPY, `compose start ${SVC}`, RM]);
+    expect(t.calls()).toEqual([PS, INSPECT, RUN, GREP, LIVE_CHECK, `compose stop ${SVC}`, COPY, `compose start ${SVC}`, RM]);
     expect(result.stderr).toContain('the previous container is running again and healthy');
     expect(server.seen).toMatchObject({ recall: 1, health: 1 });
   });
@@ -201,6 +203,7 @@ describe('deploy-docker (#1798, #1802)', () => {
     expect(result.stderr).toContain('FAILED: integrity_check on the backup copy returned row 3 missing from index idx_memory_item');
     expect(result.stderr).toContain(`previous backup: ${join(t.backupDir, 'memory-backup-2026-11-19T00-00-00-000Z.db')}`);
     expect(result.stderr).toContain('Old backups were not pruned');
+    expect(result.stderr).toContain(`renamed to ${join(t.backupDir, 'memory-backup-new.db.unverified')}`);
     expect(t.calls()).toContain(`compose up -d --no-build ${SVC}`);
     expect(t.calls()).not.toContain(PRUNE);
     expect(t.calls().at(-1)).toBe(RM);
@@ -212,7 +215,7 @@ describe('deploy-docker (#1798, #1802)', () => {
     const result = await runDeploy(t.env, ['--skip-build', '--skip-preflight']);
 
     expect(result.status).toBe(1);
-    expect(t.calls()).toEqual([PS, RUN, LIVE_CHECK, `compose stop ${SVC}`, COPY, RM]);
+    expect(t.calls()).toEqual([PS, RUN, GREP, LIVE_CHECK, `compose stop ${SVC}`, COPY, RM]);
     expect(result.stderr).toContain('the server was already down and stays down');
   });
 
