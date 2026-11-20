@@ -23,6 +23,8 @@ Memento MCP/HTTP 서버를 Docker로 **재배포·재시작**할 때 따르는 �
 
 로컬에서 `npm run dev`만 쓰는 경우에는 **Docker와 동시에 같은 `memory.db`를 쓰지 마세요** (writer는 한 프로세스만).
 
+**배포 시점.** main 에 PR 이 머지되면 운영 docker 에 바로 배포합니다. 머지가 몰리면 묶어서 한 번 배포합니다. 명령은 아래 `npm run deploy:docker` 하나입니다. 릴리스는 배포와 따로, 매주 월요일에 운영에서 돈 커밋으로 냅니다([GitHub Release 워크플로우](github-release-workflow.md)).
+
 ---
 
 ## 사전 조건
@@ -59,10 +61,10 @@ npm run deploy:docker -- --skip-preflight  # 서버가 이미 내려가 있을 �
 10. 사본 검사 결과를 기다린다. 서비스 컨테이너 안에서 `quick_check` 와 `memory_item` 건수를 읽고 한 줄로 찍는다. 사본 검사가 실패하면 눈에 띄는 경고 블록에 사본 경로와 직전 백업 경로를 찍고 종료 코드 1 로 끝난다. 이때 오래된 백업은 지우지 않는다. 통과하면 오래된 백업을 정리한다(`--cleanup --apply`, 운영자 백업 10개 유지). 검사를 통과하지 못했거나 검사 전에 배포가 실패한 사본은 이름 뒤에 `.unverified` 를 붙여 정리와 직전 백업 선택에서 뺀다. 이 파일은 자동으로 지우지 않는다. `up` 뒤의 모든 실패 메시지에는 4단계 이미지로 되돌리는 명령이 붙는다.
 
 ```text
-[deploy] downtime=4.7s recall_ready=6.6s (stop=0.5s copy=0.6s start=3.6s first_recall=2.0s) copy_check=ok memory_item=13863 quick_check=ok version=2.3.12
+[deploy] downtime=3.9s recall_ready=5.2s (stop=0.4s copy=0.5s start=2.9s first_recall=1.4s) copy_check=ok
 ```
 
-(2026-11-20, 256MB DB 사본, 호스트가 DB 디렉터리에 못 쓰는 운영과 같은 조건, 별도 compose 프로젝트에서 잰 값. 전후 6회씩 번갈아 잰 정지 구간 중앙값은 9.45초에서 4.65초로 줄었다. 남은 시간의 대부분은 새 서버 기동 `start` 다)
+운영 실측은 2026-11-20 17:55 에 3.9초, 19:32 에 4.1초였다. 17:55 줄은 [#1802 코멘트](https://github.com/jee1/memento/issues/1802#issuecomment-7034978235)에 있다. 이 절차 전(#1798 이전)에는 11.4초였다. 남은 시간의 대부분은 새 서버 기동 `start` 다. 같은 기계에서 시험이나 변이 검사가 돌면 `start` 가 길어진다(16:53 배포 13.3초, 같은 코멘트 스레드).
 
 - `downtime`: 정지 명령부터 `/health` 200 까지.
 - `recall_ready`: 정지 명령부터 첫 recall 성공까지. 에이전트가 실제로 기억을 못 쓰는 시간이다.
