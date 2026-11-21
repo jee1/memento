@@ -196,9 +196,8 @@ export class HybridSearchEngine {
         ? [...vectorOut.results, ...backfilledVector]
         : vectorOut.results;
       // #1814 반대 방향: 벡터 레인에만 잡힌 후보도 같은 FTS5 질의에 걸리면 BM25 점수를 채운다.
-      // id 필터가 있으면 텍스트 레인이 FTS 대신 lexical relevance 로 매기므로 척도가 섞이지 않게 건너뛴다.
-      const textLaneUsesFts = !(query.filters?.id && query.filters.id.length > 0);
-      const backfilledText = textLaneUsesFts
+      // LIKE/id 필터 등 FTS 를 안 쓴 텍스트 레인과 BM25 척도가 섞이지 않게 건너뛴다 (#1816).
+      const backfilledText = textOut.used_fts_query
         ? backfillVectorOnlyTextResults(db, query.query, textResults, vectorOut.results)
         : [];
       const textResultsForCombine = backfilledText.length > 0
@@ -363,7 +362,7 @@ export class HybridSearchEngine {
     db: Database.Database,
     query: HybridSearchQuery,
     searchId: string
-  ): Promise<{ items: unknown[]; text_ms: number }> {
+  ): Promise<{ items: unknown[]; text_ms: number; used_fts_query: boolean }> {
     try {
       const textSearchStart = process.hrtime.bigint();
       this.logger.logSearchStep(searchId, '텍스트 검색 시작', { query: query.query });
@@ -379,9 +378,14 @@ export class HybridSearchEngine {
       this.logger.logSearchStep(searchId, '텍스트 검색 완료', {
         resultCount: textSearchResult.items.length,
         searchTime: `${textSearchTime.toFixed(2)}ms`,
+        used_fts_query: textSearchResult.used_fts_query,
       });
 
-      return { items: textSearchResult.items, text_ms: textSearchTime };
+      return {
+        items: textSearchResult.items,
+        text_ms: textSearchTime,
+        used_fts_query: textSearchResult.used_fts_query,
+      };
     } catch (error) {
       throw new SearchError(
         SearchErrorType.TEXT_SEARCH_FAILED,

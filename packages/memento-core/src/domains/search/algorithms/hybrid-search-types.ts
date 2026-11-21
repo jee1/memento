@@ -20,7 +20,13 @@ export interface ITextSearchEngine {
       limit?: number;
       omit_feedback_in_ranking?: boolean;
     }
-  ): Promise<{ items: unknown[]; total_count: number; query_time: number }>;
+  ): Promise<{
+    items: unknown[];
+    total_count: number;
+    query_time: number;
+    /** 텍스트 레인이 FTS5 MATCH 로 채점했는지. false 면 LIKE/id 필터 등 lexical 경로 (#1816). */
+    used_fts_query: boolean;
+  }>;
 }
 
 export interface IEmbeddingService {

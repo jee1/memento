@@ -274,6 +274,21 @@ alpha = 0.45
       expect(getRankingVersion()).toBe(`ranking-sha256:${withMode}`);
     });
 
+    it('includes lane_backfill text_and_vector and hash is sensitive to it (#1816)', () => {
+      const payload = getRankingVersionPayload();
+      expect(payload.lane_backfill).toBe('text_and_vector');
+      const withKey = createHash('sha256')
+        .update(JSON.stringify(payload))
+        .digest('hex')
+        .slice(0, 12);
+      const withoutKey = createHash('sha256')
+        .update(JSON.stringify({ ...payload, lane_backfill: undefined }))
+        .digest('hex')
+        .slice(0, 12);
+      expect(withKey).not.toBe(withoutKey);
+      expect(getRankingVersion()).toBe(`ranking-sha256:${withKey}`);
+    });
+
     it('defaults importance_signal.scale when section is absent (#1082)', () => {
       const toml = `[ranking_weights]
 alpha = 0.45
