@@ -196,7 +196,11 @@ export class HybridSearchEngine {
         ? [...vectorOut.results, ...backfilledVector]
         : vectorOut.results;
       // #1814 반대 방향: 벡터 레인에만 잡힌 후보도 같은 FTS5 질의에 걸리면 BM25 점수를 채운다.
-      const backfilledText = backfillVectorOnlyTextResults(db, query.query, textResults, vectorOut.results);
+      // id 필터가 있으면 텍스트 레인이 FTS 대신 lexical relevance 로 매기므로 척도가 섞이지 않게 건너뛴다.
+      const textLaneUsesFts = !(query.filters?.id && query.filters.id.length > 0);
+      const backfilledText = textLaneUsesFts
+        ? backfillVectorOnlyTextResults(db, query.query, textResults, vectorOut.results)
+        : [];
       const textResultsForCombine = backfilledText.length > 0
         ? [...textResults, ...backfilledText]
         : textResults;

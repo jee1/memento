@@ -113,6 +113,8 @@ combiner는 overlap 후보에 `textScore * textWeight + vectorScore * vectorWeig
 
 #1814 이전에는 벡터 전용 후보가 텍스트 몫(적응형 가중치에서 흔히 0.6)을 통째로 잃었습니다. limit 10 이면 텍스트 레인 후보가 20건이라, BM25 로 21위 아래인 기억은 벡터 1위여도 BM25 후보 20건 아래로 밀렸습니다. 사전 등록 54문항 측정(2026-11-21)에서 벡터 레인만 10위 안에 찾은 8문항 가운데 6문항이 이렇게 융합 상위 10 에서 빠졌습니다.
 
+`filters.id` 가 있으면 텍스트 레인이 FTS 대신 lexical relevance 로 매기므로, 척도가 섞이지 않게 벡터 전용 후보의 BM25 채우기를 건너뜁니다. 채우기 방향은 `getRankingVersion()` 해시에 `lane_backfill: text_and_vector` 로 들어가 #1814 전후 텔레메트리가 섞이지 않습니다.
+
 두 채우기는 융합 입력만 바꿉니다. 후보 집합, 레인 크기, 융합 식과 가중치는 그대로이고, `text_count`, `candidate_funnel.raw_text` 같은 진단 수치는 레인이 실제로 뽑은 결과만 셉니다.
 
 ## Hybrid vector threshold and under-fill (Issue #789)

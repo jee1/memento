@@ -19,6 +19,8 @@ import { applyVectorLengthDecay } from './vector-length-decay.js';
 import { buildFTSQuery } from './search-engine/search-engine-fts-query.js';
 import { ftsRankToRelevance } from './search-engine/search-engine-ranking.js';
 import { buildFtsRankForIdsStatement } from './search-engine/search-engine-sql-builder.js';
+import { collectResultIds } from './hybrid-search-outcome-utils.js';
+import { mcpLogger } from '../../../shared/utils/mcp-logger.js';
 
 /** 벡터 레인이 실제로 사용한 질의 임베딩. provider 별로 하나씩. */
 export interface HybridQueryEmbedding {
@@ -135,12 +137,8 @@ export function backfillVectorOnlyTextResults(
   query: string,
   textResults: unknown[],
   vectorResults: VectorSearchResult[]
-): unknown[] {
-  const covered = new Set<string>();
-  for (const raw of textResults) {
-    const row = toTextRow(raw);
-    if (row) covered.add(row.id);
-  }
+): Array<TextRow & { score: number }> {
+  const covered = new Set(collectResultIds(textResults as Array<{ id?: unknown }>));
   const pending = new Map<string, VectorSearchResult>();
   for (const result of vectorResults) {
     if (!covered.has(result.id) && !pending.has(result.id)) pending.set(result.id, result);
@@ -155,12 +153,17 @@ export function backfillVectorOnlyTextResults(
   try {
     const { sql, params } = buildFtsRankForIdsStatement(ftsQuery, ids);
     rows = db.prepare(sql).all(...params) as Array<{ id: string; fts_rank: number }>;
-  } catch {
+  } catch (error) {
     // FTS 테이블이 없는 환경(레거시/모킹)에서는 건너뛴다. 기존대로 textScore 0 이 남는다.
+    // 운영에서 매번 실패하면 #1814 이전 순위로 조용히 돌아가므로 원인을 남긴다.
+    mcpLogger.logServer('warn', '벡터 전용 후보 BM25 백필 실패, 건너뜀', {
+      error: error instanceof Error ? error.message : String(error),
+      candidates: ids.length,
+    });
     return [];
   }
 
-  const entries: unknown[] = [];
+  const entries: Array<TextRow & { score: number }> = [];
   for (const { id, fts_rank } of rows) {
     const score = ftsRankToRelevance(fts_rank);
     const v = pending.get(id);
