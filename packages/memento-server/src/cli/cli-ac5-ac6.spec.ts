@@ -14,35 +14,12 @@ import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
 
-const npmCommand = process.platform === 'win32' ? 'npm.cmd' : 'npm';
 const cliPath = fileURLToPath(new URL('../../dist/cli.js', import.meta.url));
 
 beforeAll(() => {
-  const buildCore = spawnSync(
-    npmCommand,
-    ['run', 'build', '-w', '@memento/core'],
-    {
-      cwd: process.cwd(),
-      encoding: 'utf-8',
-      stdio: 'pipe',
-    },
-  );
-  const buildCoreOutput = `${buildCore.stdout ?? ''}${buildCore.stderr ?? ''}`;
-  expect(buildCore.status, buildCoreOutput).toBe(0);
-
-  const buildServer = spawnSync(
-    npmCommand,
-    ['run', 'build', '-w', 'memento-server'],
-    {
-      cwd: process.cwd(),
-      encoding: 'utf-8',
-      stdio: 'pipe',
-    },
-  );
-  const buildOutput = `${buildCoreOutput}${buildServer.stdout ?? ''}${buildServer.stderr ?? ''}`;
-
-  expect(buildServer.status, buildOutput).toBe(0);
-  expect(fs.existsSync(cliPath)).toBe(true);
+  // 여기서 dist 를 다시 빌드하면 병렬 워커의 자식 프로세스(backup-memory-db, deploy-docker)가 반쯤 쓰인 dist 를 읽는다 (#1788).
+  // 빌드는 `npm test` 의 test:prepare 와 CI 의 빌드 단계가 이 파일이 돌기 전에 끝낸다.
+  expect(fs.existsSync(cliPath), `먼저 빌드하세요: npm run test:prepare (${cliPath})`).toBe(true);
 
   const probe = spawnSync(
     process.execPath,
@@ -55,8 +32,7 @@ beforeAll(() => {
   );
   const probeOutput = `${probe.stdout ?? ''}${probe.stderr ?? ''}`;
 
-  expect(probe.status, `${buildOutput}
-${probeOutput}`).toBe(0);
+  expect(probe.status, probeOutput).toBe(0);
   expect(probeOutput).toContain('recall');
 }, 60_000);
 

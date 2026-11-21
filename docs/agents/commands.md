@@ -76,7 +76,7 @@ stale 회수 때 남는 `.stale-*` 잔재도 모든 관련 프로세스가 중�
 
 코드를 커밋하기 전에는 `lint`, `type-check`, `test` 세 가지가 모두 통과해야 합니다. 검색 관련 변경이 있다면 `npm run test:ci:core`로 core 검색 테스트를 별도로 돌려 봅니다.
 
-테스트 병렬 수는 CI 에서 2개, 로컬에서는 코어 수의 1/4(2~6개)입니다. `VITEST_MAX_WORKERS=<n>` 으로 바꿉니다(다른 에이전트가 같은 기계를 쓰면 줄이세요). `*.nightly.spec.ts` 는 로컬에서도 기본 제외이고 `VITEST_INCLUDE_NIGHTLY=1` 로 포함합니다. 임시 경로를 만드는 테스트는 `process.pid` 나 `mkdtempSync` 로 이름을 구분해야 병렬에서 충돌하지 않습니다.
+테스트 병렬 수는 CI 에서 2개, 로컬에서는 코어 수의 1/4(2~6개)입니다. `VITEST_MAX_WORKERS=<n>` 으로 바꿉니다(다른 에이전트가 같은 기계를 쓰면 줄이세요). `*.nightly.spec.ts` 는 로컬에서도 기본 제외이고 `VITEST_INCLUDE_NIGHTLY=1` 로 포함합니다. 임시 경로를 만드는 테스트는 `process.pid` 나 `mkdtempSync` 로 이름을 구분해야 병렬에서 충돌하지 않습니다. 테스트 안에서 `npm run build` 로 `dist` 를 다시 쓰지 마세요. 다른 워커의 자식 프로세스가 반쯤 쓰인 `dist` 를 읽어 간헐로 실패합니다(#1788). `dist` 가 필요한 테스트는 `npm test` 의 `test:prepare` 나 CI 빌드 단계가 먼저 끝냅니다. 계약 시험이 이를 지킵니다.
 
 ```bash
 npm test             # 전체 테스트 (로컬은 코어의 1/4 만큼 병렬, nightly 제외)
