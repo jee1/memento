@@ -15,11 +15,14 @@ import { fileURLToPath } from 'node:url';
 import Database from 'better-sqlite3';
 
 const cliPath = fileURLToPath(new URL('../../dist/cli.js', import.meta.url));
+const coreDistPath = fileURLToPath(new URL('../../../memento-core/dist/index.js', import.meta.url));
 
 beforeAll(() => {
   // 여기서 dist 를 다시 빌드하면 병렬 워커의 자식 프로세스(backup-memory-db, deploy-docker)가 반쯤 쓰인 dist 를 읽는다 (#1788).
   // 빌드는 `npm test` 의 test:prepare 와 CI 의 빌드 단계가 이 파일이 돌기 전에 끝낸다.
-  expect(fs.existsSync(cliPath), `먼저 빌드하세요: npm run test:prepare (${cliPath})`).toBe(true);
+  for (const distEntry of [cliPath, coreDistPath]) {
+    expect(fs.existsSync(distEntry), `먼저 빌드하세요: npm run test:prepare (${distEntry})`).toBe(true);
+  }
 
   const probe = spawnSync(
     process.execPath,
@@ -34,7 +37,7 @@ beforeAll(() => {
 
   expect(probe.status, probeOutput).toBe(0);
   expect(probeOutput).toContain('recall');
-}, 60_000);
+});
 
 interface RunCliOptions {
   env?: NodeJS.ProcessEnv;
