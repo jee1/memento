@@ -3219,4 +3219,51 @@ describe('ISearchResultCombiner 인터페이스', () => {
       expect(vectorHeavy.items[0]?.id).toBe('semantic');
     });
   });
+
+  describe('벡터 전용 후보의 BM25 백필 (#1814)', () => {
+    it('텍스트 레인 밖이어도 질의 낱말이 맞는 벡터 후보는 BM25 점수를 받아 안 맞는 후보보다 앞선다', async () => {
+      const db = await setupTestDatabase();
+      const stamp = '2024-01-01T00:00:00.000Z';
+      const insert = db.prepare(
+        `INSERT INTO memory_item (id, type, content, importance, created_at) VALUES (?, 'semantic', ?, 0.5, ?)`
+      );
+      insert.run('matches', `rollback pipeline ${LONG_BODY}`, stamp);
+      insert.run('nomatch', `gardening tomatoes ${LONG_BODY}`, stamp);
+
+      const textEngine = createMockTextSearchEngine();
+      const embeddingService = createMockEmbeddingService();
+      const vectorEngine = createMockVectorSearchEngine();
+      const weightCalculator = createMockWeightCalculator();
+      const engine = new HybridSearchEngine(sqliteRepositoryProvider,
+        textEngine,
+        embeddingService,
+        vectorEngine,
+        new SearchResultCombiner(),
+        weightCalculator,
+        createMockLogger(),
+      );
+      (textEngine.search as Mock).mockResolvedValue({ items: [], total_count: 0, query_time: 0 });
+      (vectorEngine.getIndexStatus as Mock).mockReturnValue({ available: false });
+      (embeddingService.isAvailable as Mock).mockReturnValue(true);
+      const vectorRow = (id: string, content: string, similarity: number) => ({
+        id, content, type: 'semantic', importance: 0.5, created_at: stamp, last_accessed: stamp,
+        pinned: false, tags: [], similarity, score: similarity,
+      });
+      (embeddingService.searchBySimilarity as Mock).mockResolvedValue([
+        vectorRow('nomatch', `gardening tomatoes ${LONG_BODY}`, 0.7),
+        vectorRow('matches', `rollback pipeline ${LONG_BODY}`, 0.6),
+      ]);
+      (weightCalculator.calculateWeights as Mock).mockReturnValue({ textWeight: 0.6, vectorWeight: 0.4 });
+
+      const result = await engine.search(db, { query: 'rollback pipeline', limit: 10 });
+      db.close();
+
+      const matches = result.items.find((item) => item.id === 'matches');
+      const nomatch = result.items.find((item) => item.id === 'nomatch');
+      expect(result.items[0]?.id).toBe('matches');
+      expect(matches?.textScore).toBeGreaterThan(0);
+      expect(nomatch?.textScore).toBe(0);
+      expect(result.text_count).toBe(0);
+    });
+  });
 });

@@ -299,6 +299,8 @@ export function getRankingVersionPayload(configPath?: string): {
   vector_length_decay_enabled: boolean;
   vector_length_decay_characteristic_length: number;
   text_lane_score: 'relevance_only';
+  /** 한 레인에만 잡힌 후보에 다른 레인 점수를 채우는 방향. 벡터 전용 후보에 BM25 를 채우면서 점수 분포가 바뀌었다 (#1814). */
+  lane_backfill: 'text_and_vector';
   /** 모델이나 사상 계수가 바뀌면 점수 분포가 바뀐다. 전환 전후 텔레메트리가 같은 버전으로 섞이지 않게 넣는다 (#1729). */
   local_embedding_model: string;
   query_score_mapping: { a: number; b: number };
@@ -313,6 +315,7 @@ export function getRankingVersionPayload(configPath?: string): {
     vector_length_decay_enabled: weights.vector_length_decay.enabled,
     vector_length_decay_characteristic_length: weights.vector_length_decay.characteristic_length,
     text_lane_score: 'relevance_only',
+    lane_backfill: 'text_and_vector',
     local_embedding_model: LOCAL_EMBEDDING_MODEL.storedName,
     query_score_mapping: { ...LOCAL_EMBEDDING_MODEL.queryScoreMapping },
   };

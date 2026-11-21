@@ -104,6 +104,19 @@ importance를 순위에 더 반영하려면 `γ`나 `[importance_signal].scale`�
 
 combiner는 overlap 후보에 `textScore * textWeight + vectorScore * vectorWeight`를 넣습니다. `HybridResultRanker`의 relevance 슬롯은 이 값을 보존해야 합니다. `vectorScore || textScore`로 덮으면 벡터가 있는 순간 텍스트 증거가 사라지고, `0`도 결측으로 취급됩니다. importance/recency/feedback는 가중합의 다른 항이지 relevance에 다시 넣지 않습니다. text-only·vector-only는 해당 채널 점수 × 그 채널 가중치입니다.
 
+## 레인 점수 채우기 (Issue #1021, #1814)
+
+두 레인은 후보를 따로 뽑습니다. 텍스트 레인은 BM25 상위 `limit × 2` 건, 벡터 레인은 prefetch 와 under-fill 결과입니다. 한 레인에만 잡힌 후보에 다른 레인 점수가 없으면 결합기가 0 을 넣습니다. 「측정하지 않음」과 「측정했더니 0」은 다르므로, 융합 전에 빠진 쪽 점수를 채웁니다(`hybrid-vector-backfill.ts`).
+
+- 텍스트 레인에만 잡힌 후보: 저장된 임베딩으로 벡터 유사도를 채웁니다(#1021). 벡터 레인과 같은 점수 사상과 길이 감쇠를 씁니다.
+- 벡터 레인에만 잡힌 후보: 텍스트 레인과 같은 FTS5 질의(`buildFTSQuery`)로 그 후보들만 다시 매겨 BM25 시그모이드 점수를 채웁니다(#1814). FTS5 bm25 는 코퍼스 전체 통계로 계산하므로 같은 기억이면 텍스트 레인이 주는 점수와 같습니다. 질의 낱말이 하나도 맞지 않는 후보는 채우지 않아 0 으로 남습니다. 이 경우의 0 은 「측정했더니 0」입니다.
+
+#1814 이전에는 벡터 전용 후보가 텍스트 몫(적응형 가중치에서 흔히 0.6)을 통째로 잃었습니다. limit 10 이면 텍스트 레인 후보가 20건이라, BM25 로 21위 아래인 기억은 벡터 1위여도 BM25 후보 20건 아래로 밀렸습니다. 사전 등록 54문항 측정(2026-11-21)에서 벡터 레인만 10위 안에 찾은 8문항 가운데 6문항이 이렇게 융합 상위 10 에서 빠졌습니다.
+
+`filters.id` 가 있으면 텍스트 레인이 FTS 대신 lexical relevance 로 매기므로, 척도가 섞이지 않게 벡터 전용 후보의 BM25 채우기를 건너뜁니다. 채우기 방향은 `getRankingVersion()` 해시에 `lane_backfill: text_and_vector` 로 들어가 #1814 전후 텔레메트리가 섞이지 않습니다.
+
+두 채우기는 융합 입력만 바꿉니다. 후보 집합, 레인 크기, 융합 식과 가중치는 그대로이고, `text_count`, `candidate_funnel.raw_text` 같은 진단 수치는 레인이 실제로 뽑은 결과만 셉니다.
+
 ## Hybrid vector threshold and under-fill (Issue #789)
 
 하이브리드 벡터 fetch는 `threshold: 0`으로 prefetch(`limit * VECTOR_SEARCH_LIMIT_MULTIPLIER`, 상한 100)를 받습니다. funnel의 `thresholded_vector`는 `HYBRID_VECTOR_THRESHOLD`(0.38) 이상만 남깁니다. thresholded 개수가 `query.limit`보다 적으면 raw prefetch에서 유사도 내림차순으로 채워 fusion에 넣습니다(`VECTOR_UNDERFILL_FILL`). hashed TF-IDF가 0.38 아래에 있어도 gold가 fusion 전에 전부 사라지지 않게 하기 위함입니다. 0.38 숫자와 prefetch 배수는 LoCoMo ablation 전까지 유지하고, `config/ranking-weights.toml`은 재튜닝하지 않습니다. 이 상수는 `getRankingVersion()` 해시에 포함됩니다.
