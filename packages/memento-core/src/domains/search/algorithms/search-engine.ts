@@ -33,7 +33,12 @@ export class SearchEngine {
   async search(
     db: Database.Database,
     query: SearchQuery
-  ): Promise<{ items: MemorySearchResult[], total_count: number, query_time: number }> {
+  ): Promise<{
+    items: MemorySearchResult[];
+    total_count: number;
+    query_time: number;
+    used_fts_query: boolean;
+  }> {
     const startTime = process.hrtime.bigint();
     const {
       query: searchQuery,
@@ -59,7 +64,7 @@ export class SearchEngine {
 
     const initialStatement = await statementBuilder(true);
     let { sql, params } = initialStatement;
-    const { usedFtsQuery } = initialStatement;
+    let usedFtsQuery = initialStatement.usedFtsQuery;
 
     mcpLogger.logServer('debug', '검색 쿼리 실행', {
       query: sql,
@@ -79,7 +84,9 @@ export class SearchEngine {
         error: error instanceof Error ? error.message : String(error)
       });
 
-      ({ sql, params } = await statementBuilder(false));
+      const fallbackStatement = await statementBuilder(false);
+      ({ sql, params } = fallbackStatement);
+      usedFtsQuery = fallbackStatement.usedFtsQuery;
       results = await this.executeQuery(db, sql, params);
     }
 
@@ -101,7 +108,8 @@ export class SearchEngine {
     return {
       items: finalResults,
       total_count: finalResults.length,
-      query_time: queryTime
+      query_time: queryTime,
+      used_fts_query: usedFtsQuery,
     };
   }
 

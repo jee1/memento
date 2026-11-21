@@ -281,6 +281,23 @@ describe('SearchEngine', () => {
       expect(Array.isArray(result.items)).toBe(true);
       expect(result.total_count).toBeGreaterThanOrEqual(0);
       expect(result.query_time).toBeGreaterThanOrEqual(0);
+      expect(typeof result.used_fts_query).toBe('boolean');
+    });
+
+    it('FTS5 MATCH 경로면 used_fts_query 가 true 이다 (#1816)', async () => {
+      const { db } = createCountingSearchDb();
+      const result = await searchEngine.search(db, { query: 'test', limit: 10 });
+      expect(result.used_fts_query).toBe(true);
+    });
+
+    it('id 필터면 used_fts_query 가 false 이다 (#1816)', async () => {
+      const { db } = createCountingSearchDb();
+      const result = await searchEngine.search(db, {
+        query: 'test',
+        limit: 10,
+        filters: { id: ['mem1'] },
+      });
+      expect(result.used_fts_query).toBe(false);
     });
 
     it('FTS5 사용 가능한 경우', async () => {
@@ -698,10 +715,12 @@ describe('SearchEngine', () => {
 
       await expect(searchEngine.search(db, { query: 'test', limit: 10 })).resolves.toMatchObject({
         items: expect.any(Array),
+        used_fts_query: true,
       });
 
       const recovered = await searchEngine.search(db, { query: 'test', limit: 10 });
       expect(recovered.items).toHaveLength(1);
+      expect(recovered.used_fts_query).toBe(false);
 
       await expect((searchEngine as any).ftsAvailability.checkFTS5Availability(db)).resolves.toBe(true);
 
