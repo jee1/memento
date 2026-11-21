@@ -5,6 +5,19 @@
 import { buildMemoryFilterSql } from '../../../../shared/utils/memory-filter-sql.js';
 import type { BuildSearchStatementParams, BuildSearchStatementResult } from './search-engine.types.js';
 
+/**
+ * 텍스트 레인과 같은 FTS5 MATCH 로 주어진 기억들만 채점한다 (#1814, 벡터 전용 후보의 BM25 백필).
+ * rowid 로 후보를 먼저 좁혀 FTS5 가 코퍼스 전체를 채점하지 않게 한다.
+ */
+export function buildFtsRankForIdsStatement(ftsQuery: string, ids: string[]): { sql: string; params: unknown[] } {
+  const sql =
+    'SELECT m.id AS id, memory_item_fts.rank AS fts_rank FROM memory_item_fts ' +
+    'JOIN memory_item m ON memory_item_fts.rowid = m.rowid ' +
+    'WHERE memory_item_fts MATCH ? AND memory_item_fts.rowid IN ' +
+    `(SELECT rowid FROM memory_item WHERE id IN (${ids.map(() => '?').join(',')}))`;
+  return { sql, params: [ftsQuery, ...ids] };
+}
+
 export async function buildSearchStatement(
   params: BuildSearchStatementParams
 ): Promise<BuildSearchStatementResult> {

@@ -1,5 +1,6 @@
 /**
- * 텍스트 레인에만 잡힌 후보의 벡터 유사도를 저장된 임베딩으로 채운다 (#1021).
+ * 한 레인에만 잡힌 후보의 다른 레인 점수를 채운다. 텍스트 레인에만 잡힌 후보는 벡터 유사도를 (#1021),
+ * 벡터 레인에만 잡힌 후보는 BM25 점수를 (#1814) 채운다.
  *
  * 벡터 레인의 후보 선정(HYBRID_VECTOR_THRESHOLD, prefetch 크기)은 건드리지 않는다.
  * 후보로 뽑지 않은 것과 유사도가 0인 것은 다르다 — 전자는 «측정하지 않음»이고,
@@ -15,6 +16,9 @@ import { loadCurrentNativeVectors, type CurrentNativeVector } from '../../../sha
 import { cosineSimilarity } from '../../../shared/utils/vector-math.js';
 import type { VectorSearchResult } from '../../embedding/index.js';
 import { applyVectorLengthDecay } from './vector-length-decay.js';
+import { buildFTSQuery } from './search-engine/search-engine-fts-query.js';
+import { ftsRankToRelevance } from './search-engine/search-engine-ranking.js';
+import { buildFtsRankForIdsStatement } from './search-engine/search-engine-sql-builder.js';
 
 /** 벡터 레인이 실제로 사용한 질의 임베딩. provider 별로 하나씩. */
 export interface HybridQueryEmbedding {
@@ -117,4 +121,65 @@ export function backfillTextOnlyVectorResults(
 
   // 벡터 레인과 같은 길이 감쇠(#921)를 적용해야 두 경로의 점수가 비교 가능해진다.
   return applyVectorLengthDecay(entries, getRankingWeights().vector_length_decay);
+}
+
+/**
+ * 벡터 레인에만 잡힌 후보 중 텍스트 레인과 같은 FTS5 질의에 걸리는 것의 BM25 점수를 채운다 (#1814).
+ * 텍스트 레인은 상위 N행만 돌려주므로 BM25 순위가 낮은 벡터 1위는 텍스트 몫을 통째로 잃었다.
+ *
+ * 걸리지 않은 후보는 반환하지 않는다. 결합기가 textScore 0 을 유지하며, 여기서 0 은 «측정했더니 불일치»다.
+ * 점수는 텍스트 레인과 같은 ftsRankToRelevance 이고, FTS5 bm25 는 코퍼스 전체 통계를 쓰므로 같은 행이면 같은 값이다.
+ */
+export function backfillVectorOnlyTextResults(
+  db: Database.Database,
+  query: string,
+  textResults: unknown[],
+  vectorResults: VectorSearchResult[]
+): unknown[] {
+  const covered = new Set<string>();
+  for (const raw of textResults) {
+    const row = toTextRow(raw);
+    if (row) covered.add(row.id);
+  }
+  const pending = new Map<string, VectorSearchResult>();
+  for (const result of vectorResults) {
+    if (!covered.has(result.id) && !pending.has(result.id)) pending.set(result.id, result);
+  }
+  if (pending.size === 0) return [];
+
+  const ftsQuery = buildFTSQuery(query);
+  if (ftsQuery === '""' || ftsQuery.length === 0) return [];
+
+  const ids = [...pending.keys()];
+  let rows: Array<{ id: string; fts_rank: number }>;
+  try {
+    const { sql, params } = buildFtsRankForIdsStatement(ftsQuery, ids);
+    rows = db.prepare(sql).all(...params) as Array<{ id: string; fts_rank: number }>;
+  } catch {
+    // FTS 테이블이 없는 환경(레거시/모킹)에서는 건너뛴다. 기존대로 textScore 0 이 남는다.
+    return [];
+  }
+
+  const entries: unknown[] = [];
+  for (const { id, fts_rank } of rows) {
+    const score = ftsRankToRelevance(fts_rank);
+    const v = pending.get(id);
+    if (score === null || !v) continue;
+    entries.push({
+      id: v.id,
+      content: v.content,
+      type: v.type,
+      importance: v.importance,
+      created_at: v.created_at,
+      pinned: Boolean(v.pinned),
+      score,
+      ...(v.last_accessed !== undefined ? { last_accessed: v.last_accessed } : {}),
+      ...(v.tags !== undefined ? { tags: v.tags } : {}),
+      ...(v.project_id !== undefined ? { project_id: v.project_id } : {}),
+      ...(v.owner_id !== undefined ? { owner_id: v.owner_id } : {}),
+      ...(v.process_id !== undefined ? { process_id: v.process_id } : {}),
+      ...(v.session_id !== undefined ? { session_id: v.session_id } : {}),
+    });
+  }
+  return entries;
 }
