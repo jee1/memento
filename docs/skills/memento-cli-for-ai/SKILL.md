@@ -33,12 +33,12 @@ npm exec -- memento <command> ...
 
 ## Before the work
 
-Prefer a **natural-language sentence** in `--query`, not keyword bags.
+Give `--query` the key words of what you want (issue number, feature name, or file first), not a full sentence.
 
 ```bash
 memento recall --query "JWT expiry fix" --type episodic --limit 5
 
-memento memory_injection --query "deployment checklist for this project" --token_budget 1000
+memento memory_injection --query "deployment checklist" --token_budget 1000
 ```
 
 - **`--type`** on `recall` is **required** (not an optional filter). Allowed: `working` | `episodic` | `semantic` | `procedural` | `core` | `vault`. Omitting it fails with the same error as MCP (`'type' 파라미터는 필수입니다`).

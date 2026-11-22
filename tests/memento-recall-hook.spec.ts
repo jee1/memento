@@ -17,6 +17,7 @@ describe('memento recall hook (#1447)', () => {
     expect(output.additional_context).toContain('record.decision');
     expect(output.additional_context).toContain('record.failed');
     expect(output.additional_context).not.toContain('안 통한 것: 실패한');
+    expect(output.additional_context).toContain('핵심 낱말');
   });
 
   it('claude prompt JSON carries one line instead of the record guide (#1770)', () => {

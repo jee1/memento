@@ -9,7 +9,7 @@ Memento is an MCP memory server. Memory only compounds if you both **read** it b
 
 ## Before the work
 
-Call `recall` with a natural-language sentence — not keywords. The ranking is hybrid (FTS5 + vector), so a sentence retrieves better than a bag of words.
+Call `recall` with the key words of what you are looking for, not a full sentence. Put the issue number, feature name, or file first and drop particles and endings. The text lane only matches the first 8 words of the query, so the topic has to come early.
 
 ```
 recall(query: "JWT expiry handling", type: "episodic")
