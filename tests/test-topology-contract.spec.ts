@@ -191,6 +191,15 @@ describe('test topology contracts', () => {
     }
   });
 
+  it('never rebuilds dist from inside a spec (#1788)', () => {
+    // dist 를 다시 쓰는 동안 다른 워커의 자식 프로세스가 그 dist 를 읽으면 반쯤 쓰인 모듈을 만난다.
+    const rebuilders = CI_OWNED_ROOTS.flatMap((root) => collectFiles(join(ROOT, root)))
+      .filter((path) => /\.(spec|test)\.(ts|js|mjs|cjs)$/.test(path))
+      .filter((path) => /\[\s*['"]run['"]\s*,\s*['"]build/.test(readFileSync(join(ROOT, path), 'utf8')));
+
+    expect(rebuilders).toEqual([]);
+  });
+
   it('has no test files outside the PR and nightly owners', () => {
     const rootPackage = JSON.parse(readFileSync(join(ROOT, 'package.json'), 'utf8')) as {
       scripts: Record<string, string>;
