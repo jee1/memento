@@ -47,7 +47,14 @@ Stores a new memory. Use `type` to pick working/episodic/semantic/procedural; fr
 
 ```typescript
 interface RememberParams {
-  content: string;                    // Content to remember (required)
+  content: string;                    // Content to remember (may be omitted when an episodic `record` is given)
+  record?: {                          // Episodic work record (#1446). Embedding and FTS see field values only, without labels
+    decision: string;                 // What was decided
+    rationale: string;                // Evidence (measurements, error text, file:line)
+    rejected: string;                 // Alternatives considered and why they were not chosen
+    failed: string;                   // Failed attempts and causes (empty string allowed)
+    next_blocker: string;             // What will block the next session
+  };
   type: 'working' | 'episodic' | 'semantic' | 'procedural';  // Memory type (required; omission is rejected)
   tags?: string[];                   // Tag array (optional)
   importance?: number;               // Importance (0-1, default: 0.5)
