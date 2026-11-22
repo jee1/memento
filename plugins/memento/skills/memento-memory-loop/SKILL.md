@@ -12,7 +12,7 @@ Memento is an MCP memory server. Memory only compounds if you both **read** it b
 Call `recall` with a natural-language sentence — not keywords. The ranking is hybrid (FTS5 + vector), so a sentence retrieves better than a bag of words.
 
 ```
-recall(query: "How did we handle JWT expiry in this repo last time?", type: "episodic")
+recall(query: "JWT expiry handling", type: "episodic")
 ```
 
 - Always pass `type` (`working` | `episodic` | `semantic` | `procedural`). It is required; calls without it are rejected.

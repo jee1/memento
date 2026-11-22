@@ -24,10 +24,10 @@ describeRecallTool("basics and search", () => {
       expect(definition.inputSchema.properties.memory_types.items.enum).toContain('vault');
     });
 
-    it('query 필드 설명에 자연어 문장 입력 안내가 포함되어야 함', () => {
+    it('query 필드 설명에 핵심 낱말 입력 안내가 포함되어야 함', () => {
       const definition = tool.getDefinition();
       const desc = String(definition.inputSchema.properties.query.description);
-      expect(desc).toContain('자연어 문장');
+      expect(desc).toContain('핵심 낱말');
       expect(desc).toMatch(/e\.g\./i);
     });
   });

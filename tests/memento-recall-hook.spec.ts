@@ -19,20 +19,51 @@ describe('memento recall hook (#1447)', () => {
     expect(output.additional_context).not.toContain('안 통한 것: 실패한');
   });
 
-  it.each(['claude', 'codex'])('%s prompt JSON uses hookSpecificOutput and record', (host) => {
-    const output = run(host) as {
+  it('claude prompt JSON carries one line instead of the record guide (#1770)', () => {
+    const output = run('claude') as {
+      hookSpecificOutput: { hookEventName: string; additionalContext: string };
+    };
+    const context = output.hookSpecificOutput.additionalContext;
+    expect(output.hookSpecificOutput.hookEventName).toBe('UserPromptSubmit');
+    expect(context).toContain('mcp__memento__memory_injection');
+    expect(context).toContain('핵심 낱말');
+    expect(context).not.toContain('record.decision');
+    expect(context.length).toBeLessThan(400);
+  });
+
+  it('codex prompt JSON keeps the full record guide', () => {
+    const output = run('codex') as {
       hookSpecificOutput: { hookEventName: string; additionalContext: string };
     };
     expect(output.hookSpecificOutput.hookEventName).toBe('UserPromptSubmit');
     expect(output.hookSpecificOutput.additionalContext).toContain('record.rationale');
+    expect(output.hookSpecificOutput.additionalContext).toContain('핵심 낱말');
   });
 
-  it('session mode stays a brief and does not require record', () => {
+  it('claude session mode adds the brief and the full guide for the whole session (#1770)', () => {
     const output = run('claude', 'session') as {
+      hookSpecificOutput: { hookEventName: string; additionalContext: string };
+    };
+    const context = output.hookSpecificOutput.additionalContext;
+    expect(output.hookSpecificOutput.hookEventName).toBe('SessionStart');
+    expect(context).toContain('include_project_brief');
+    expect(context).toContain('record.decision');
+    expect(context).toContain('이 세션의 모든 요청에서');
+    expect(context).not.toContain('이번 요청을 처리하기 전에');
+  });
+
+  it('codex session mode stays a brief and does not require record', () => {
+    const output = run('codex', 'session') as {
       hookSpecificOutput: { hookEventName: string; additionalContext: string };
     };
     expect(output.hookSpecificOutput.hookEventName).toBe('SessionStart');
     expect(output.hookSpecificOutput.additionalContext).toContain('include_project_brief');
     expect(output.hookSpecificOutput.additionalContext).not.toContain('record.decision');
+  });
+
+  it('no host still tells the agent to prefer sentences over keywords', () => {
+    for (const [host, mode] of [['claude'], ['codex'], ['cursor'], ['claude', 'session']] as const) {
+      expect(JSON.stringify(run(host, mode))).not.toContain('키워드 나열보다');
+    }
   });
 });

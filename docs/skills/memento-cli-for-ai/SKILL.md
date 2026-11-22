@@ -36,7 +36,7 @@ npm exec -- memento <command> ...
 Prefer a **natural-language sentence** in `--query`, not keyword bags.
 
 ```bash
-memento recall --query "How did we fix JWT expiry in this repo?" --type episodic --limit 5
+memento recall --query "JWT expiry fix" --type episodic --limit 5
 
 memento memory_injection --query "deployment checklist for this project" --token_budget 1000
 ```

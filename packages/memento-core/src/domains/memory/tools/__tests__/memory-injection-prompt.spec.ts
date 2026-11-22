@@ -95,7 +95,7 @@ describe('MemoryInjectionPrompt', () => {
       expect(definition.inputSchema.type).toBe('object');
       expect(definition.inputSchema.properties).toBeDefined();
       expect(definition.inputSchema.properties.query).toBeDefined();
-      expect(String(definition.inputSchema.properties.query.description)).toContain('자연어 문장');
+      expect(String(definition.inputSchema.properties.query.description)).toContain('핵심 낱말');
     });
   });
 
