@@ -94,7 +94,7 @@ const result = await client.callTool('remember', {
 
 ### recall
 
-Runs hybrid search (FTS5 + vectors) for a natural-language `query`. Narrow layers with `type` or `memory_types`, and combine `owner_id`, `project_id`, tags, and time filters. Often paired with `memory_injection` before agent work.
+Runs hybrid search (FTS5 + vectors) for a `query` of key words. Narrow layers with `type` or `memory_types`, and combine `owner_id`, `project_id`, tags, and time filters. Often paired with `memory_injection` before agent work.
 
 #### Parameters
 

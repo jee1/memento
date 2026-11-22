@@ -23,7 +23,7 @@ msg = (
     "[Memento 자동 훅] 이번 요청을 처리하기 전에 반드시 아래 순서를 따르세요.\n\n"
     "1. 작업 시작 전: mcp__memento__memory_injection 도구를 호출해 "
     "이전 세션의 관련 기억을 로드하세요. "
-    "호출 시 query 파라미터에 사용자 요청 핵심 키워드를 담으세요.\n\n"
+    "호출 시 query 에 지금 일의 주제와 찾을 것을 핵심 낱말로 담으세요. 이슈 번호, 기능 이름, 파일을 앞에 둡니다. 조사와 어미는 빼도 됩니다. 발화에 주제가 없으면(「진행해줘」) 앞 대화의 주제를 넣습니다.\n\n"
     "2. 작업 완료 후: mcp__memento__remember 로 저장하세요. 타입마다 기준이 다릅니다.\n"
     "   - episodic (태그 completed): 완료 작업. content 에 라벨을 넣지 말고 record 필드로 저장하세요.\n"
     "     record.decision: 무엇을 하기로 했는가\n"
@@ -46,16 +46,27 @@ msg = (
 )
 
 event = "UserPromptSubmit"
+full_msg = msg
+if host == "claude" and mode != "session":
+    # #1770: 저장 형식 전문(약 1,000자)은 세션 시작과 compact 직후에만 싣고, 질문마다는 한 줄만 싣는다.
+    # Cursor, Codex 는 세션 시작 훅이 없어 그대로 전문을 싣는다.
+    msg = (
+        "[Memento 자동 훅] 작업 전 mcp__memento__memory_injection(query=지금 일의 주제와 찾을 것의 핵심 낱말, "
+        "이슈 번호, 기능 이름, 파일을 앞에), 실질 작업 뒤 mcp__memento__remember. "
+        "저장 형식(record 필드, 중복 검색, memory_id 갱신)은 세션 시작 때 받은 안내와 CLAUDE.md 를 따른다."
+    )
 if mode == "session":
     # 매 턴 호출은 브리프 전문을 싣지 않는다 — 세션 시작·compact 직후에만 전문을 받는다 (#1271)
     event = "SessionStart"
     msg = (
         "[Memento 세션 시작 훅] 첫 작업 전에 mcp__memento__memory_injection 을 "
         "include_project_brief: true 로 한 번 호출해 이 프로젝트의 브리프"
-        "(기획·결정·다음 할 일)를 읽으세요. query 에는 사용자의 첫 요청 핵심을 담습니다. "
+        "(기획·결정·다음 할 일)를 읽으세요. query 에는 첫 요청의 주제를 핵심 낱말로 담습니다(이슈 번호, 기능 이름을 앞에). "
         "브리프는 결과 맨 앞에 붙고, 없으면 일반 결과만 옵니다. "
         "이후 턴의 memory_injection 호출에는 include_project_brief 를 넣지 마세요."
     )
+    if host == "claude":
+        msg += "\n\n" + full_msg.replace("이번 요청을 처리하기 전에", "이 세션의 모든 요청에서")
 
 if host == "cursor":
     # Cursor 네이티브 스키마 (~/.cursor/hooks/session-start.sh 와 동일한 필드명)

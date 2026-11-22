@@ -10,7 +10,7 @@ export const RECALL_TOOL_INPUT_SCHEMA = {
     query: {
       type: 'string',
       description:
-        "검색할 내용을 자연어 문장으로 입력하세요 (예: '지난번에 JWT 토큰 만료 처리한 방법이 뭐였지?', e.g. \"How did we handle JWT expiry last time?\"). 키워드 나열보다 문장 형태가 의미 기반 검색 품질을 높입니다. type이 core 또는 vault가 아닌 경우 필수이며, memory_types만 제공된 경우에도 query는 필수입니다."
+        "검색할 내용의 핵심 낱말을 넣으세요. 이슈 번호, 기능 이름, 파일을 앞에 두고 조사와 어미는 빼도 됩니다 (예: 'JWT 토큰 만료 처리', e.g. \"JWT expiry handling\"). type이 core 또는 vault가 아닌 경우 필수이며, memory_types만 제공된 경우에도 query는 필수입니다."
     },
     type: {
       type: 'string',

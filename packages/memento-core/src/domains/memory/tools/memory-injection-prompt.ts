@@ -95,7 +95,7 @@ function findProjectBrief(
 }
 
 const MemoryInjectionSchema = z.object({
-  query: z.string().describe('검색할 내용을 자연어 문장으로 입력하세요. 키워드 나열보다 문장 형태가 의미 기반 검색 품질을 높입니다.'),
+  query: z.string().describe('검색할 내용의 핵심 낱말을 넣으세요. 이슈 번호, 기능 이름, 파일을 앞에 두고 조사와 어미는 빼도 됩니다. 발화에 주제가 없으면 앞 대화의 주제를 넣으세요. 예: \'#1729 한국어 임베딩 모델 교체 설계\''),
   token_budget: z.number().optional().describe('토큰 예산 (기본값: 1000)'),
   max_memories: z.number().optional().describe('최대 기억 개수 (기본값: 5)'),
   memory_types: z.array(CommonSchemas.MemoryType).optional().describe('포함할 기억 타입들'),
@@ -118,7 +118,7 @@ export class MemoryInjectionPrompt extends BaseTool {
         properties: {
           query: { 
             type: 'string', 
-            description: '검색할 내용을 자연어 문장으로 입력하세요. 키워드 나열보다 문장 형태가 의미 기반 검색 품질을 높입니다.' 
+            description: '검색할 내용의 핵심 낱말을 넣으세요. 이슈 번호, 기능 이름, 파일을 앞에 두고 조사와 어미는 빼도 됩니다. 발화에 주제가 없으면 앞 대화의 주제를 넣으세요. 예: \'#1729 한국어 임베딩 모델 교체 설계\'' 
           },
           token_budget: { 
             type: 'number', 

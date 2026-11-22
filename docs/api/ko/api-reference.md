@@ -94,7 +94,7 @@ const result = await client.callTool('remember', {
 
 ### recall
 
-자연어 `query`로 하이브리드 검색(FTS5 + 벡터)을 실행합니다. `type` 또는 `memory_types`로 층을 좁히고, `owner_id`·`project_id`·태그·시간 필터를 조합할 수 있습니다. 작업 전 맥락 수집에는 `memory_injection`과 함께 쓰는 경우가 많습니다.
+핵심 낱말을 담은 `query`로 하이브리드 검색(FTS5 + 벡터)을 실행합니다. `type` 또는 `memory_types`로 층을 좁히고, `owner_id`·`project_id`·태그·시간 필터를 조합할 수 있습니다. 작업 전 맥락 수집에는 `memory_injection`과 함께 쓰는 경우가 많습니다.
 
 #### 파라미터
 
