@@ -87,7 +87,7 @@ await client.callTool({
 const results = await client.callTool({
   name: "recall",
   arguments: {
-    query: "How do I use React Hooks?",
+    query: "React Hooks usage",
     limit: 5
   }
 });

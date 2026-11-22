@@ -47,7 +47,14 @@ MCP로 노출되는 도구는 **에이전트가 세션 안에서 직접 쓰는**
 
 ```typescript
 interface RememberParams {
-  content: string;                    // 기억할 내용 (필수)
+  content: string;                    // 기억할 내용 (episodic `record` 를 주면 생략 가능)
+  record?: {                          // episodic 작업 기록 (#1446). 임베딩과 FTS 는 라벨 없이 필드 값만 본다
+    decision: string;                 // 무엇을 하기로 했는가
+    rationale: string;                // 근거 (측정값, 에러 원문, file:line)
+    rejected: string;                 // 검토했지만 고르지 않은 것과 이유
+    failed: string;                   // 실패한 시도와 원인 (빈 문자열 허용)
+    next_blocker: string;             // 다음 세션이 막힐 지점
+  };
   type: 'working' | 'episodic' | 'semantic' | 'procedural';  // 기억 타입 (필수. 생략하면 거절)
   tags?: string[];                   // 태그 배열 (선택)
   importance?: number;               // 중요도 (0-1, 기본값: 0.5)
