@@ -458,7 +458,7 @@ describe('SearchEngine', () => {
       expect(result).toBeDefined();
       expect(result).toContain(' OR ');
       const terms = result.split(' OR ');
-      expect(terms.length).toBeLessThanOrEqual(HYBRID_SEARCH.FTS_MAX_TOKENS_FOR_OR);
+      expect(terms.length).toBeLessThanOrEqual(HYBRID_SEARCH.FTS_MAX_TOKENS_FOR_OR * 2);
       expect(terms.some((t: string) => t.includes('*'))).toBe(true);
     });
 

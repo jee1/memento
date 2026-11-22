@@ -160,7 +160,7 @@ export const HYBRID_SEARCH = {
   FTS_OR_ABOVE_TOKEN_COUNT: 5,
 
   /**
-   * FTS OR 쿼리 시 사용할 최대 토큰 수 (과도한 OR 방지)
+   * FTS OR 쿼리에 넣는 질의 낱말 수 상한 (과도한 OR 방지). 낱말마다 조사 뗀 꼴이 하나 더 붙어 FTS 낱말은 최대 이 값의 두 배다 (#1821)
    */
   FTS_MAX_TOKENS_FOR_OR: 8,
 
