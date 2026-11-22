@@ -4,7 +4,20 @@
 
 import { mcpLogger } from '../../../../shared/utils/mcp-logger.js';
 import { HYBRID_SEARCH } from '../../../../shared/config/constants.js';
-import { getStopWords } from '../../../../shared/utils/stopwords.js';
+import { getStopWords, KOREAN_ATTACHED_PARTICLES } from '../../../../shared/utils/stopwords.js';
+
+const MIN_STEM_AFTER_STRIP = 2;
+
+// 색인이 unicode61 이라 「객체를*」은 「객체」와 안 맞는다. 조사를 뗀 꼴을 함께 OR 한다 (#1821).
+function stripParticle(word: string): string | null {
+  if (!/[가-힣]$/.test(word)) return null;
+  for (const p of KOREAN_ATTACHED_PARTICLES) {
+    if (word.endsWith(p) && word.length - p.length >= MIN_STEM_AFTER_STRIP) {
+      return word.slice(0, -p.length);
+    }
+  }
+  return null;
+}
 
 export function buildFTSQuery(query: string): string {
   mcpLogger.logServer('debug', '원본 쿼리', { query });
@@ -24,10 +37,13 @@ export function buildFTSQuery(query: string): string {
 
   const capped =
     words.length > orThreshold ? words.slice(0, maxTokens) : words;
-  const terms = capped.map(word =>
-    word.length >= minStem ? `${word}*` : word
-  );
-  const ftsQueryString = terms.join(' OR ');
+  const terms = new Set<string>();
+  for (const word of capped) {
+    for (const w of [word, stripParticle(word)]) {
+      if (w !== null) terms.add(w.length >= minStem ? `${w}*` : w);
+    }
+  }
+  const ftsQueryString = [...terms].join(' OR ');
 
   const safeQuery = makeFTSSafe(ftsQueryString);
   mcpLogger.logServer('debug', 'FTS5 안전 쿼리', { safeQuery });

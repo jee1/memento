@@ -289,6 +289,21 @@ alpha = 0.45
       expect(getRankingVersion()).toBe(`ranking-sha256:${withKey}`);
     });
 
+    it('includes fts_query_particles original_or_stripped and hash is sensitive to it (#1821)', () => {
+      const payload = getRankingVersionPayload();
+      expect(payload.fts_query_particles).toBe('original_or_stripped');
+      const withKey = createHash('sha256')
+        .update(JSON.stringify(payload))
+        .digest('hex')
+        .slice(0, 12);
+      const withoutKey = createHash('sha256')
+        .update(JSON.stringify({ ...payload, fts_query_particles: undefined }))
+        .digest('hex')
+        .slice(0, 12);
+      expect(withKey).not.toBe(withoutKey);
+      expect(getRankingVersion()).toBe(`ranking-sha256:${withKey}`);
+    });
+
     it('defaults importance_signal.scale when section is absent (#1082)', () => {
       const toml = `[ranking_weights]
 alpha = 0.45

@@ -32,7 +32,7 @@ SQLite FTS5 `rank`(기본 bm25)는 **낮을수록 더 좋은 매치**이고 값�
 
 시그모이드에는 온도 `T`가 들어갑니다(`1 / (1 + exp(rank / T))`, Issue [#1079](https://github.com/jee1/memento/issues/1079)). `T`는 `config/ranking-weights.toml`의 `[fts_relevance].temperature`(기본 10)이며 `getRankingVersion()` 해시에 포함됩니다. `T = 1`이면 시그모이드의 변곡점이 `rank = 0`에 놓이는데 그 값은 "BM25 없음" 센티넬이라 실제로는 나오지 않습니다. 실측 rank 구간(-19.8 ~ -2.4)이 전부 포화 꼬리에 들어가 동적 범위가 0.083으로 뭉개지고, BM25 순위 전체가 importance 항보다 7.7배 약해져 결과 순서가 사실상 질의 독립이 됩니다. `T = 8~12`가 평탄역이라 10을 씁니다.
 
-FTS 쿼리 combinator는 `search-engine-fts-query.ts`에서 **짧은·긴 구간 모두** 내용어를 `OR`로 결합하고, 어간 길이가 `HYBRID_SEARCH.FTS_MIN_PREFIX_STEM_LENGTH`(기본 2) 이상이면 FTS5 접두(`term*`)를 붙입니다(Issue [#807](https://github.com/jee1/memento/issues/807)). 긴 구간은 계속 앞 `FTS_MAX_TOKENS_FOR_OR`(8)개만 사용합니다. `config/ranking-weights.toml`은 이 이슈에서 재튜닝하지 않습니다.
+FTS 쿼리 combinator는 `search-engine-fts-query.ts`에서 **짧은 구간과 긴 구간 모두** 내용어를 `OR`로 결합하고, 어간 길이가 `HYBRID_SEARCH.FTS_MIN_PREFIX_STEM_LENGTH`(기본 2) 이상이면 FTS5 접두(`term*`)를 붙입니다(Issue [#807](https://github.com/jee1/memento/issues/807)). 긴 구간은 계속 앞 `FTS_MAX_TOKENS_FOR_OR`(8)개만 사용합니다. 상한 뒤 낱말마다 조사를 뗀 꼴을 OR 로 더합니다(조사 40개, 떼고 남은 어간 2자 이상, 한글로 끝나는 낱말만, 최대 16개, 같은 FTS 낱말은 하나만). unicode61 이 어절을 통째로 색인해 `객체를*` 이 `객체` 와 맞지 않기 때문입니다. `fts_query_particles` 가 `getRankingVersion()` 해시에 들어갑니다(Issue [#1821](https://github.com/jee1/memento/issues/1821)). `config/ranking-weights.toml`은 이 이슈에서 재튜닝하지 않습니다.
 
 ## Importance signal scale (Issue #1082)
 

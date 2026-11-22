@@ -110,5 +110,12 @@ describe('FTS OR+prefix candidates (#807 T004/T005)', () => {
       const candidates = ftsCandidates(db, '가중치');
       expect(candidates.map(r => r.id)).toContain('mem_particle');
     });
+
+    it('query 객체를 matches body token 객체 via the stripped stem (#1821)', () => {
+      insertMemory(db, 'mem_bare', '불필요한 객체 생성은 피한다');
+      insertMemory(db, 'mem_other', '벡터 임베딩만 다루는 기억');
+
+      expect(ftsCandidates(db, '객체를').map(r => r.id)).toEqual(['mem_bare']);
+    });
   });
 });

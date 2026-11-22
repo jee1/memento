@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { buildSearchStatement } from './search-engine-sql-builder.js';
+import { buildFTSQuery } from './search-engine-fts-query.js';
 
 describe('buildSearchStatement', () => {
   it('project/process/session 범위를 후보 LIMIT 전에 적용한다', async () => {
@@ -59,6 +60,21 @@ describe('buildSearchStatement', () => {
     expect(result.sql.indexOf('m.project_id = ?')).toBeGreaterThan(searchGroupEnd);
     expect(result.sql.indexOf('m.process_id = ?')).toBeGreaterThan(searchGroupEnd);
     expect(result.sql.indexOf('m.session_id = ?')).toBeGreaterThan(searchGroupEnd);
+  });
+
+  it('LIKE fallback 은 조사 뗀 꼴이 아니라 원 질의를 그대로 LIKE 인자로 쓴다 (#1821)', async () => {
+    const result = await buildSearchStatement({
+      db: {} as never,
+      searchQuery: '객체를 만들',
+      filters: {},
+      limit: 1,
+      hasIdFilter: false,
+      preferFts: false,
+      checkFTS5Availability: async () => false,
+      buildFTSQuery,
+      buildReflectionNotesSearchCondition: () => null,
+    });
+    expect(result.params.slice(0, 3)).toEqual(['%객체를 만들%', '%객체를 만들%', '%객체를 만들%']);
   });
 
   it('tags 필터를 후보 LIMIT 전에 AND(⊇)로 적용한다 (#754)', async () => {
