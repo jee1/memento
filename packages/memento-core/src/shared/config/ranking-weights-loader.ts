@@ -301,6 +301,8 @@ export function getRankingVersionPayload(configPath?: string): {
   text_lane_score: 'relevance_only';
   /** 한 레인에만 잡힌 후보에 다른 레인 점수를 채우는 방향. 벡터 전용 후보에 BM25 를 채우면서 점수 분포가 바뀌었다 (#1814). */
   lane_backfill: 'text_and_vector';
+  /** FTS 질의에 낱말마다 조사를 뗀 꼴을 OR 로 더한다. 후보 집합이 바뀌어 점수 분포가 달라진다 (#1821). */
+  fts_query_particles: 'original_or_stripped';
   /** 모델이나 사상 계수가 바뀌면 점수 분포가 바뀐다. 전환 전후 텔레메트리가 같은 버전으로 섞이지 않게 넣는다 (#1729). */
   local_embedding_model: string;
   query_score_mapping: { a: number; b: number };
@@ -316,6 +318,7 @@ export function getRankingVersionPayload(configPath?: string): {
     vector_length_decay_characteristic_length: weights.vector_length_decay.characteristic_length,
     text_lane_score: 'relevance_only',
     lane_backfill: 'text_and_vector',
+    fts_query_particles: 'original_or_stripped',
     local_embedding_model: LOCAL_EMBEDDING_MODEL.storedName,
     query_score_mapping: { ...LOCAL_EMBEDDING_MODEL.queryScoreMapping },
   };
