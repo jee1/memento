@@ -36,11 +36,11 @@ export class RememberTool extends BaseTool {
         properties: {
           content: {
             type: 'string',
-            description: '저장할 내용. episodic record 를 주면 생략할 수 있다. record 가 있으면 검색 본문은 라벨 없는 필드 값이다'
+            description: '저장할 내용. episodic 에서 record 를 주면 생략'
           },
           record: {
             type: 'object',
-            description: 'episodic 작업 기록. 임베딩과 FTS 는 라벨을 보지 않고, recall 은 라벨을 붙여 보여 준다',
+            description: 'episodic 작업 기록',
             properties: {
               decision: { type: 'string', description: '결정' },
               rationale: { type: 'string', description: '근거' },
@@ -53,51 +53,49 @@ export class RememberTool extends BaseTool {
           type: {
             type: 'string',
             enum: ['working', 'episodic', 'semantic', 'procedural', 'core', 'vault'],
-            description: `기억 타입. 각 타입의 의미와 사용 시점:
-- 'working': 현재 처리 중인 정보 (48시간 뒤 소프트 삭제, 최근 사용과 무관). 예: "현재 버그 수정 작업 진행 중"
-- 'episodic': 사건과 경험 기록 (30일 동안 안 쓰이면 망각 점수로 정리, 핀 고정 시 무기한). 예: "오늘 회의에서 결정한 사항", "작업 완료 기록"
-- 'semantic': 지식과 사실 (180일 동안 안 쓰이면 망각 점수로 정리). 예: "React Hooks 사용법", "에러 해결 방법", "코드 패턴"
-- 'procedural': 방법과 절차 (90일 동안 안 쓰이면 망각 점수로 정리). 예: "PRD 기반 작업 목록 생성 절차", "배포 절차"
-- 'core': 에이전트 정체성, 규칙, 지침 (무기한 보존, key-value 형식, always_load 옵션 지원). 예: "나는 도움이 되는 어시스턴트다", "코딩 스타일 규칙"
-- 'vault': 불변 지식, 사실 (무기한 보존, key-value 형식, immutable 옵션 지원). 예: "빛의 속도는 299,792,458 m/s", "수학 공식"`
+            description: `기억 타입
+- working: 지금 처리 중인 정보 (48시간 뒤 삭제)
+- episodic: 사건, 작업 완료 기록 (30일 미사용 시 망각)
+- semantic: 지식, 사실 (180일)
+- procedural: 방법, 절차 (90일)
+- core: 에이전트 정체성, 규칙 (key-value, 무기한, always_load 옵션)
+- vault: 불변 사실 (key-value, 무기한, immutable 옵션)`
           },
           key: {
             type: 'string',
-            description: 'Core Memory 또는 Knowledge Vault의 키 (type이 core/vault일 때 필수)'
+            description: 'core/vault 키 (필수)'
           },
           value: {
             type: 'string',
-            description: 'Core Memory 또는 Knowledge Vault의 값 (type이 core/vault일 때 필수)'
+            description: 'core/vault 값 (필수)'
           },
           always_load: {
             type: 'boolean',
-            description: '서버 시작 시 자동 로드 여부 (Core Memory용, 기본값: false)',
-            default: false
+                        default: false
           },
           immutable: {
             type: 'boolean',
-            description: '불변 데이터 여부 (Knowledge Vault용, 기본값: true)',
-            default: true
+                        default: true
           },
           task_goal: {
             type: 'string',
-            description: '작업 목표 (Procedural Memory용)'
+            description: 'procedural 작업 목표'
           },
           steps: {
             type: 'string',
-            description: '단계별 절차 (JSON 배열 문자열, Procedural Memory용)'
+            description: 'procedural 단계 (JSON 배열 문자열)'
           },
           reflection_notes: {
             type: 'string',
-            description: 'Reflexion 기록 (JSON 객체 문자열, Procedural Memory용)'
+            description: 'procedural Reflexion 기록 (JSON 객체 문자열)'
           },
           workflow_name: {
             type: 'string',
-            description: '프로세스 이름 (예: "데이터 마이그레이션", "API 배포")'
+            description: '프로세스 이름'
           },
           skill_name: {
             type: 'string',
-            description: '기술/능력 이름 (예: "스키마 백업", "데이터 검증")'
+            description: '기술 이름'
           },
           trigger_conditions: {
             type: 'string',
@@ -105,39 +103,37 @@ export class RememberTool extends BaseTool {
           },
           memory_id: {
             type: 'string',
-            description: '갱신 대상 memory_id (Issue #1000). update_mode와 함께 사용한다. recall 결과의 memory_id 또는 이전 remember 응답의 memory_id를 그대로 넣는다. 생략하면 새 기억으로 저장된다'
+            description: '갱신 대상 memory_id (recall 결과나 이전 remember 응답의 값). update_mode 와 함께. 없으면 새 기억'
           },
           update_mode: {
             type: 'string',
             enum: ['replace', 'incremental', 'versioned'],
-            description: `기존 기억 갱신 모드. 갱신 대상은 memory_id로 지정하거나, procedural의 경우 workflow_name/skill_name으로 조회된다. 대상이 지정되지 않으면 새 기억이 저장된다.
-- 'replace': 대상 기억을 새 내용으로 덮어쓴다 (같은 memory_id 유지)
-- 'incremental': 대상 기억에 병합한다 (tags 합집합, importance는 큰 값, semantic은 num_times 증가, procedural은 steps 이어붙이기)
-- 'versioned': 새 행을 만들고 대상 기억과 VERSION_OF 관계로 연결한다 (새 memory_id 반환)`
+            description: `기존 기억 갱신 방식
+- replace: 새 내용으로 덮어쓴다
+- incremental: 병합한다 (tags 합집합, importance 큰 값, procedural steps 이어붙이기)
+- versioned: 새 행을 만들고 VERSION_OF 로 잇는다`
           },
           expected_version: {
             type: 'integer',
             minimum: 1,
-            description: 'Compare-and-swap 갱신용 현재 버전. memory_id·update_mode(replace|incremental)와 함께 지정한다. 미설정 version은 1로 간주한다. 불일치 시 409 memory_version_conflict.'
+            description: '갱신 시 현재 버전. 불일치면 409 memory_version_conflict'
           },
           tags: {
             type: 'array',
             items: { type: 'string' },
-            description: '태그 목록'
+            description: '태그'
           },
           importance: {
             type: 'number',
             minimum: 0,
             maximum: 1,
-            description: '중요도 (0-1)',
-            default: 0.5
+                        default: 0.5
           },
           source: { type: 'string', description: '출처' },
           privacy_scope: {
             type: 'string',
             enum: ['private', 'team', 'public'],
-            description: '프라이버시 범위',
-            default: 'private'
+                        default: 'private'
           },
         },
         // 런타임(validateTypeParam)이 강제하는 것과 동일한 제약을 광고한다 (#853).
