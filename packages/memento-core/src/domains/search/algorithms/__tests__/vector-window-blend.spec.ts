@@ -94,10 +94,13 @@ describe('applyVectorWindowBlend (#1827)', () => {
   it('질의 벡터가 없는 provider 는 건너뛰고 있는 provider 만 섞는다', () => {
     const db = createDb();
     insertLongMemory(db, 'long', 3);
-    db.prepare(
+    // other 도 창 수가 min_windows 이상이고 native 가 있어, 질의 벡터가 없다는 조건만으로 건너뛴다.
+    const insertOther = db.prepare(
       'INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions, model) ' +
-        "VALUES ('other', 'openai', 'native', ?, 2, 2, NULL)"
-    ).run(encodeFloat32Embedding([0.6, 0.8]));
+        "VALUES ('other', 'openai', ?, ?, 2, 2, NULL)"
+    );
+    insertOther.run('native', encodeFloat32Embedding([0.6, 0.8]));
+    for (let i = 0; i < 3; i++) insertOther.run(`window:${i}`, encodeFloat32Embedding([1, 0]));
 
     const results = applyVectorWindowBlend(
       db,
