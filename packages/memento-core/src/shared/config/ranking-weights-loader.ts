@@ -35,6 +35,15 @@ export interface VectorLengthDecayConfig {
   saturation_length: number;
 }
 
+export interface VectorWindowBlendConfig {
+  /** When false, a windowed memory keeps its best-window cosine (#1112 max-sim). */
+  enabled: boolean;
+  /** λ in maxWin − λ·(maxWin − native) (#1827). */
+  lambda: number;
+  /** Only memories with at least this many window rows are blended (#1827). */
+  min_windows: number;
+}
+
 export interface FtsRelevanceConfig {
   /** T in 1/(1+exp(bm25_rank/T)) (#1079). */
   temperature: number;
@@ -58,6 +67,7 @@ export interface RelevanceSignalConfig {
 export interface RankingWeightsConfig {
   ranking_weights: RankingWeights;
   vector_length_decay: VectorLengthDecayConfig;
+  vector_window_blend: VectorWindowBlendConfig;
   fts_relevance: FtsRelevanceConfig;
   importance_signal: ImportanceSignalConfig;
   recency_signal: RecencySignalConfig;
@@ -76,6 +86,11 @@ const DEFAULT_CONFIG: RankingWeightsConfig = {
     enabled: true,
     characteristic_length: 40,
     saturation_length: 80
+  },
+  vector_window_blend: {
+    enabled: true,
+    lambda: 0.15,
+    min_windows: 6
   },
   fts_relevance: {
     temperature: 10
@@ -119,6 +134,8 @@ const RANKING_WEIGHTS_SCHEMA = {
   'ranking_weights.zeta_fb': { type: 'number' as const, min: 0, max: 1 },
   'vector_length_decay.characteristic_length': { type: 'number' as const, min: 0 },
   'vector_length_decay.saturation_length': { type: 'number' as const, min: 0 },
+  'vector_window_blend.lambda': { type: 'number' as const, min: 0, max: 1 },
+  'vector_window_blend.min_windows': { type: 'number' as const, min: 1 },
   'fts_relevance.temperature': { type: 'number' as const, min: 0.1 },
   'importance_signal.scale': { type: 'number' as const, min: 0, max: 1 },
   'recency_signal.scale': { type: 'number' as const, min: 0, max: 1 },
@@ -139,6 +156,12 @@ function flattenRankingWeightsForValidation(config: RankingWeightsConfig): Recor
     'vector_length_decay.saturation_length':
       config.vector_length_decay?.saturation_length ??
       DEFAULT_CONFIG.vector_length_decay.saturation_length,
+    'vector_window_blend.lambda':
+      config.vector_window_blend?.lambda ??
+      DEFAULT_CONFIG.vector_window_blend.lambda,
+    'vector_window_blend.min_windows':
+      config.vector_window_blend?.min_windows ??
+      DEFAULT_CONFIG.vector_window_blend.min_windows,
     'fts_relevance.temperature':
       config.fts_relevance?.temperature ??
       DEFAULT_CONFIG.fts_relevance.temperature,
@@ -166,6 +189,13 @@ function normalizeRankingWeightsSections(config: RankingWeightsConfig): void {
     enabled: typeof decay?.enabled === 'boolean' ? decay.enabled : defaults.enabled,
     characteristic_length: finiteOr(decay?.characteristic_length, defaults.characteristic_length),
     saturation_length: finiteOr(decay?.saturation_length, defaults.saturation_length)
+  };
+  const blend = config.vector_window_blend;
+  const blendDefaults = DEFAULT_CONFIG.vector_window_blend;
+  config.vector_window_blend = {
+    enabled: typeof blend?.enabled === 'boolean' ? blend.enabled : blendDefaults.enabled,
+    lambda: finiteOr(blend?.lambda, blendDefaults.lambda),
+    min_windows: finiteOr(blend?.min_windows, blendDefaults.min_windows)
   };
   config.fts_relevance = {
     temperature: finiteOr(config.fts_relevance?.temperature, DEFAULT_CONFIG.fts_relevance.temperature)

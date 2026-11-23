@@ -107,6 +107,10 @@ _Avoid_: model cache, HF cache
 `projection_type` 이 `native` 인 기억 대표 벡터와 `window:N` 인 창 크기(512 에서 특수 토큰 둘과 역할 접두를 뺀 토큰) 조각 벡터. 저장 벡터를 직접 읽는 기능은 native 만 쓴다.
 _Avoid_: chunk embedding
 
+**Window blend (창 섞기)**:
+창이 `[vector_window_blend].min_windows` 이상인 긴 기억의 KNN 점수를 가장 가까운 창 코사인에서 native 코사인 쪽으로 `lambda` 만큼 당기는 일(#1827). 질의에 몰린 창 하나가 문서 전체 점수가 되는 max-sim 의 보정이다.
+_Avoid_: window penalty, length penalty
+
 **Anchor**:
 `search_local`이 탐색 기준점으로 삼는 A, B, C 슬롯.
 _Avoid_: pin, bookmark

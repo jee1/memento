@@ -12,6 +12,7 @@ import { UnifiedEmbeddingService } from '../../embedding/index.js';
 import type { VectorSearchResult } from '../../embedding/index.js';
 import { normalizeSearchBySimilarityOutcome, collectResultIds, filterByVectorThreshold, fillUnderfilledVectorResults } from './hybrid-search-outcome-utils.js';
 import { applyVectorLengthDecay } from './vector-length-decay.js';
+import { applyVectorWindowBlend } from './vector-window-blend.js';
 import {
   createProviderVectorSearchTask,
   executeProviderSearchesWithOverallTimeout,
@@ -185,7 +186,8 @@ export class HybridVectorSearchExecutor {
         (sid, step, data) => this.searchLogger.logSearchStep(sid, step, data)
       );
 
-      const mapped = allResults.map(result => ({
+      const blended = applyVectorWindowBlend(db, allResults, queryEmbeddingSink, getRankingWeights().vector_window_blend);
+      const mapped = blended.map(result => ({
         ...result,
         similarity: mapQueryScore(result.provider, result.similarity),
       }));

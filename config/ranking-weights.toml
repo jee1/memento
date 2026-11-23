@@ -30,6 +30,16 @@ characteristic_length = 40
 # 없으면 곡선이 1 에 도달하지 못해 아티팩트가 없는 40~200자 구간까지 계속 벌점을 받는다.
 saturation_length = 80
 
+# #1827: 창 행(window:N)이 있는 긴 기억의 벡터 점수를 창 최대 코사인에서 native(창 평균) 쪽으로 당긴다.
+# similarity = 창최대 − lambda·(창최대 − native). 질의에 몰린 창 하나와 무관한 창 여럿으로 된 긴 문서가
+# 짧은 정답을 이기던 것을 막는다. min_windows 미만 기억은 그대로다.
+# min_windows 6 은 benchmark-v3 의 정답(창 4개 이하)과 긴 미끼(창 8개 이상) 사이에서 정했다.
+# 2026-11-20 운영 사본에서 창 6개 이상인 기억은 4건이다(창 2개 431, 3개 100, 4개 18, 5개 7).
+[vector_window_blend]
+enabled = true
+lambda = 0.15
+min_windows = 6
+
 # #1079: BM25 rank → relevance 시그모이드의 온도. factor = 1/(1+exp(rank/T))
 # T=1 이면 실제 rank 구간(-20~-2)이 전부 포화 꼬리에 들어가 동적 범위가 0.083 으로 뭉갠다.
 [fts_relevance]

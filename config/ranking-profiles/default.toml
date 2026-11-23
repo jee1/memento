@@ -10,6 +10,11 @@ zeta_fb = 0.05
 enabled = true
 characteristic_length = 40
 
+[vector_window_blend]
+enabled = true
+lambda = 0.15
+min_windows = 6
+
 [fts_relevance]
 temperature = 10
 

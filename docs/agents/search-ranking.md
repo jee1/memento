@@ -132,6 +132,18 @@ effective_similarity = cosine_similarity × factor
 
 `k`는 `config/ranking-weights.toml`의 `[vector_length_decay].characteristic_length`(기본 40)입니다. `saturation_length`(기본 80) 이상이면 계수를 1로 자른다. `enabled = false`면 감쇠를 끕니다. 생성 경로 최소 길이 하드 게이트는 쓰지 않습니다(#903에서 회귀). 감쇠 파라미터는 `getRankingVersion()` 해시에 포함됩니다. 계수 선정은 nightly quality before/after로 검증합니다. #934 이전 nightly 픽스처에는 5,000자 초과 문서가 없어 길이 편향을 관측할 수 없었고, minilm 벤치마크의 임베딩 지평선(약 1,024자)과 달리 감쇠는 전체 `content.length`를 씁니다 — 계측기는 합성 장문 코퍼스와 `top10_len` 리포트로 그 괴리를 보이게 합니다. #961: `npm run quality -- benchmark length-decay-sweep` 으로 k×arm×subset 스윕과 `long10pct`(>2,000자 top-10 점유율)를 재실행 가능하게 진단합니다(게이트 아님; arm=`vector_dom`은 실효 vector≈0.8/text≈0.2).
 
+## 긴 기억의 창 섞기 (Issue #1827)
+
+KNN 은 창 행(`window:N`)이 있는 기억을 가장 가까운 창 하나의 코사인으로 매깁니다(#1112 max-sim). 질의에 몰린 창 하나와 무관한 창 여럿으로 된 긴 기억은 그 창 하나만으로 짧은 정답과 같거나 높은 점수를 받습니다. 하이브리드 벡터 경로는 점수 사상과 길이 감쇠 **전에** 창 수가 `min_windows` 이상인 기억의 raw 코사인을 native(창 평균) 코사인 쪽으로 당깁니다(`vector-window-blend.ts`).
+
+```
+similarity = 창최대 − lambda × (창최대 − native)   # native 가 창최대 이상이면 그대로
+```
+
+`config/ranking-weights.toml` 의 `[vector_window_blend]` 가 `enabled`, `lambda`(기본 0.15), `min_windows`(기본 6)를 정합니다. `min_windows` 6 은 benchmark-v3 정답(창 4개 이하)과 긴 미끼(창 8개 이상) 사이 값입니다. 2026-11-20 운영 사본에서 창 6개 이상인 기억은 4건이라 운영 검색은 거의 바뀌지 않습니다. 텍스트 레인에만 잡힌 후보는 원래 native 코사인으로 채우므로(위 「레인 점수 채우기」), 긴 기억에서 두 레인의 점수가 같은 쪽으로 모입니다. 값은 `getRankingVersion()` 해시에 들어갑니다.
+
+lambda 를 올리면 짧은 정답과 긴 미끼 사이는 더 벌어지지만, 정답이 긴 문서인 질의도 같이 깎입니다. 2026-11-23 측정에서 창 수 조건 없이 lambda 0.15 를 걸면 창 3개짜리 정답 문항(incident_ops 하나)이 2위에서 5위로 내려갔고, lambda 0.17 부터는 긴 미끼 검사 (A) 도달 검사가 깨졌습니다.
+
 ## 가중치 변경 미리보기와 PR (Issue #1584)
 
 가중치는 운영에 바로 바꾸지 않고 `config/ranking-weights.toml` 을 고치는 PR 로만 바꿉니다.
