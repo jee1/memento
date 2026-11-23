@@ -56,6 +56,21 @@ describe('applyVectorWindowBlend (#1827)', () => {
     expect(results.map((r) => r.similarity)).toEqual([1, 1]);
   });
 
+  it('옛 모델 창은 창 수에 세지 않는다', () => {
+    const db = createDb();
+    insertLongMemory(db, 'mixed', 2);
+    for (let i = 2; i < 5; i++) {
+      db.prepare(
+        'INSERT INTO memory_embedding (memory_id, embedding_provider, projection_type, embedding, dim, dimensions, model) ' +
+          "VALUES ('mixed', 'minilm', ?, ?, 2, 2, 'old-model')"
+      ).run(`window:${i}`, encodeFloat32Embedding([1, 0]));
+    }
+
+    const [result] = applyVectorWindowBlend(db, [{ id: 'mixed', similarity: 1, provider: 'minilm' }], QUERY, OPTIONS);
+
+    expect(result.similarity).toBe(1);
+  });
+
   it('꺼져 있으면 같은 배열을 그대로 돌려준다', () => {
     const db = createDb();
     insertLongMemory(db, 'long', 3);

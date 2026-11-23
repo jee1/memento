@@ -10,6 +10,7 @@
 import type Database from 'better-sqlite3';
 import { loadCurrentNativeVectors } from '../../../shared/utils/current-native-embedding.js';
 import { WINDOW_PROJECTION_PREFIX } from '../../../shared/utils/window-embedding-write.js';
+import { getEmbeddingModelFilter } from '../../../shared/config/embedding-models.js';
 import { clamp01 } from '../../../shared/utils/clamp.js';
 import { cosineSimilarity } from '../../../shared/utils/vector-math.js';
 
@@ -27,11 +28,14 @@ function blendWindowSimilarity(windowSimilarity: number, nativeSimilarity: numbe
 
 function countWindows(db: Database.Database, memoryIds: string[], provider: string): Map<string, number> {
   const placeholders = memoryIds.map(() => '?').join(', ');
+  // KNN 과 loadCurrentNativeVectors 처럼 지금 모델의 창만 센다.
+  const model = getEmbeddingModelFilter(provider);
+  const modelSql = model ? ' AND model = ?' : '';
   const rows = db.prepare(
     `SELECT memory_id, COUNT(*) AS n FROM memory_embedding
-     WHERE embedding_provider = ? AND projection_type LIKE ? AND memory_id IN (${placeholders})
+     WHERE embedding_provider = ? AND projection_type LIKE ?${modelSql} AND memory_id IN (${placeholders})
      GROUP BY memory_id`
-  ).all(provider, `${WINDOW_PROJECTION_PREFIX}%`, ...memoryIds) as Array<{ memory_id: string; n: number }>;
+  ).all(provider, `${WINDOW_PROJECTION_PREFIX}%`, ...(model ? [model] : []), ...memoryIds) as Array<{ memory_id: string; n: number }>;
   return new Map(rows.map((row) => [row.memory_id, row.n]));
 }
 
@@ -62,8 +66,8 @@ export function applyVectorWindowBlend<T extends { id: string; similarity: numbe
       if (longRows.length === 0) continue;
       natives = loadCurrentNativeVectors(db, longRows.map((r) => r.id), provider);
     } catch {
-      // 스키마가 없는 환경(레거시/모킹)에서는 섞지 않는다. backfill 과 같은 처리다.
-      return results;
+      // 스키마가 없는 환경(레거시/모킹)에서는 이 provider 를 섞지 않는다.
+      continue;
     }
     for (const row of longRows) {
       const native = natives.get(row.id);
