@@ -20,7 +20,7 @@ interface VectorWindowBlendOptions {
 }
 
 /** maxWin − λ·(maxWin − native). A native at or above the window score leaves it unchanged. */
-export function blendWindowSimilarity(windowSimilarity: number, nativeSimilarity: number, lambda: number): number {
+function blendWindowSimilarity(windowSimilarity: number, nativeSimilarity: number, lambda: number): number {
   if (nativeSimilarity >= windowSimilarity) return windowSimilarity;
   return windowSimilarity - lambda * (windowSimilarity - nativeSimilarity);
 }
