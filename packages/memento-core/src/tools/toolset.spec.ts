@@ -83,4 +83,15 @@ describe('MCP toolset exposure', () => {
     // #1446 record 스키마가 core 의 remember 정의를 키웠다. 0.60 이어도 숨긴 도구가 목록에 섞이면 깨진다.
     expect(size('core')).toBeLessThan(size('full') * 0.60);
   });
+
+  // #1824: core 4개 정의는 도구를 미리 싣는 에이전트의 모든 세션에 들어간다.
+  it('keeps the core definitions within the 7,500 character budget', () => {
+    const chars = getExposedTools('core').reduce((sum, tool) => sum + JSON.stringify({
+      name: tool.name,
+      description: tool.description,
+      inputSchema: tool.inputSchema,
+    }).length, 0);
+
+    expect(chars).toBeLessThanOrEqual(7500);
+  });
 });

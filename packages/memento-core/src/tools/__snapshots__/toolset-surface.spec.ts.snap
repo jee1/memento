@@ -509,64 +509,56 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
         ],
         "properties": {
           "agent_id": {
-            "description": "에이전트 ID (Core/Vault 조회 시 사용, 기본값: "default")",
             "type": "string",
           },
           "auto_set_anchor": {
             "default": true,
-            "description": "가장 관련성 높은 기억(첫 번째 결과)을 슬롯 A에 자동으로 앵커로 설정 (기본값: true, MEMENTO_AUTO_SET_ANCHOR_DEFAULT=false로 비활성화 가능)",
+            "description": "첫 결과를 슬롯 A 앵커로 자동 설정 (MEMENTO_AUTO_SET_ANCHOR_DEFAULT=false 로 끔)",
             "type": "boolean",
           },
           "enable_hybrid": {
             "default": true,
-            "description": "하이브리드 검색 사용 여부 (선택사항)",
             "type": "boolean",
           },
           "has_reflection_notes": {
-            "description": "reflection_notes가 있는 메모리만 조회 (true: IS NOT NULL, false: IS NULL, 선택사항)",
+            "description": "reflection_notes 유무로 필터",
             "type": "boolean",
           },
           "importance_max": {
-            "description": "최대 중요도 (0-1, 선택사항)",
             "maximum": 1,
             "minimum": 0,
             "type": "number",
           },
           "importance_min": {
-            "description": "최소 중요도 (선택사항)",
             "maximum": 1,
             "minimum": 0,
             "type": "number",
           },
           "include_diff_with": {
-            "description": "'previous'면 직전 버전과의 diff, 메모리 id면 해당 id와의 diff를 diff_with_previous 또는 diff_with 필드로 반환",
+            "description": "'previous' 는 직전 버전, 메모리 id 는 그 기억과의 diff",
             "type": "string",
           },
           "include_metadata": {
             "default": true,
-            "description": "메타데이터 포함 여부 (선택사항). false면 응답에서 메타데이터 블록을 생략하며, score_breakdown도 포함하지 않음(include_score_breakdown=true여도).",
+            "description": "메타데이터 포함. false 면 score_breakdown 도 생략",
             "type": "boolean",
           },
           "include_neighbors": {
             "default": false,
-            "description": "검색 결과의 상위 항목에 대해 이웃 기억을 자동으로 포함 (기본값: false)",
             "type": "boolean",
           },
           "include_score_breakdown": {
             "default": false,
-            "description": "true일 때 각 결과에 score_breakdown 포함. include_metadata=false이면 적용되지 않음(메타·세부 점수 모두 생략). relevance.score/pct는 α·relevance(블렌딩)뿐 아니라 관계·절차·process_fit 기여를 동일 슬롯에 합산(FR-008·contracts §1).",
+            "description": "각 결과에 score_breakdown 포함. include_metadata=false 면 무시",
             "type": "boolean",
           },
           "include_superseded": {
-            "description": "명시적 과거 조회: true이면 대체된 기억도 포함. 삭제·owner·project 필터는 유지한다. 기본값 false",
             "type": "boolean",
           },
           "include_version_chain": {
-            "description": "true이면 procedural 결과에 version_chain(버전 이력 배열) 포함",
             "type": "boolean",
           },
           "key": {
-            "description": "Core/Vault 조회 시 특정 키 지정 (선택사항)",
             "type": "string",
           },
           "limit": {
@@ -578,11 +570,10 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
           },
           "match_trigger_conditions": {
             "default": false,
-            "description": "trigger_conditions 매칭 여부 (기본값: false)",
             "type": "boolean",
           },
           "memory_types": {
-            "description": "복수 타입 필터 (선택사항, type 파라미터와 동시 사용 시 type 우선). core/vault는 자동으로 제거됩니다. type을 생략해도 이 배열이 비어 있지 않으면 missing-type 경고가 생략될 수 있습니다.",
+            "description": "복수 타입 필터. type 과 같이 주면 type 우선, core/vault 는 제거된다",
             "items": {
               "enum": [
                 "working",
@@ -598,35 +589,29 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
           },
           "neighbors_limit": {
             "default": 3,
-            "description": "이웃 기억을 포함할 상위 결과의 개수 (각 결과당 이웃 개수는 neighbors_per_item으로 제어, 기본값: 3)",
             "maximum": 10,
             "minimum": 1,
             "type": "number",
           },
           "neighbors_per_item": {
             "default": 5,
-            "description": "각 검색 결과 항목당 조회할 이웃 기억의 최대 개수 (기본값: 5)",
             "maximum": 50,
             "minimum": 1,
             "type": "number",
           },
           "neighbors_similarity_threshold": {
             "default": 0.8,
-            "description": "이웃 기억 조회 시 유사도 임계값 (이 값 이상인 기억만 반환, 기본값: 0.8)",
             "maximum": 1,
             "minimum": 0,
             "type": "number",
           },
           "owner_id": {
-            "description": "다중 에이전트: 소유자 ID로 결과 필터 (단일 문자열 또는 문자열 배열). 미설정 시 전체 조회",
             "type": "string",
           },
           "pinned": {
-            "description": "핀된 기억만 검색 (선택사항)",
             "type": "boolean",
           },
           "privacy_scope": {
-            "description": "프라이버시 범위 필터 (선택사항)",
             "items": {
               "enum": [
                 "private",
@@ -638,15 +623,12 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
             "type": "array",
           },
           "process_id": {
-            "description": "Memori Attribution: 프로세스 ID로 결과 필터 (Issue #87)",
             "type": "string",
           },
           "project_id": {
-            "description": "Project-scoped Memory: 프로젝트 ID로 결과 필터 (Issue #81). 미설정 시 전체 검색",
             "type": "string",
           },
           "provider_filter": {
-            "description": "검색할 임베딩 provider 필터 (선택사항, 미지정 시 모든 provider 검색)",
             "items": {
               "enum": [
                 "tfidf",
@@ -660,12 +642,12 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
             "type": "array",
           },
           "query": {
-            "description": "검색할 내용의 핵심 낱말을 넣으세요. 이슈 번호, 기능 이름, 파일을 앞에 두고 조사와 어미는 빼도 됩니다 (예: 'JWT 토큰 만료 처리', e.g. "JWT expiry handling"). type이 core 또는 vault가 아닌 경우 필수이며, memory_types만 제공된 경우에도 query는 필수입니다.",
+            "description": "검색할 핵심 낱말. 이슈 번호, 기능 이름, 파일을 앞에 두고 조사와 어미는 뺀다 (e.g. "JWT 만료 처리"). core/vault 외에는 필수",
             "type": "string",
           },
           "return_format": {
             "default": "full",
-            "description": "반환 형식 선택: full (모든 필드), steps_only (steps만 반환)",
+            "description": "full 은 모든 필드, steps_only 는 steps 만",
             "enum": [
               "full",
               "steps_only",
@@ -673,15 +655,12 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
             "type": "string",
           },
           "session_id": {
-            "description": "Memori Attribution: 세션 ID로 결과 필터 (Issue #87)",
             "type": "string",
           },
           "skill_name": {
-            "description": "기술/능력 이름으로 필터링 (선택사항)",
             "type": "string",
           },
           "tags": {
-            "description": "태그 필터 (선택사항)",
             "items": {
               "type": "string",
             },
@@ -689,21 +668,20 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
           },
           "text_weight": {
             "default": 0.4,
-            "description": "텍스트 검색 가중치 (선택사항)",
             "maximum": 1,
             "minimum": 0,
             "type": "number",
           },
           "time_from": {
-            "description": "시작 시간 (ISO 8601 형식, 선택사항)",
+            "description": "시작 시각 (ISO 8601)",
             "type": "string",
           },
           "time_to": {
-            "description": "종료 시간 (ISO 8601 형식, 선택사항)",
+            "description": "종료 시각 (ISO 8601)",
             "type": "string",
           },
           "type": {
-            "description": "단일 메모리 타입 지정. memory_types 를 지정하지 않았다면 필수입니다.",
+            "description": "단일 타입. memory_types 가 없으면 필수",
             "enum": [
               "working",
               "episodic",
@@ -716,13 +694,12 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
           },
           "vector_weight": {
             "default": 0.6,
-            "description": "벡터 검색 가중치 (선택사항)",
             "maximum": 1,
             "minimum": 0,
             "type": "number",
           },
           "version_filter": {
-            "description": "procedural 기억 버전 필터: latest_only(시리즈당 최신만), all_versions(전체), specific_version(version_series_id+version_number로 지정)",
+            "description": "procedural 버전 필터. latest_only 는 시리즈당 최신, specific_version 은 version_series_id+version_number",
             "enum": [
               "latest_only",
               "all_versions",
@@ -731,16 +708,13 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
             "type": "string",
           },
           "version_number": {
-            "description": "특정 버전 번호 (specific_version일 때 version_series_id와 함께 사용)",
             "minimum": 1,
             "type": "number",
           },
           "version_series_id": {
-            "description": "버전 시리즈 ID (specific_version일 때 또는 특정 시리즈만 볼 때 사용)",
             "type": "string",
           },
           "workflow_name": {
-            "description": "프로세스 이름으로 필터링 (선택사항)",
             "type": "string",
           },
         },
@@ -756,41 +730,37 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
         "properties": {
           "always_load": {
             "default": false,
-            "description": "서버 시작 시 자동 로드 여부 (Core Memory용, 기본값: false)",
             "type": "boolean",
           },
           "content": {
-            "description": "저장할 내용. episodic record 를 주면 생략할 수 있다. record 가 있으면 검색 본문은 라벨 없는 필드 값이다",
+            "description": "저장할 내용. episodic 에서 record 를 주면 생략",
             "type": "string",
           },
           "expected_version": {
-            "description": "Compare-and-swap 갱신용 현재 버전. memory_id·update_mode(replace|incremental)와 함께 지정한다. 미설정 version은 1로 간주한다. 불일치 시 409 memory_version_conflict.",
+            "description": "갱신 시 현재 버전. 불일치면 409 memory_version_conflict",
             "minimum": 1,
             "type": "integer",
           },
           "immutable": {
             "default": true,
-            "description": "불변 데이터 여부 (Knowledge Vault용, 기본값: true)",
             "type": "boolean",
           },
           "importance": {
             "default": 0.5,
-            "description": "중요도 (0-1)",
             "maximum": 1,
             "minimum": 0,
             "type": "number",
           },
           "key": {
-            "description": "Core Memory 또는 Knowledge Vault의 키 (type이 core/vault일 때 필수)",
+            "description": "core/vault 키 (필수)",
             "type": "string",
           },
           "memory_id": {
-            "description": "갱신 대상 memory_id (Issue #1000). update_mode와 함께 사용한다. recall 결과의 memory_id 또는 이전 remember 응답의 memory_id를 그대로 넣는다. 생략하면 새 기억으로 저장된다",
+            "description": "갱신 대상 memory_id (recall 결과나 이전 remember 응답의 값). procedural 은 workflow_name+skill_name 으로도 지정. update_mode 와 함께. 없으면 새 기억. versioned 는 새 memory_id 를 돌려준다",
             "type": "string",
           },
           "privacy_scope": {
             "default": "private",
-            "description": "프라이버시 범위",
             "enum": [
               "private",
               "team",
@@ -799,7 +769,7 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
             "type": "string",
           },
           "record": {
-            "description": "episodic 작업 기록. 임베딩과 FTS 는 라벨을 보지 않고, recall 은 라벨을 붙여 보여 준다",
+            "description": "episodic 작업 기록",
             "properties": {
               "decision": {
                 "description": "결정",
@@ -832,11 +802,11 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
             "type": "object",
           },
           "reflection_notes": {
-            "description": "Reflexion 기록 (JSON 객체 문자열, Procedural Memory용)",
+            "description": "procedural Reflexion 기록 (JSON 객체 문자열)",
             "type": "string",
           },
           "skill_name": {
-            "description": "기술/능력 이름 (예: "스키마 백업", "데이터 검증")",
+            "description": "기술 이름",
             "type": "string",
           },
           "source": {
@@ -844,18 +814,18 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
             "type": "string",
           },
           "steps": {
-            "description": "단계별 절차 (JSON 배열 문자열, Procedural Memory용)",
+            "description": "procedural 단계 (JSON 배열 문자열)",
             "type": "string",
           },
           "tags": {
-            "description": "태그 목록",
+            "description": "태그",
             "items": {
               "type": "string",
             },
             "type": "array",
           },
           "task_goal": {
-            "description": "작업 목표 (Procedural Memory용)",
+            "description": "procedural 작업 목표",
             "type": "string",
           },
           "trigger_conditions": {
@@ -863,13 +833,13 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
             "type": "string",
           },
           "type": {
-            "description": "기억 타입. 각 타입의 의미와 사용 시점:
-- 'working': 현재 처리 중인 정보 (48시간 뒤 소프트 삭제, 최근 사용과 무관). 예: "현재 버그 수정 작업 진행 중"
-- 'episodic': 사건과 경험 기록 (30일 동안 안 쓰이면 망각 점수로 정리, 핀 고정 시 무기한). 예: "오늘 회의에서 결정한 사항", "작업 완료 기록"
-- 'semantic': 지식과 사실 (180일 동안 안 쓰이면 망각 점수로 정리). 예: "React Hooks 사용법", "에러 해결 방법", "코드 패턴"
-- 'procedural': 방법과 절차 (90일 동안 안 쓰이면 망각 점수로 정리). 예: "PRD 기반 작업 목록 생성 절차", "배포 절차"
-- 'core': 에이전트 정체성, 규칙, 지침 (무기한 보존, key-value 형식, always_load 옵션 지원). 예: "나는 도움이 되는 어시스턴트다", "코딩 스타일 규칙"
-- 'vault': 불변 지식, 사실 (무기한 보존, key-value 형식, immutable 옵션 지원). 예: "빛의 속도는 299,792,458 m/s", "수학 공식"",
+            "description": "기억 타입
+- working: 지금 처리 중인 정보 (48시간 뒤 삭제)
+- episodic: 사건, 작업 완료 기록 (30일 미사용 시 망각)
+- semantic: 지식, 사실 (180일)
+- procedural: 방법, 절차 (90일)
+- core: 에이전트 정체성, 규칙 (key-value, 무기한, always_load 옵션)
+- vault: 불변 사실 (key-value, 무기한, immutable 옵션)",
             "enum": [
               "working",
               "episodic",
@@ -881,10 +851,10 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
             "type": "string",
           },
           "update_mode": {
-            "description": "기존 기억 갱신 모드. 갱신 대상은 memory_id로 지정하거나, procedural의 경우 workflow_name/skill_name으로 조회된다. 대상이 지정되지 않으면 새 기억이 저장된다.
-- 'replace': 대상 기억을 새 내용으로 덮어쓴다 (같은 memory_id 유지)
-- 'incremental': 대상 기억에 병합한다 (tags 합집합, importance는 큰 값, semantic은 num_times 증가, procedural은 steps 이어붙이기)
-- 'versioned': 새 행을 만들고 대상 기억과 VERSION_OF 관계로 연결한다 (새 memory_id 반환)",
+            "description": "기존 기억 갱신 방식
+- replace: 새 내용으로 덮어쓴다
+- incremental: 병합한다 (tags 합집합, importance 큰 값, procedural steps 이어붙이기)
+- versioned: 새 행을 만들고 VERSION_OF 로 잇는다",
             "enum": [
               "replace",
               "incremental",
@@ -893,11 +863,11 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
             "type": "string",
           },
           "value": {
-            "description": "Core Memory 또는 Knowledge Vault의 값 (type이 core/vault일 때 필수)",
+            "description": "core/vault 값 (필수)",
             "type": "string",
           },
           "workflow_name": {
-            "description": "프로세스 이름 (예: "데이터 마이그레이션", "API 배포")",
+            "description": "프로세스 이름",
             "type": "string",
           },
         },
