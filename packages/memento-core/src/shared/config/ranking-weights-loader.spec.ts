@@ -501,6 +501,28 @@ saturation_length = 123
       expect(config.vector_length_decay.saturation_length).toBe(123);
     });
 
+    it('loads [vector_window_blend] from TOML and defaults it when absent (#1827)', () => {
+      writeFileSync(tempConfigPath, `[ranking_weights]
+alpha = 0.45
+beta = 0.20
+gamma = 0.20
+
+[vector_window_blend]
+enabled = false
+lambda = 0.3
+min_windows = 4
+`, 'utf-8');
+      expect(loadRankingWeights(tempConfigPath).vector_window_blend).toEqual({ enabled: false, lambda: 0.3, min_windows: 4 });
+
+      writeFileSync(tempConfigPath, `[ranking_weights]
+alpha = 0.45
+beta = 0.20
+gamma = 0.20
+`, 'utf-8');
+      resetRankingWeightsCache();
+      expect(loadRankingWeights(tempConfigPath).vector_window_blend).toEqual({ enabled: true, lambda: 0.15, min_windows: 6 });
+    });
+
     it('should cache loaded config', () => {
       // Given: 유효한 TOML 설정 파일
       const validConfig = `[ranking_weights]

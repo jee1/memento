@@ -82,6 +82,7 @@ export function backfillTextOnlyVectorResults(
     if (embedding.length === 0) continue;
     let stored: Map<string, CurrentNativeVector>;
     try {
+      // 텍스트 레인에서만 잡힌 후보는 native 코사인으로 잰다. 긴 기억은 KNN 레인도 [vector_window_blend] 로 native 쪽으로 당긴다 (#1827).
       // 질의 벡터와 같은 모델로 만든 native 행만 비교한다 (#1732). 차원이 같아도 모델이 다르면 공간이 다르다.
       stored = loadCurrentNativeVectors(db, ids, provider);
     } catch {
