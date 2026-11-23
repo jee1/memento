@@ -71,11 +71,11 @@ export class RememberTool extends BaseTool {
           },
           always_load: {
             type: 'boolean',
-                        default: false
+            default: false
           },
           immutable: {
             type: 'boolean',
-                        default: true
+            default: true
           },
           task_goal: {
             type: 'string',
@@ -103,7 +103,7 @@ export class RememberTool extends BaseTool {
           },
           memory_id: {
             type: 'string',
-            description: '갱신 대상 memory_id (recall 결과나 이전 remember 응답의 값). update_mode 와 함께. 없으면 새 기억'
+            description: '갱신 대상 memory_id (recall 결과나 이전 remember 응답의 값). procedural 은 workflow_name+skill_name 으로도 지정. update_mode 와 함께. 없으면 새 기억. versioned 는 새 memory_id 를 돌려준다'
           },
           update_mode: {
             type: 'string',
@@ -127,13 +127,13 @@ export class RememberTool extends BaseTool {
             type: 'number',
             minimum: 0,
             maximum: 1,
-                        default: 0.5
+            default: 0.5
           },
           source: { type: 'string', description: '출처' },
           privacy_scope: {
             type: 'string',
             enum: ['private', 'team', 'public'],
-                        default: 'private'
+            default: 'private'
           },
         },
         // 런타임(validateTypeParam)이 강제하는 것과 동일한 제약을 광고한다 (#853).

@@ -756,7 +756,7 @@ exports[`MCP tool surface contract > keeps every registered tool name, descripti
             "type": "string",
           },
           "memory_id": {
-            "description": "갱신 대상 memory_id (recall 결과나 이전 remember 응답의 값). update_mode 와 함께. 없으면 새 기억",
+            "description": "갱신 대상 memory_id (recall 결과나 이전 remember 응답의 값). procedural 은 workflow_name+skill_name 으로도 지정. update_mode 와 함께. 없으면 새 기억. versioned 는 새 memory_id 를 돌려준다",
             "type": "string",
           },
           "privacy_scope": {
