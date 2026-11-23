@@ -5,43 +5,47 @@
  * Two kinds of assertion live here and they fail for different reasons (#1103):
  *
  *  (A) instrument liveness — does the distractor reach the vector channel at all?
- *      Rebaselined 2026-09-23 on an honest seed (minilm native 3,461 + window 161)
- *      with a pass-through weight calculator. #1103 removed an AdaptiveWeightCalculator
+ *      Rebaselined 2026-11-23 (#1826) on the multilingual-e5-small-ko-v2 seed
+ *      (native 3,509 + window 163, #1729) at main 8346d8da, with a pass-through weight
+ *      calculator. The earlier baseline (2026-09-23, #1122) was measured on the old
+ *      paraphrase-multilingual-MiniLM-L12-v2 vectors. #1103 removed an AdaptiveWeightCalculator
  *      rewrite that had this file measuring the hybrid result instead of the vector
- *      channel, and #1122 then rebuilt the fixture bodies themselves.
+ *      channel, and #1122 rebuilt the fixture bodies themselves.
  *
  *      What #1122 measured: the blocker was window alignment, not wording. A topical
- *      paragraph scores 0.1785 when it shares a 510-token window with padding and
- *      0.7668 when it owns that window. Each distractor now ends with one query-dense
- *      paragraph aligned to a window boundary, preceded by unrelated long padding, and
- *      seven of eight reach the top 20 where two did before. Rewriting the same bodies
+ *      paragraph scores far lower when it shares a window with padding than when it owns
+ *      that window. Each distractor ends with one query-dense paragraph aligned to a
+ *      window boundary, preceded by unrelated long padding. Rewriting the same bodies
  *      as natural prose without that alignment made them worse, not better.
  *
  *      MAXSIM_BASELINE below is the engine-independent truth: max-sim cosine rank over
- *      all 3,461 corpus documents, computed from the stored minilm vectors (native +
- *      window:N) with no prefetch, no FTS and no length decay.
+ *      all 3,509 corpus documents, computed from the stored vectors (native + window:N)
+ *      of the current model, with no prefetch, no FTS and no length decay.
  *
  *      At limit 20 the KNN prefetch is resolveVectorPrefetchLimit(20) = 160 rows, so
- *      anything ranked past that cannot even become a candidate. bench_syn_long_0009 is
- *      the one that still does not arrive: its max-sim rank is 115, and it is held below
- *      its own answer on purpose, because that answer (bench_syn_long_0005) scores only
- *      0.5518 itself. bench_syn_long_0010 keeps its original body — the regenerated one
- *      polluted unrelated queries, which is a fixture defect, not a finding.
+ *      anything ranked past that cannot even become a candidate. With the new model all
+ *      eight distractors rank in the top 3 by max-sim and reach the engine's top 20.
+ *      bench_syn_long_0009 used to be the one that did not arrive (max-sim rank 115 on the
+ *      old model); it now ranks 2nd, engine index 1, below its own answer
+ *      (bench_syn_long_0005, index 0). bench_syn_long_0010 keeps its original body — the
+ *      regenerated one polluted unrelated queries, which is a fixture defect, not a finding.
  *
- *      The remaining assertion for 0009 is a tripwire, not an exemption: if a fixture or
- *      ranking change makes it reachable the assertion goes red and forces a new
- *      measurement. Do not retune thresholds and do not widen REACHES_TOP_20 to make
- *      anything green.
+ *      REACHES_TOP_20 is a tripwire list, not an exemption: an id missing from it must
+ *      stay unreachable (distractorIdx -1), so a ranking change that makes it reachable
+ *      goes red and forces a new measurement. Do not retune thresholds and do not widen
+ *      REACHES_TOP_20 to make anything green.
  *
  *  (B) product ranking — answer above distractor, and no cross-contamination.
- *      Real ranking defects. Tracked in #922 / #1095. Do not relax these.
- *      Two assertions fail and neither is about a distractor: under the 0011 query the
- *      *answer* (bench_syn_long_0007) is not retrievable at all — max-sim rank 880,
- *      score 0.2667 — so both read `expected -1 to be greater than or equal to 0`. One
- *      is here in (B); the other is in (A), because once 0011 entered REACHES_TOP_20
- *      that branch also reaches its answerIdx assertion. The distractor itself arrives
- *      at engine index 0. The pair failed the same way before #1122, and it is why the
- *      nightly step stays non-blocking. Tracked in #1095.
+ *      Real ranking defects. Tracked in #922 / #1095 and #1827. Do not relax these.
+ *      At main 8346d8da (after the #1828 window blend) three of the 24 assertions fail,
+ *      all of them (B) "answer above distractor" under the vector-only call:
+ *      bench_syn_long_0003 over bench_syn_ans_0006 (distractor index 1, answer 2),
+ *      bench_syn_long_0008 over bench_syn_ans_0004 (0 over 1) and bench_syn_long_0011
+ *      over bench_syn_long_0007 (0 over 1). Under the production hybrid path the first
+ *      two answers rank above the distractor; fixture importance favours the distractor
+ *      and the new model scores the near-clone close to the answer. These three stay
+ *      red until the length bias is fixed. The old-model failure where the 0011 answer
+ *      was not retrievable at all is gone. The nightly step stays non-blocking.
  *
  * Seeding: scripts/seed-benchmark-db.ts imports @memento/core from dist, and only
  * vitest maps that specifier to src. Seeding without `npm run build -w @memento/core`
@@ -139,26 +143,27 @@ class PassThroughWeightCalculator implements IAdaptiveWeightCalculator {
 }
 
 /**
- * 2026-09-23 실측 (#1122) — 엔진 비경유 max-sim 코사인 순위(코퍼스 3,461건)와 그 점수.
- * 저장된 minilm 벡터(native 3,461 + window:N 161)만 쓴다. 프리페치·FTS·길이 감쇠 없음.
- * 순위는 1-based 다 — #1103 표는 0-based 였으므로 같은 점수가 1 작은 순위로 적혀 있었다.
+ * 2026-11-23 실측 (#1826, main 8346d8da, multilingual-e5-small-ko-v2) — 엔진 비경유 max-sim 코사인 순위(코퍼스 3,509건)와 그 점수.
+ * 저장된 벡터(native 3,509 + window:N 163)만 쓴다. 프리페치·FTS·길이 감쇠 없음.
+ * 순위는 1-based 다. windows 는 그 문서의 window:N 행 수다.
  * 재현: core 빌드 후 시드해야 window 행이 생긴다.
  */
 const MAXSIM_BASELINE: Record<string, { rank: number; score: number; windows: number }> = {
-  bench_syn_long_0001: { rank: 17, score: 0.5324, windows: 10 },
-  bench_syn_long_0002: { rank: 10, score: 0.597, windows: 9 },
-  bench_syn_long_0003: { rank: 14, score: 0.5214, windows: 10 },
-  bench_syn_long_0004: { rank: 5, score: 0.6434, windows: 9 },
-  bench_syn_long_0008: { rank: 19, score: 0.4336, windows: 9 },
-  bench_syn_long_0009: { rank: 115, score: 0.5109, windows: 11 },
-  bench_syn_long_0010: { rank: 38, score: 0.5055, windows: 10 },
-  bench_syn_long_0011: { rank: 21, score: 0.485, windows: 10 },
+  bench_syn_long_0001: { rank: 3, score: 0.717, windows: 9 },
+  bench_syn_long_0002: { rank: 2, score: 0.678, windows: 8 },
+  bench_syn_long_0003: { rank: 1, score: 0.7523, windows: 9 },
+  bench_syn_long_0004: { rank: 2, score: 0.7238, windows: 8 },
+  bench_syn_long_0008: { rank: 2, score: 0.7744, windows: 8 },
+  bench_syn_long_0009: { rank: 2, score: 0.8141, windows: 10 },
+  bench_syn_long_0010: { rank: 2, score: 0.8863, windows: 9 },
+  bench_syn_long_0011: { rank: 1, score: 0.8024, windows: 9 },
 };
 
 /**
- * 2026-09-23 실측 (#1122) — limit 20 · k=40 · 통과형 가중치에서 top-20 에 실제로 남는 디스트랙터.
- * 측정된 엔진 인덱스: 0011=0, 0004=1, 0001=2, 0002=2, 0003=5, 0008·0010 은 top-10 안.
- * 0009 만 여전히 도달하지 못한다 — 초록을 만들려고 여기에 id 를 더하지 마라.
+ * 2026-11-23 실측 (#1826) — limit 20 · k=40 · 통과형 가중치에서 top-20 에 실제로 남는 디스트랙터.
+ * 여덟 건 모두 도달한다. 엔진 인덱스(0-based): 0008·0011=0, 0003·0004·0009·0010=1, 0001=2, 0002=9.
+ * 도달하지 않는 디스트랙터가 다시 생기면 id 를 이 집합에서 빼고 (A) 의 -1 단언이 지키게 한다.
+ * 초록을 만들려고 id 를 더하지 마라 — 더하려면 새로 재서 위 숫자를 고친다.
  */
 const REACHES_TOP_20 = new Set([
   'bench_syn_long_0001',
@@ -166,6 +171,7 @@ const REACHES_TOP_20 = new Set([
   'bench_syn_long_0003',
   'bench_syn_long_0004',
   'bench_syn_long_0008',
+  'bench_syn_long_0009',
   'bench_syn_long_0010',
   'bench_syn_long_0011',
 ]);
@@ -248,7 +254,7 @@ describe.runIf(process.env.VITEST_INCLUDE_NIGHTLY === '1')(
           const distractorIdx = result.items.findIndex((i) => i.id === distractorSource);
           const answerIdx = result.items.findIndex((i) => i.id === answerSource);
           const baseline = MAXSIM_BASELINE[pair.distractorId]!;
-          const why = `${pair.distractorId}: max-sim rank ${baseline.rank}/3461 (score ${baseline.score}, ${baseline.windows} windows), KNN prefetch at limit 20 is 160 rows`;
+          const why = `${pair.distractorId}: max-sim rank ${baseline.rank}/3509 (score ${baseline.score}, ${baseline.windows} windows), KNN prefetch at limit 20 is 160 rows`;
 
           if (!REACHES_TOP_20.has(pair.distractorId)) {
             // Tripwire, not an exemption (#1103). If this goes red the distractor
