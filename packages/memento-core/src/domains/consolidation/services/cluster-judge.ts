@@ -31,11 +31,11 @@ export interface IClusterJudge {
 
 const QUESTION = '기억 A 와 기억 B 는 같은 작업이나 같은 주제를 다룬다';
 /**
- * #1831: a pair's score moves with the pairs sharing its request (mean 0.09, up to 0.5 on 152 pairs), and the
- * cache keeps the first one. One pair per request moves 0.015.
+ * #1831: a pair's score depends on the pairs sharing its request (mean shift 0.09 on 152 pairs, 0.015 when
+ * alone), and the cache keeps whichever score came first.
  */
 const BATCH_SIZE = 1;
-/** Measured against the provider: 10 at once returned no 429. */
+/** #1831: 152 requests, 10 at once, returned no 429. Longer bursts were not measured. */
 const MAX_CONCURRENT_REQUESTS = 10;
 const TEXT_CHARS = 400;
 /** Bump when QUESTION, TEXT_CHARS or the label stripping changes, so cached scores are not reused. */
@@ -134,9 +134,7 @@ export class JevClusterJudge implements IClusterJudge {
           scores[i] = await this.scoreBatch(batches[i]!);
         }
       };
-      await Promise.all(
-        Array.from({ length: Math.min(MAX_CONCURRENT_REQUESTS, batches.length) }, () => worker())
-      );
+      await Promise.all(Array.from({ length: MAX_CONCURRENT_REQUESTS }, () => worker()));
       return scores.flat();
     });
   }

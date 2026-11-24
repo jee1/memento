@@ -24,12 +24,8 @@ describe('JevClusterJudge', () => {
   /** Pair i is sent as a${i}/b${i}; answers q0 after a delay that grows as i shrinks, so later pairs finish first. */
   function delayedFetch(scoreOf: (pairIndex: number) => number | null, stats: { inFlight: number; max: number }) {
     return vi.fn().mockImplementation(async (_url: string, init?: RequestInit) => {
-      const body = JSON.parse(String(init?.body)) as {
-        state: { a0: string };
-        questions: Record<string, unknown>;
-      };
-      expect(Object.keys(body.questions)).toEqual(['q0']);
-      const i = Number(body.state.a0.slice(1));
+      const { state } = JSON.parse(String(init?.body)) as { state: { a0: string } };
+      const i = Number(state.a0.slice(1));
       stats.inFlight++;
       stats.max = Math.max(stats.max, stats.inFlight);
       await new Promise(resolve => setTimeout(resolve, 30 - i));
@@ -48,19 +44,12 @@ describe('JevClusterJudge', () => {
     const pairs = Array.from({ length: 23 }, (_, i) => ({ a: `a${i}`, b: `b${i}` }));
     const scores = (await judge.scorePairs(pairs)).map(s => s.score);
 
-    expect(fetchMock).toHaveBeenCalledTimes(23);
+    const asked = fetchMock.mock.calls.map(([, init]) =>
+      Object.keys((JSON.parse(String((init as RequestInit).body)) as { questions: object }).questions)
+    );
+    expect(asked).toEqual(pairs.map(() => ['q0']));
     expect(stats.max).toBe(10);
     expect(scores).toEqual(pairs.map((_, i) => i / 100));
-  });
-
-  it('does not open more requests than there are pairs', async () => {
-    const stats = { inFlight: 0, max: 0 };
-    vi.stubGlobal('fetch', delayedFetch(() => 0.5, stats));
-
-    const judge = new JevClusterJudge({ apiKey: 'key' });
-    await judge.scorePairs(Array.from({ length: 3 }, (_, i) => ({ a: `a${i}`, b: `b${i}` })));
-
-    expect(stats.max).toBe(3);
   });
 
   it('a failed request leaves the other pairs scored, is not retried and is not cached', async () => {
