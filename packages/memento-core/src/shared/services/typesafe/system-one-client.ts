@@ -3,6 +3,8 @@
  * Callers own question text and what a failure means. This class only posts and parses.
  */
 
+import type { LlmUsageTokenField } from '../llm-usage/llm-usage-types.js';
+
 export type NoulQuestion = {
   readonly id: string;
   readonly instructions: string;
@@ -18,10 +20,16 @@ export type SystemOneFailureReason =
   | 'parse'
   | 'network';
 
+export type SystemOneUsage = {
+  readonly inputTokens: LlmUsageTokenField;
+  readonly outputTokens: LlmUsageTokenField;
+};
+
 export type SystemOneResult =
   | {
       readonly ok: true;
       readonly noulById: ReadonlyMap<string, number>;
+      readonly usage?: SystemOneUsage;
       readonly wafRetried: boolean;
     }
   | {
@@ -35,11 +43,26 @@ const DEFAULT_MODEL = 'jev-latest';
 const DEFAULT_TIMEOUT_MS = 1500;
 
 type PostOutcome =
-  | { readonly ok: true; readonly noulById: ReadonlyMap<string, number> }
+  | { readonly ok: true; readonly noulById: ReadonlyMap<string, number>; readonly usage?: SystemOneUsage }
   | { readonly ok: false; readonly reason: SystemOneFailureReason };
 
 function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
+}
+
+function tokenCount(value: unknown): LlmUsageTokenField {
+  return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : 'unknown';
+}
+
+/** Token counts in a System One response body, or undefined when it carries none. */
+export function parseSystemOneUsage(body: unknown): SystemOneUsage | undefined {
+  if (!isRecord(body) || !isRecord(body.usage)) {
+    return undefined;
+  }
+  return {
+    inputTokens: tokenCount(body.usage.input_tokens),
+    outputTokens: tokenCount(body.usage.output_tokens),
+  };
 }
 
 function neutralizeCodeFences(text: string): string {
@@ -132,7 +155,7 @@ export class SystemOneClient {
 
     const first = await this.post(state, questions);
     if (first.ok === true) {
-      return { ok: true, noulById: first.noulById, wafRetried: false };
+      return { ok: true, noulById: first.noulById, usage: first.usage, wafRetried: false };
     }
     if (first.ok === false && first.reason !== 'waf') {
       return { ok: false, reason: first.reason, wafRetried: false };
@@ -145,7 +168,7 @@ export class SystemOneClient {
 
     const second = await this.post(next, questions);
     if (second.ok === true) {
-      return { ok: true, noulById: second.noulById, wafRetried: true };
+      return { ok: true, noulById: second.noulById, usage: second.usage, wafRetried: true };
     }
     return { ok: false, reason: second.ok === false ? second.reason : 'network', wafRetried: true };
   }
@@ -186,7 +209,7 @@ export class SystemOneClient {
       if (noulById === null) {
         return { ok: false, reason: 'parse' };
       }
-      return { ok: true, noulById };
+      return { ok: true, noulById, usage: parseSystemOneUsage(body) };
     } catch (error) {
       const reason: SystemOneFailureReason =
         error instanceof Error && error.name === 'AbortError' ? 'timeout' : 'network';

@@ -10,6 +10,7 @@ import { logger } from '../../../shared/utils/logger.js';
 import { isClusterJudgeEnabled } from '../../../shared/config/cluster-judge-config.js';
 import { stripMemoryTemplateLabels } from '../../../shared/utils/template-label-normalizer.js';
 import { classifyLlmAttemptOutcome } from '../../../shared/services/llm-usage/llm-usage-classify.js';
+import { parseSystemOneUsage } from '../../../shared/services/typesafe/system-one-client.js';
 import { recordLlmUsageAttempt } from '../../../shared/services/llm-usage/llm-usage-recorder.js';
 import { runWithLlmUsageLogicalContext } from '../../../shared/services/llm-usage/llm-usage-logical-context.js';
 import { hashMemoryContent } from '../../../shared/utils/memory-content-hash.js';
@@ -158,20 +159,22 @@ export class JevClusterJudge implements IClusterJudge {
         logger.warn(`Consolidation judge: request failed (status ${res.status}, pairs ${batch.length})`);
         return batch.map(() => Number.NaN);
       }
+      const data = (await res.json()) as { answers?: Record<string, { noul?: unknown }> };
+      const scores = batch.map((_, k) => {
+        const noul = data.answers?.[`q${k}`]?.noul;
+        return typeof noul === 'number' ? noul : Number.NaN;
+      });
+      const usage = parseSystemOneUsage(data);
       recordLlmUsageAttempt({
         provider: 'typesafe',
         model: this.model,
         outcome: 'success',
         attemptCoverage: 'full',
-        inputTokens: 'unknown',
-        outputTokens: 'unknown',
+        inputTokens: usage?.inputTokens ?? 'unknown',
+        outputTokens: usage?.outputTokens ?? 'unknown',
         latencyMs,
       });
-      const data = (await res.json()) as { answers?: Record<string, { noul?: unknown }> };
-      return batch.map((_, k) => {
-        const noul = data.answers?.[`q${k}`]?.noul;
-        return typeof noul === 'number' ? noul : Number.NaN;
-      });
+      return scores;
     } catch (error) {
       const latencyMs = Math.max(0, Date.now() - startedAt);
       const message = error instanceof Error ? error.message : String(error);

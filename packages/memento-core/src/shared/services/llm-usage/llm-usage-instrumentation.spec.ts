@@ -2,7 +2,9 @@ import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RetryManager } from '../../utils/retry-manager.js';
 import { retryChatLlmCall } from '../chat-llm/chat-llm-retry.js';
+import { JevClusterJudge } from '../../../domains/consolidation/services/cluster-judge.js';
 import { SummarizationService } from '../../../domains/consolidation/services/summarization-service.js';
+import { SystemOneClient } from '../typesafe/system-one-client.js';
 import { LlmUsageTelemetryMigration } from '../../../infrastructure/database/sqlite/migration/migrations/058-llm-usage-telemetry.js';
 import { LlmUsageRepository } from './llm-usage-repository.js';
 import { recordLlmUsageAttempt, setLlmUsageRepository } from './llm-usage-recorder.js';
@@ -253,5 +255,67 @@ describe('llm usage retry instrumentation (#1546)', () => {
       .all() as Array<{ outcome: string; failureReason: string | null }>;
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ outcome: 'failure', failureReason: 'http_503' });
+  });
+
+  describe('typesafe response usage (#1831)', () => {
+    const answers = { q0: { noul: 0.7 }, m0: { noul: 0.7 } };
+
+    function respondWith(body: unknown): void {
+      global.fetch = vi.fn().mockImplementation(async () => new Response(JSON.stringify(body), { status: 200 })) as typeof fetch;
+    }
+
+    const callers = {
+      cluster_judge: () =>
+        new JevClusterJudge({ apiKey: 'test-api-key' }).scorePairs([{ a: 'alpha', b: 'beta' }]),
+      relevance_gate: () =>
+        runWithLlmUsageLogicalContext('relevance_gate', null, async () => {
+          const result = await new SystemOneClient({ apiKey: 'test-api-key' }).ask(
+            { s: 'source' },
+            [{ id: 'm0', instructions: 'question' }],
+          );
+          recordSystemOneUsageAttempt('jev-latest', result, 10);
+        }),
+    };
+
+    function attempts() {
+      return db
+        .prepare(
+          `SELECT feature, outcome, input_tokens AS input, output_tokens AS output, usage_unknown AS unknown
+           FROM llm_usage_attempt`,
+        )
+        .all();
+    }
+
+    for (const [feature, call] of Object.entries(callers)) {
+      it(`${feature}: records the token counts the provider returned`, async () => {
+        respondWith({ answers, usage: { input_tokens: 688, output_tokens: 21 } });
+        await call();
+        expect(attempts()).toEqual([{ feature, outcome: 'success', input: 688, output: 21, unknown: 0 }]);
+      });
+
+      it.each([
+        ['no usage', {}],
+        ['null usage', { usage: null }],
+        ['non-numeric counts', { usage: { input_tokens: '688', output_tokens: -1 } }],
+      ])(`${feature}: %s stays unknown`, async (_name, extra) => {
+        respondWith({ answers, ...extra });
+        await call();
+        expect(attempts()).toEqual([{ feature, outcome: 'success', input: null, output: null, unknown: 1 }]);
+      });
+
+      it(`${feature}: a missing count leaves the other one recorded`, async () => {
+        respondWith({ answers, usage: { input_tokens: 688 } });
+        await call();
+        expect(attempts()).toEqual([{ feature, outcome: 'success', input: 688, output: null, unknown: 1 }]);
+      });
+    }
+
+    it('cluster_judge: a 200 body that is not JSON is one failure', async () => {
+      global.fetch = vi.fn().mockImplementation(async () => new Response('not json', { status: 200 })) as typeof fetch;
+      await callers.cluster_judge();
+      expect(attempts()).toEqual([
+        { feature: 'cluster_judge', outcome: 'failure', input: null, output: null, unknown: 1 },
+      ]);
+    });
   });
 });
