@@ -177,11 +177,13 @@ export class JevClusterJudge implements IClusterJudge {
       return scores;
     } catch (error) {
       const latencyMs = Math.max(0, Date.now() - startedAt);
-      const message = error instanceof Error ? error.message : String(error);
+      // A JSON SyntaxError quotes the response body, which would reach the log and failure_reason.
+      const message =
+        error instanceof SyntaxError ? 'parse' : error instanceof Error ? error.message : String(error);
       recordLlmUsageAttempt({
         provider: 'typesafe',
         model: this.model,
-        outcome: classifyLlmAttemptOutcome(error),
+        outcome: classifyLlmAttemptOutcome(message),
         failureReason: message.slice(0, 120),
         attemptCoverage: 'full',
         inputTokens: 'unknown',

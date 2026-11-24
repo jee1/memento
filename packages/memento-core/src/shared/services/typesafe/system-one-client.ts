@@ -3,8 +3,6 @@
  * Callers own question text and what a failure means. This class only posts and parses.
  */
 
-import type { LlmUsageTokenField } from '../llm-usage/llm-usage-types.js';
-
 export type NoulQuestion = {
   readonly id: string;
   readonly instructions: string;
@@ -21,8 +19,8 @@ export type SystemOneFailureReason =
   | 'network';
 
 export type SystemOneUsage = {
-  readonly inputTokens: LlmUsageTokenField;
-  readonly outputTokens: LlmUsageTokenField;
+  readonly inputTokens?: number;
+  readonly outputTokens?: number;
 };
 
 export type SystemOneResult =
@@ -50,8 +48,8 @@ function isRecord(value: unknown): value is Record<string, unknown> {
   return value !== null && typeof value === 'object' && !Array.isArray(value);
 }
 
-function tokenCount(value: unknown): LlmUsageTokenField {
-  return typeof value === 'number' && Number.isInteger(value) && value >= 0 ? value : 'unknown';
+function tokenCount(value: unknown): number | undefined {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0 ? value : undefined;
 }
 
 /** Token counts in a System One response body, or undefined when it carries none. */
