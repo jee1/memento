@@ -30,7 +30,13 @@ export interface IClusterJudge {
 }
 
 const QUESTION = '기억 A 와 기억 B 는 같은 작업이나 같은 주제를 다룬다';
-const BATCH_SIZE = 10;
+/**
+ * #1831: a pair's score moves with the pairs sharing its request (mean 0.09, up to 0.5 on 152 pairs), and the
+ * cache keeps the first one. One pair per request moves 0.015.
+ */
+const BATCH_SIZE = 1;
+/** Measured against the provider: 10 at once returned no 429. */
+const MAX_CONCURRENT_REQUESTS = 10;
 const TEXT_CHARS = 400;
 /** Bump when QUESTION, TEXT_CHARS or the label stripping changes, so cached scores are not reused. */
 const PROMPT_VERSION = 1;
@@ -116,11 +122,22 @@ export class JevClusterJudge implements IClusterJudge {
 
   private async judgePairs(pairs: ClusterJudgePair[]): Promise<number[]> {
     return runWithLlmUsageLogicalContext('cluster_judge', null, async () => {
-      const scores: number[] = [];
+      const batches: ClusterJudgePair[][] = [];
       for (let i = 0; i < pairs.length; i += BATCH_SIZE) {
-        scores.push(...(await this.scoreBatch(pairs.slice(i, i + BATCH_SIZE))));
+        batches.push(pairs.slice(i, i + BATCH_SIZE));
       }
-      return scores;
+      const scores: number[][] = new Array(batches.length);
+      let next = 0;
+      const worker = async (): Promise<void> => {
+        while (next < batches.length) {
+          const i = next++;
+          scores[i] = await this.scoreBatch(batches[i]!);
+        }
+      };
+      await Promise.all(
+        Array.from({ length: Math.min(MAX_CONCURRENT_REQUESTS, batches.length) }, () => worker())
+      );
+      return scores.flat();
     });
   }
 

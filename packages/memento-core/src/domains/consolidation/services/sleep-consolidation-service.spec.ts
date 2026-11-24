@@ -642,10 +642,7 @@ describe('SleepConsolidationService', () => {
       const { svc, clusterJudge } = await setupTripleCluster();
       const fetchMock = vi.fn().mockImplementation(async (_url: string, init?: RequestInit) => {
         const { state } = JSON.parse(String(init?.body)) as { state: Record<string, string> };
-        const answers = {
-          q0: { noul: state.b0 === 'topic member one' ? 0.9 : 0.1 },
-          q1: { noul: state.b1 === 'topic member one' ? 0.9 : 0.1 }
-        };
+        const answers = { q0: { noul: state.b0 === 'topic member one' ? 0.9 : 0.1 } };
         return new Response(JSON.stringify({ answers }), { status: 200 });
       });
       vi.stubGlobal('fetch', fetchMock);
@@ -656,7 +653,7 @@ describe('SleepConsolidationService', () => {
         const first = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
         const second = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
 
-        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
         expect(clusterJudge.scorePairs).toHaveBeenCalledTimes(2);
         expect(first.clustersFound).toBe(1);
         expect(second.clustersFound).toBe(1);
