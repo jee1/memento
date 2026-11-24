@@ -9,6 +9,7 @@ import { applyConsolidationTestSchema } from '../__tests__/consolidation-test-sc
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { encodeFloat32Embedding } from '../../../shared/utils/embedding-serialization.js';
 import type { IRelationGraph } from '../../../shared/types/relation-graph.js';
+import { mcpLogger } from '../../../shared/utils/mcp-logger.js';
 import { MemoryEmbeddingService } from '../../embedding/services/memory-embedding-service.js';
 
 function insertEpisodic(
@@ -599,6 +600,14 @@ describe('SleepConsolidationService', () => {
     const provider = 'tfidf';
     const judged = (...scores: number[]) => scores.map(score => ({ score, cacheHit: false }));
 
+    function spyOnDeferredWarnings(): () => unknown[] {
+      const logServer = vi.spyOn(mcpLogger, 'logServer').mockClear();
+      return () =>
+        logServer.mock.calls
+          .filter(([level, message]) => level === 'warn' && message === 'Consolidation judge: clusters deferred')
+          .map(([, , data]) => data);
+    }
+
     async function setupTripleCluster(extra?: {
       summarizationService?: SummarizationService;
     }) {
@@ -683,6 +692,7 @@ describe('SleepConsolidationService', () => {
       );
       const jev = new JevClusterJudge({ apiKey: 'key' });
       clusterJudge.scorePairs.mockImplementation((pairs: ClusterJudgePair[]) => jev.scorePairs(pairs));
+      const deferredWarnings = spyOnDeferredWarnings();
       const consolidated = () =>
         (
           DatabaseUtils.all(db, `SELECT id FROM memory_item WHERE COALESCE(is_consolidated, 0) = 1 ORDER BY id`) as {
@@ -693,12 +703,14 @@ describe('SleepConsolidationService', () => {
       try {
         await svc.run({ ownerIdFilter: 'agent-x' });
         expect(consolidated()).toEqual([]);
+        expect(deferredWarnings()).toEqual([{ deferredClusters: 1, unjudgedMembers: 1 }]);
 
         failing = false;
         asked.length = 0;
         await svc.run({ ownerIdFilter: 'agent-x' });
         expect(asked).toEqual(['topic member two']);
         expect(consolidated()).toEqual(['e0', 'e1', 'e2']);
+        expect(deferredWarnings()).toHaveLength(1);
       } finally {
         vi.unstubAllGlobals();
       }
@@ -715,8 +727,34 @@ describe('SleepConsolidationService', () => {
         judged(...pairs.map(pair => (pair.b === 'topic member two' ? Number.NaN : 0.9)))
       );
 
+      const deferredWarnings = spyOnDeferredWarnings();
+
       const result = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
       expect(result.clustersFound).toBe(1);
+      expect(deferredWarnings()).toEqual([{ deferredClusters: 1, unjudgedMembers: 1 }]);
+    });
+
+    it('#1831: one warning counts every deferred cluster and unjudged member, and rejections are not counted', async () => {
+      const { svc, clusterJudge } = await setupTripleCluster();
+      insertEpisodic(db, 'f0', { owner: 'agent-x', content: 'other seed body' });
+      insertEpisodic(db, 'f1', { owner: 'agent-x', content: 'other member' });
+      insertEpisodic(db, 'g0', { owner: 'agent-x', content: 'rejected seed body' });
+      insertEpisodic(db, 'g1', { owner: 'agent-x', content: 'rejected member' });
+      for (const [id, vec] of [
+        ['f0', [0, 1, 0, 0]],
+        ['f1', [0, 1, 0, 0]],
+        ['g0', [0, 0, 1, 0]],
+        ['g1', [0, 0, 1, 0]]
+      ] as const) {
+        insertEmbedding(db, id, [...vec], provider);
+      }
+      clusterJudge.scorePairs.mockImplementation(async (pairs: ClusterJudgePair[]) =>
+        judged(...pairs.map(pair => (pair.a === 'rejected seed body' ? 0.1 : Number.NaN)))
+      );
+      const deferredWarnings = spyOnDeferredWarnings();
+
+      await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+      expect(deferredWarnings()).toEqual([{ deferredClusters: 2, unjudgedMembers: 3 }]);
     });
 
     it('J2: fail-closed when judge returns NaN', async () => {

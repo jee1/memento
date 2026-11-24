@@ -3,6 +3,7 @@ import {
   createClusterJudge,
   JevClusterJudge
 } from './cluster-judge.js';
+import { logger } from '../../../shared/utils/logger.js';
 import { getClusterJudgeThreshold } from '../../../shared/config/cluster-judge-config.js';
 
 const originalFetch = globalThis.fetch;
@@ -91,17 +92,23 @@ describe('JevClusterJudge', () => {
     });
     vi.stubGlobal('fetch', fetchMock);
 
+    const warn = vi.spyOn(logger, 'warn');
     const judge = new JevClusterJudge({ apiKey: 'key' });
     const pairs = Array.from({ length: 25 }, (_, i) => ({ a: `a${i}`, b: 'b' }));
     const first = await judge.scorePairs(pairs);
 
     expect(fetchMock).toHaveBeenCalledTimes(10);
+    expect(warn.mock.calls.map(([message]) => message)).toContain(
+      'Consolidation judge: stopped after a 429 (15 requests not sent)'
+    );
     expect(first.map(s => Number.isNaN(s.score))).toEqual(pairs.map((_, i) => i === 0 || i >= 10));
 
+    warn.mockClear();
     limited = false;
     const second = await judge.scorePairs(pairs);
     expect(fetchMock).toHaveBeenCalledTimes(10 + 16);
     expect(second.every(s => s.score === 0.7)).toBe(true);
+    expect(warn).not.toHaveBeenCalled();
   });
 
   it('times out each request on its own', async () => {
