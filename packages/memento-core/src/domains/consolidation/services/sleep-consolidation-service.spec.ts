@@ -662,6 +662,63 @@ describe('SleepConsolidationService', () => {
       }
     });
 
+    it.each([
+      ['500', 500, {}],
+      ['429', 429, {}],
+      ['a 200 without an answer', 200, { answers: {} }]
+    ])('#1831: a member whose request got %s is asked again in the next run', async (_name, status, failure) => {
+      vi.stubEnv('CONSOLIDATION_MODE', 'link');
+      const { svc, clusterJudge } = await setupTripleCluster();
+      let failing = true;
+      const asked: string[] = [];
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockImplementation(async (_url: string, init?: RequestInit) => {
+          const { state } = JSON.parse(String(init?.body)) as { state: { b0: string } };
+          asked.push(state.b0);
+          const body = failing && state.b0 === 'topic member two' ? failure : { answers: { q0: { noul: 0.9 } } };
+          const responseStatus = failing && state.b0 === 'topic member two' ? status : 200;
+          return new Response(JSON.stringify(body), { status: responseStatus });
+        })
+      );
+      const jev = new JevClusterJudge({ apiKey: 'key' });
+      clusterJudge.scorePairs.mockImplementation((pairs: ClusterJudgePair[]) => jev.scorePairs(pairs));
+      const consolidated = () =>
+        (
+          DatabaseUtils.all(db, `SELECT id FROM memory_item WHERE COALESCE(is_consolidated, 0) = 1 ORDER BY id`) as {
+            id: string;
+          }[]
+        ).map(row => row.id);
+
+      try {
+        await svc.run({ ownerIdFilter: 'agent-x' });
+        expect(consolidated()).toEqual([]);
+
+        failing = false;
+        asked.length = 0;
+        await svc.run({ ownerIdFilter: 'agent-x' });
+        expect(asked).toEqual(['topic member two']);
+        expect(consolidated()).toEqual(['e0', 'e1', 'e2']);
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    });
+
+    it('#1831: a deferred cluster does not hold back the others', async () => {
+      const { svc, clusterJudge } = await setupTripleCluster();
+      insertEpisodic(db, 'f0', { owner: 'agent-x', content: 'other seed body' });
+      insertEpisodic(db, 'f1', { owner: 'agent-x', content: 'other member' });
+      for (const id of ['f0', 'f1']) {
+        insertEmbedding(db, id, [0, 1, 0, 0], provider);
+      }
+      clusterJudge.scorePairs.mockImplementation(async (pairs: ClusterJudgePair[]) =>
+        judged(...pairs.map(pair => (pair.b === 'topic member two' ? Number.NaN : 0.9)))
+      );
+
+      const result = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+      expect(result.clustersFound).toBe(1);
+    });
+
     it('J2: fail-closed when judge returns NaN', async () => {
       const { svc, clusterJudge } = await setupTripleCluster();
       clusterJudge.scorePairs.mockResolvedValue(judged(Number.NaN, Number.NaN));

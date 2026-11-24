@@ -580,8 +580,9 @@ export class SleepConsolidationService {
 
   /**
    * #1225: when a judge is configured, each member must be judged on-topic with its cluster
-   * seed (episodicIds[0]). Rejected or unjudged members stay unconsolidated for a later run
-   * (fail-closed); a cluster that falls below the minimum size is dropped.
+   * seed (episodicIds[0]). Rejected members stay unconsolidated for a later run; a cluster that
+   * falls below the minimum size is dropped. A cluster with an unjudged member waits whole (#1831):
+   * consolidating the rest would take its seed out of the candidates, and the member would not be asked again.
    */
   private async verifyClustersWithJudge(
     clusters: ConsolidationCluster[],
@@ -606,10 +607,12 @@ export class SleepConsolidationService {
     for (const cluster of clusters) {
       const [seedId, ...memberIds] = cluster.episodicIds;
       const kept = [seedId!];
+      let unjudged = false;
       for (const memberId of memberIds) {
         const judged = scores[k++];
         const score = judged?.score;
         const accepted = typeof score === 'number' && score >= threshold;
+        unjudged ||= !Number.isFinite(score);
         if (accepted) {
           kept.push(memberId);
         }
@@ -621,7 +624,7 @@ export class SleepConsolidationService {
           cacheHit: judged?.cacheHit ?? false
         });
       }
-      if (kept.length < this.clustering.getMinClusterSize()) {
+      if (unjudged || kept.length < this.clustering.getMinClusterSize()) {
         continue;
       }
       verified.push(

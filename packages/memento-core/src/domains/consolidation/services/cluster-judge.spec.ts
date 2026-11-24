@@ -55,7 +55,7 @@ describe('JevClusterJudge', () => {
   it('a failed request leaves the other pairs scored, is not retried and is not cached', async () => {
     const stats = { inFlight: 0, max: 0 };
     let failing = true;
-    const fetchMock = delayedFetch(i => (failing && i === 4 ? null : 0.8), stats);
+    const fetchMock = delayedFetch(i => (failing && i === 9 ? null : 0.8), stats);
     vi.stubGlobal('fetch', fetchMock);
 
     const judge = new JevClusterJudge({ apiKey: 'key' });
@@ -63,28 +63,72 @@ describe('JevClusterJudge', () => {
     const first = (await judge.scorePairs(pairs)).map(s => s.score);
 
     expect(fetchMock).toHaveBeenCalledTimes(13);
-    expect(first.map(s => Number.isNaN(s))).toEqual(pairs.map((_, i) => i === 4));
+    expect(first.map(s => Number.isNaN(s))).toEqual(pairs.map((_, i) => i === 9));
     expect(first.filter(s => s === 0.8)).toHaveLength(12);
 
     failing = false;
     const second = await judge.scorePairs(pairs);
     expect(fetchMock).toHaveBeenCalledTimes(14);
-    expect(second[4]).toEqual({ score: 0.8, cacheHit: false });
+    expect(second[9]).toEqual({ score: 0.8, cacheHit: false });
   });
 
-  it('scores NaN for a 429 and keeps going', async () => {
+  it('stops sending after a 429, scores the unsent pairs NaN and asks for them next time', async () => {
+    let limited = true;
+    let release!: () => void;
+    const othersHeld = new Promise<void>(resolve => {
+      release = resolve;
+    });
     const fetchMock = vi.fn().mockImplementation(async (_url: string, init?: RequestInit) => {
       const { state } = JSON.parse(String(init?.body)) as { state: { a0: string } };
-      return state.a0 === 'a0' ? jsonResponse(429, {}) : jsonResponse(200, { answers: { q0: { noul: 0.7 } } });
+      if (limited && state.a0 === 'a0') {
+        setTimeout(release, 10);
+        return jsonResponse(429, {});
+      }
+      if (limited) {
+        await othersHeld;
+      }
+      return jsonResponse(200, { answers: { q0: { noul: 0.7 } } });
     });
     vi.stubGlobal('fetch', fetchMock);
 
     const judge = new JevClusterJudge({ apiKey: 'key' });
-    const scores = await judge.scorePairs(Array.from({ length: 12 }, (_, i) => ({ a: `a${i}`, b: 'b' })));
+    const pairs = Array.from({ length: 25 }, (_, i) => ({ a: `a${i}`, b: 'b' }));
+    const first = await judge.scorePairs(pairs);
 
-    expect(fetchMock).toHaveBeenCalledTimes(12);
-    expect(scores[0]!.score).toBeNaN();
-    expect(scores.slice(1).every(s => s.score === 0.7)).toBe(true);
+    expect(fetchMock).toHaveBeenCalledTimes(10);
+    expect(first.map(s => Number.isNaN(s.score))).toEqual(pairs.map((_, i) => i === 0 || i >= 10));
+
+    limited = false;
+    const second = await judge.scorePairs(pairs);
+    expect(fetchMock).toHaveBeenCalledTimes(10 + 16);
+    expect(second.every(s => s.score === 0.7)).toBe(true);
+  });
+
+  it('times out each request on its own', async () => {
+    vi.useFakeTimers();
+    try {
+      const fetchMock = vi.fn().mockImplementation(
+        (_url: string, init?: RequestInit) =>
+          new Promise<Response>((resolve, reject) => {
+            const { state } = JSON.parse(String(init?.body)) as { state: { a0: string } };
+            init?.signal?.addEventListener('abort', () => reject(new Error('aborted')));
+            if (state.a0 !== 'a0') {
+              setTimeout(() => resolve(jsonResponse(200, { answers: { q0: { noul: 0.7 } } })), 60);
+            }
+          })
+      );
+      vi.stubGlobal('fetch', fetchMock);
+
+      const judge = new JevClusterJudge({ apiKey: 'key', timeoutMs: 100 });
+      const pending = judge.scorePairs(Array.from({ length: 12 }, (_, i) => ({ a: `a${i}`, b: 'b' })));
+      await vi.advanceTimersByTimeAsync(130);
+      const scores = await pending;
+
+      expect(scores[0]!.score).toBeNaN();
+      expect(scores.slice(1).every(s => s.score === 0.7)).toBe(true);
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('sends the expected request body shape', async () => {

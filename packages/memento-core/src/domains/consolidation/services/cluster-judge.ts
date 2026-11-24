@@ -126,20 +126,25 @@ export class JevClusterJudge implements IClusterJudge {
       for (let i = 0; i < pairs.length; i += BATCH_SIZE) {
         batches.push(pairs.slice(i, i + BATCH_SIZE));
       }
-      const scores: number[][] = new Array(batches.length);
+      const scores = batches.map(batch => batch.map(() => Number.NaN));
       let next = 0;
+      const run = { rateLimited: false };
       const worker = async (): Promise<void> => {
-        while (next < batches.length) {
+        // #1831: the search relevance gate shares this API key and by default fails open on a 429.
+        while (next < batches.length && !run.rateLimited) {
           const i = next++;
-          scores[i] = await this.scoreBatch(batches[i]!);
+          scores[i] = await this.scoreBatch(batches[i]!, run);
         }
       };
       await Promise.all(Array.from({ length: MAX_CONCURRENT_REQUESTS }, () => worker()));
+      if (next < batches.length) {
+        logger.warn(`Consolidation judge: stopped after a 429 (${batches.length - next} requests not sent)`);
+      }
       return scores.flat();
     });
   }
 
-  private async scoreBatch(batch: ClusterJudgePair[]): Promise<number[]> {
+  private async scoreBatch(batch: ClusterJudgePair[], run: { rateLimited: boolean }): Promise<number[]> {
     const state: Record<string, string> = {};
     const questions: Record<string, { type: 'noul'; instructions: string }> = {};
     batch.forEach((pair, k) => {
@@ -160,6 +165,9 @@ export class JevClusterJudge implements IClusterJudge {
       });
       const latencyMs = Math.max(0, Date.now() - startedAt);
       if (!res.ok) {
+        if (res.status === 429) {
+          run.rateLimited = true;
+        }
         recordLlmUsageAttempt({
           provider: 'typesafe',
           model: this.model,
