@@ -22,8 +22,8 @@ export function recordSystemOneUsageAttempt(
       model,
       outcome: 'success',
       attemptCoverage,
-      inputTokens: 'unknown',
-      outputTokens: 'unknown',
+      inputTokens: result.usage?.inputTokens ?? 'unknown',
+      outputTokens: result.usage?.outputTokens ?? 'unknown',
       latencyMs,
     });
     return;

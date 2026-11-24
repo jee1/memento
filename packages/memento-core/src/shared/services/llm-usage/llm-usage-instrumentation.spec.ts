@@ -2,7 +2,13 @@ import Database from 'better-sqlite3';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { RetryManager } from '../../utils/retry-manager.js';
 import { retryChatLlmCall } from '../chat-llm/chat-llm-retry.js';
+import { JevClusterJudge } from '../../../domains/consolidation/services/cluster-judge.js';
 import { SummarizationService } from '../../../domains/consolidation/services/summarization-service.js';
+import { JevRelationJudge } from '../../../domains/relation/services/jev-relation-judge.js';
+import { JevRelevanceGate } from '../../../domains/search/services/relevance-gate/jev-relevance-gate.js';
+import type { UnifiedEmbeddingService } from '../../../domains/embedding/index.js';
+import type { MemoryItem } from '../../types/memory.types.js';
+import { SystemOneClient } from '../typesafe/system-one-client.js';
 import { LlmUsageTelemetryMigration } from '../../../infrastructure/database/sqlite/migration/migrations/058-llm-usage-telemetry.js';
 import { LlmUsageRepository } from './llm-usage-repository.js';
 import { recordLlmUsageAttempt, setLlmUsageRepository } from './llm-usage-recorder.js';
@@ -253,5 +259,97 @@ describe('llm usage retry instrumentation (#1546)', () => {
       .all() as Array<{ outcome: string; failureReason: string | null }>;
     expect(rows).toHaveLength(1);
     expect(rows[0]).toMatchObject({ outcome: 'failure', failureReason: 'http_503' });
+  });
+
+  describe('typesafe response usage (#1831)', () => {
+    const answers = { q0: { noul: 0.7 }, c0: { noul: 0.7 }, r0: { noul: 0.1 } };
+    const usage = { input_tokens: 688, output_tokens: 21 };
+
+    function respondWith(...bodies: Array<{ status?: number; body: unknown }>): void {
+      const queue = [...bodies];
+      global.fetch = vi.fn().mockImplementation(async () => {
+        const { status = 200, body } = queue.length > 1 ? queue.shift()! : queue[0]!;
+        return new Response(typeof body === 'string' ? body : JSON.stringify(body), { status });
+      }) as typeof fetch;
+    }
+
+    function client(): SystemOneClient {
+      return new SystemOneClient({ apiKey: 'test-api-key' });
+    }
+
+    function memory(id: string): MemoryItem {
+      return {
+        id,
+        type: 'episodic',
+        content: id,
+        importance: 0.5,
+        privacy_scope: 'private',
+        created_at: new Date('2026-01-01T00:00:00.000Z'),
+        pinned: false,
+      };
+    }
+
+    const noEmbedding = {
+      generateEmbedding: () => Promise.reject(new Error('pool should not embed under the limit')),
+    } as unknown as UnifiedEmbeddingService;
+
+    const callers: Record<string, () => Promise<unknown>> = {
+      cluster_judge: () =>
+        new JevClusterJudge({ apiKey: 'test-api-key' }).scorePairs([{ a: 'alpha', b: 'beta' }]),
+      relevance_gate: () => new JevRelevanceGate(client(), 'jev-latest').score('query', ['doc']),
+      relation_extraction: () =>
+        runWithLlmUsageLogicalContext('relation_extraction', null, () =>
+          new JevRelationJudge(client(), noEmbedding).judge(memory('source'), [memory('target')]),
+        ),
+    };
+
+    function attempts() {
+      return db
+        .prepare(
+          `SELECT feature, outcome, failure_reason AS reason, input_tokens AS input, output_tokens AS output,
+                  usage_unknown AS unknown
+           FROM llm_usage_attempt`,
+        )
+        .all();
+    }
+
+    for (const [feature, call] of Object.entries(callers)) {
+      const success = { feature, outcome: 'success', reason: null };
+
+      it.each([
+        ['both counts', { usage }, { input: 688, output: 21, unknown: 0 }],
+        ['a zero count', { usage: { input_tokens: 688, output_tokens: 0 } }, { input: 688, output: 0, unknown: 0 }],
+        ['one missing count', { usage: { input_tokens: 688 } }, { input: 688, output: null, unknown: 1 }],
+        ['no usage', {}, { input: null, output: null, unknown: 1 }],
+        ['null usage', { usage: null }, { input: null, output: null, unknown: 1 }],
+        ['a string count', { usage: { ...usage, input_tokens: '688' } }, { input: null, output: 21, unknown: 1 }],
+        ['a negative count', { usage: { ...usage, input_tokens: -1 } }, { input: null, output: 21, unknown: 1 }],
+        ['a fractional count', { usage: { ...usage, input_tokens: 1.5 } }, { input: null, output: 21, unknown: 1 }],
+        ['an unsafe count', { usage: { ...usage, input_tokens: 1e300 } }, { input: null, output: 21, unknown: 1 }],
+      ])(`${feature}: %s`, async (_name, extra, recorded) => {
+        respondWith({ body: { answers, ...extra } });
+        await call();
+        expect(attempts()).toEqual([{ ...success, ...recorded }]);
+      });
+    }
+
+    it('records the retry\'s counts after a WAF block, with partial coverage', async () => {
+      respondWith({ status: 403, body: {} }, { body: { answers, usage } });
+      await new JevRelevanceGate(client(), 'jev-latest').score('query', ['```js\ncode\n```']);
+      expect(attempts()).toEqual([
+        { feature: 'relevance_gate', outcome: 'success', reason: null, input: 688, output: 21, unknown: 0 },
+      ]);
+      expect(db.prepare(`SELECT attempt_coverage AS coverage FROM llm_usage_attempt`).get()).toEqual({
+        coverage: 'partial',
+      });
+    });
+
+    it('cluster_judge: a 200 body that is not JSON is one parse failure without the body text', async () => {
+      respondWith({ body: '<h>429 secret' });
+      await callers.cluster_judge!();
+      expect(attempts()).toEqual([
+        { feature: 'cluster_judge', outcome: 'failure', reason: 'parse', input: null, output: null, unknown: 1 },
+      ]);
+    });
   });
 });
