@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, onTestFinished, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { SleepConsolidationService } from './sleep-consolidation-service.js';
 import { ConsolidationRepository } from '../repositories/consolidation-repository.js';
@@ -601,7 +601,10 @@ describe('SleepConsolidationService', () => {
     const judged = (...scores: number[]) => scores.map(score => ({ score, cacheHit: false }));
 
     function spyOnDeferredWarnings(): () => unknown[] {
-      const logServer = vi.spyOn(mcpLogger, 'logServer').mockClear();
+      const logServer = vi.spyOn(mcpLogger, 'logServer');
+      onTestFinished(() => {
+        logServer.mockRestore();
+      });
       return () =>
         logServer.mock.calls
           .filter(([level, message]) => level === 'warn' && message === 'Consolidation judge: clusters deferred')
