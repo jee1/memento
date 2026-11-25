@@ -31,7 +31,13 @@ export interface IClusterJudge {
 }
 
 const QUESTION = '기억 A 와 기억 B 는 같은 작업이나 같은 주제를 다룬다';
-const BATCH_SIZE = 10;
+/**
+ * #1831: a pair's score depends on the pairs sharing its request (mean shift 0.09 on 152 pairs, 0.015 when
+ * alone), and the cache keeps whichever score came first.
+ */
+const BATCH_SIZE = 1;
+/** #1831: 152 requests, 10 at once, returned no 429. Longer bursts were not measured. */
+const MAX_CONCURRENT_REQUESTS = 10;
 const TEXT_CHARS = 400;
 /** Bump when QUESTION, TEXT_CHARS or the label stripping changes, so cached scores are not reused. */
 const PROMPT_VERSION = 1;
@@ -117,15 +123,29 @@ export class JevClusterJudge implements IClusterJudge {
 
   private async judgePairs(pairs: ClusterJudgePair[]): Promise<number[]> {
     return runWithLlmUsageLogicalContext('cluster_judge', null, async () => {
-      const scores: number[] = [];
+      const batches: ClusterJudgePair[][] = [];
       for (let i = 0; i < pairs.length; i += BATCH_SIZE) {
-        scores.push(...(await this.scoreBatch(pairs.slice(i, i + BATCH_SIZE))));
+        batches.push(pairs.slice(i, i + BATCH_SIZE));
       }
-      return scores;
+      const scores = batches.map(batch => batch.map(() => Number.NaN));
+      let next = 0;
+      const run = { rateLimited: false };
+      const worker = async (): Promise<void> => {
+        // #1831: the search relevance gate shares this API key and by default fails open on a 429.
+        while (next < batches.length && !run.rateLimited) {
+          const i = next++;
+          scores[i] = await this.scoreBatch(batches[i]!, run);
+        }
+      };
+      await Promise.all(Array.from({ length: MAX_CONCURRENT_REQUESTS }, () => worker()));
+      if (next < batches.length) {
+        logger.warn(`Consolidation judge: stopped after a 429 (${batches.length - next} requests not sent)`);
+      }
+      return scores.flat();
     });
   }
 
-  private async scoreBatch(batch: ClusterJudgePair[]): Promise<number[]> {
+  private async scoreBatch(batch: ClusterJudgePair[], run: { rateLimited: boolean }): Promise<number[]> {
     const state: Record<string, string> = {};
     const questions: Record<string, { type: 'noul'; instructions: string }> = {};
     batch.forEach((pair, k) => {
@@ -146,6 +166,9 @@ export class JevClusterJudge implements IClusterJudge {
       });
       const latencyMs = Math.max(0, Date.now() - startedAt);
       if (!res.ok) {
+        if (res.status === 429) {
+          run.rateLimited = true;
+        }
         recordLlmUsageAttempt({
           provider: 'typesafe',
           model: this.model,

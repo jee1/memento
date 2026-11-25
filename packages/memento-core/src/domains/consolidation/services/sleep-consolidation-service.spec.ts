@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach, afterEach, vi } from 'vitest';
+import { describe, it, expect, beforeEach, afterEach, onTestFinished, vi } from 'vitest';
 import Database from 'better-sqlite3';
 import { SleepConsolidationService } from './sleep-consolidation-service.js';
 import { ConsolidationRepository } from '../repositories/consolidation-repository.js';
@@ -9,6 +9,7 @@ import { applyConsolidationTestSchema } from '../__tests__/consolidation-test-sc
 import { DatabaseUtils } from '../../../shared/utils/database.js';
 import { encodeFloat32Embedding } from '../../../shared/utils/embedding-serialization.js';
 import type { IRelationGraph } from '../../../shared/types/relation-graph.js';
+import { mcpLogger } from '../../../shared/utils/mcp-logger.js';
 import { MemoryEmbeddingService } from '../../embedding/services/memory-embedding-service.js';
 
 function insertEpisodic(
@@ -599,6 +600,17 @@ describe('SleepConsolidationService', () => {
     const provider = 'tfidf';
     const judged = (...scores: number[]) => scores.map(score => ({ score, cacheHit: false }));
 
+    function spyOnDeferredWarnings(): () => unknown[] {
+      const logServer = vi.spyOn(mcpLogger, 'logServer');
+      onTestFinished(() => {
+        logServer.mockRestore();
+      });
+      return () =>
+        logServer.mock.calls
+          .filter(([level, message]) => level === 'warn' && message === 'Consolidation judge: clusters deferred')
+          .map(([, , data]) => data);
+    }
+
     async function setupTripleCluster(extra?: {
       summarizationService?: SummarizationService;
     }) {
@@ -642,10 +654,7 @@ describe('SleepConsolidationService', () => {
       const { svc, clusterJudge } = await setupTripleCluster();
       const fetchMock = vi.fn().mockImplementation(async (_url: string, init?: RequestInit) => {
         const { state } = JSON.parse(String(init?.body)) as { state: Record<string, string> };
-        const answers = {
-          q0: { noul: state.b0 === 'topic member one' ? 0.9 : 0.1 },
-          q1: { noul: state.b1 === 'topic member one' ? 0.9 : 0.1 }
-        };
+        const answers = { q0: { noul: state.b0 === 'topic member one' ? 0.9 : 0.1 } };
         return new Response(JSON.stringify({ answers }), { status: 200 });
       });
       vi.stubGlobal('fetch', fetchMock);
@@ -656,13 +665,99 @@ describe('SleepConsolidationService', () => {
         const first = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
         const second = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
 
-        expect(fetchMock).toHaveBeenCalledTimes(1);
+        expect(fetchMock).toHaveBeenCalledTimes(2);
         expect(clusterJudge.scorePairs).toHaveBeenCalledTimes(2);
         expect(first.clustersFound).toBe(1);
         expect(second.clustersFound).toBe(1);
       } finally {
         vi.unstubAllGlobals();
       }
+    });
+
+    it.each([
+      ['500', 500, {}],
+      ['429', 429, {}],
+      ['a 200 without an answer', 200, { answers: {} }]
+    ])('#1831: a member whose request got %s is asked again in the next run', async (_name, status, failure) => {
+      vi.stubEnv('CONSOLIDATION_MODE', 'link');
+      const { svc, clusterJudge } = await setupTripleCluster();
+      let failing = true;
+      const asked: string[] = [];
+      vi.stubGlobal(
+        'fetch',
+        vi.fn().mockImplementation(async (_url: string, init?: RequestInit) => {
+          const { state } = JSON.parse(String(init?.body)) as { state: { b0: string } };
+          asked.push(state.b0);
+          const body = failing && state.b0 === 'topic member two' ? failure : { answers: { q0: { noul: 0.9 } } };
+          const responseStatus = failing && state.b0 === 'topic member two' ? status : 200;
+          return new Response(JSON.stringify(body), { status: responseStatus });
+        })
+      );
+      const jev = new JevClusterJudge({ apiKey: 'key' });
+      clusterJudge.scorePairs.mockImplementation((pairs: ClusterJudgePair[]) => jev.scorePairs(pairs));
+      const deferredWarnings = spyOnDeferredWarnings();
+      const consolidated = () =>
+        (
+          DatabaseUtils.all(db, `SELECT id FROM memory_item WHERE COALESCE(is_consolidated, 0) = 1 ORDER BY id`) as {
+            id: string;
+          }[]
+        ).map(row => row.id);
+
+      try {
+        await svc.run({ ownerIdFilter: 'agent-x' });
+        expect(consolidated()).toEqual([]);
+        expect(deferredWarnings()).toEqual([{ deferredClusters: 1, unjudgedMembers: 1 }]);
+
+        failing = false;
+        asked.length = 0;
+        await svc.run({ ownerIdFilter: 'agent-x' });
+        expect(asked).toEqual(['topic member two']);
+        expect(consolidated()).toEqual(['e0', 'e1', 'e2']);
+        expect(deferredWarnings()).toHaveLength(1);
+      } finally {
+        vi.unstubAllGlobals();
+      }
+    });
+
+    it('#1831: a deferred cluster does not hold back the others', async () => {
+      const { svc, clusterJudge } = await setupTripleCluster();
+      insertEpisodic(db, 'f0', { owner: 'agent-x', content: 'other seed body' });
+      insertEpisodic(db, 'f1', { owner: 'agent-x', content: 'other member' });
+      for (const id of ['f0', 'f1']) {
+        insertEmbedding(db, id, [0, 1, 0, 0], provider);
+      }
+      clusterJudge.scorePairs.mockImplementation(async (pairs: ClusterJudgePair[]) =>
+        judged(...pairs.map(pair => (pair.b === 'topic member two' ? Number.NaN : 0.9)))
+      );
+
+      const deferredWarnings = spyOnDeferredWarnings();
+
+      const result = await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+      expect(result.clustersFound).toBe(1);
+      expect(deferredWarnings()).toEqual([{ deferredClusters: 1, unjudgedMembers: 1 }]);
+    });
+
+    it('#1831: one warning counts every deferred cluster and unjudged member, and rejections are not counted', async () => {
+      const { svc, clusterJudge } = await setupTripleCluster();
+      insertEpisodic(db, 'f0', { owner: 'agent-x', content: 'other seed body' });
+      insertEpisodic(db, 'f1', { owner: 'agent-x', content: 'other member' });
+      insertEpisodic(db, 'g0', { owner: 'agent-x', content: 'rejected seed body' });
+      insertEpisodic(db, 'g1', { owner: 'agent-x', content: 'rejected member' });
+      for (const [id, vec] of [
+        ['f0', [0, 1, 0, 0]],
+        ['f1', [0, 1, 0, 0]],
+        ['g0', [0, 0, 1, 0]],
+        ['g1', [0, 0, 1, 0]]
+      ] as const) {
+        insertEmbedding(db, id, [...vec], provider);
+      }
+      clusterJudge.scorePairs.mockImplementation(async (pairs: ClusterJudgePair[]) =>
+        judged(...pairs.map(pair => (pair.a === 'rejected seed body' ? 0.1 : Number.NaN)))
+      );
+      const deferredWarnings = spyOnDeferredWarnings();
+
+      await svc.run({ dryRun: true, ownerIdFilter: 'agent-x' });
+      expect(deferredWarnings()).toEqual([{ deferredClusters: 2, unjudgedMembers: 3 }]);
     });
 
     it('J2: fail-closed when judge returns NaN', async () => {
