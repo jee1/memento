@@ -31,7 +31,7 @@ describe("merge-guard.sh", () => {
   it("denies commands that mention the human approval label", () => {
     const out = parseOutput(runHook("gh pr edit 1 --add-label approved:human"));
     expect(out?.hookSpecificOutput?.permissionDecision).toBe("deny");
-    expect(out?.hookSpecificOutput?.permissionDecisionReason).toContain("다른 Claude 모델 리뷰");
+    expect(out?.hookSpecificOutput?.permissionDecisionReason).toContain("다른 Claude 단계의 리뷰");
   });
 
   it.each(["{broken", "", "[]", "null", "{}", '{"tool_input": "ls"}', '{"tool_input": {"command": 1}}'])(
@@ -54,8 +54,63 @@ describe("merge-guard.sh", () => {
     expect(result.stderr).toContain("입력을 읽지 못해");
   });
 
-  it("allows normal merge-gate --merge without hook output", () => {
-    expect(runHook("node scripts/pr-merge-gate.ts 1 --merge").trim()).toBe("");
+  it.each([
+    "gh pr merge 1",
+    "gh  pr   merge",
+    "gh -R o/r pr merge 1",
+    "gh pr -R o/r merge 1",
+    "gh --repo=o/r pr merge 1 --squash",
+    "gh -R o/r pr --repo o/r merge 1",
+    'gh pr -R "o/r" merge 1',
+    "gh pr \\\n  merge 1",
+    "gh -R $(cat repo) pr merge 1",
+    'gh -R "$(cat repo)" pr merge 1',
+    "gh -R `cat repo` pr merge 1",
+    "gh -R $REPO pr merge 1",
+    'gh pr -R o/r --body "a b" merge 1',
+    "gh pr --body 'a b' merge 1",
+    'gh api -X PUT repos/o/r/pulls/"1"/merge',
+    "cd x && gh pr merge 1",
+    "gh api -X PUT repos/o/r/pulls/1/merge",
+    "gh api -X PUT repos/o/r/pulls/$PR/merge",
+    'gh api -X PUT "repos/o/r/pulls/${PR}/merge"',
+    'gh api -X PUT repos/o/r/pulls/"$PR"/merge',
+    "gh api -X PUT repos/o/r/pulls/$(cat n)/merge",
+    "gh api -X PUT repos/o/r/pulls/`cat n`/merge",
+    "curl -X PUT https://api.github.com/repos/o/r/pulls/{number}/merge",
+  ])("denies a direct merge: %j", (command) => {
+    const out = parseOutput(runHook(command));
+    expect(out?.hookSpecificOutput?.permissionDecision).toBe("deny");
+  });
+
+  it.each([
+    "node scripts/pr-merge-gate.ts 1 --merge",
+    "node scripts/pr-merge-gate.ts $PR --merge",
+    "gh pr view 1",
+    "gh pr view 1 --json mergeable,mergeCommit",
+    "gh -R o/r pr view 1 --json state",
+    "gh pr -R o/merge-tools list",
+    "gh pr list --state merged",
+    'gh pr list --search "merge"',
+    'gh pr create --title "fix merge order"',
+    "gh pr checks 1 && git merge --ff-only origin/main",
+    "gh api repos/o/r/pulls/1",
+    "gh api repos/o/r/pulls/$PR/merge-queue",
+    "git diff src/pulls/utils/merge.ts",
+    "gh pr view 1\ngit merge main",
+    "grep -n 'pulls/<N>/merge' docs/agents/commands.md",
+    "grep -n 'pulls/${pr}/merge' scripts/pr-merge-gate.ts",
+    'git commit -m "chore: look at pulls/$PR/merge"',
+    "cat app/pulls/{id}/merge.ts",
+  ])("allows a command that does not merge a PR: %j", (command) => {
+    expect(runHook(command).trim()).toBe("");
+  });
+
+  it("answers within the hook timeout for a large command with line continuations", () => {
+    const command = `echo ${"가나다라마바사아자차 \\\n".repeat(12_000)}`;
+    const started = Date.now();
+    expect(runHook(command).trim()).toBe("");
+    expect(Date.now() - started).toBeLessThan(5_000);
   });
 
   it("matches overflow with grep -F -e (broken line without -e skips deny)", () => {
