@@ -64,6 +64,7 @@ ADR은 되돌리기 어렵고, 맥락 없이 보면 놀랍고, 실제 대안을 
 - **graphify**: 코드 수정 후 재빌드 필수 (명령은 [agent-workflow.md](./docs/agents/agent-workflow.md))
 - **graphify 생성물**: `graphify-out/` 전체는 로컬 생성물 — 재빌드해서 사용하고 커밋 금지
 - **docs npm script 참조 (`docs:verify-npm-scripts`)**: 새 root npm script 는 `docs/`·`scripts/`·`.github/workflows/`·루트 `.md` 중 한 곳에서 **줄 시작 `npm run <name>`** 또는 **인라인 백틱 `` `npm run <name>` ``** 으로 언급돼야 CI 통과. 코드펜스 안에서 `DB_PATH=... npm run <name>` 처럼 앞에 env 를 붙이면 **안 잡힌다**; `참조 범위`는 `isReferenceSource`(`scripts/verify-doc-npm-scripts.mjs` 243–249행), 매처는 `collectMarkdownScriptNames`(156–169행). `packages/**` 문자열은 참조로 세지 않는다
+- **파일 500줄 (#1835)**: `packages`, `apps`, `scripts` 의 TypeScript 파일(시험 제외)은 lint `max-lines` 500 을 넘으면 실패한다. 넘던 파일의 허용 목록은 `eslint.config.js` 에 있다. 줄이면 목록에서 빼고, 새 파일은 넣지 않는다
 - **debt markers**: BUG/TODO 판단은 `npm run check-debt-markers -- --production-only` 우선 (`tech-debt-analyzer`는 `debug` 등 false positive)
 - **@deprecated**: merge 전 `docs/architecture/core-deprecated-inventory.md` 갱신
 - **기술 부채 추적**: GitHub #593 (완료 #580)
@@ -73,7 +74,7 @@ ADR은 되돌리기 어렵고, 맥락 없이 보면 놀랍고, 실제 대안을 
 - **rate limit 키 (#1161)**: `express-rate-limit` 기본 키(`req.ip`)는 Docker 포트 퍼블리싱·프록시 뒤에서 전원 공용 버킷이 된다 — 버킷 추가 시 `keyGenerator: resolveRateLimitKey` 유지(API 키 해시 → 세션 id 해시 → `ipKeyGenerator(req.ip)`). rate limit 은 인증 **앞**이라 `req.programmaticAuth` 없음 전제; 감사 로그의 `'session'` 상수를 키로 재사용 금지(세션 뭉침). `trust proxy` 는 `MEMENTO_TRUST_PROXY` 로만 켠다 — 기본 미설정(=XFF 무시)이 스펙이고 `true` 는 헤더 위조로 한도 우회
 - **http-server 미들웨어 순서**: `/tools` — rateLimit → programmaticAuth → resolveCaller → ownerScope → httpAudit → router; `middleware/index.ts` export 누락 시 `tsc` 실패
 - **도구 실행 경계 (#793)**: stdio·HTTP MCP·WebSocket·REST의 `tools/call`은 모두 `server/audit-tool-dispatch.ts`의 `dispatchTool()`을 경유 — transport에서 `executeTool()` 직접 호출 금지(동시성·audit·에러 매핑 분기 방지)
-- **ToolRegistry 캐시**: 기본 `enableCaching: false`. 켜거나 `generateCacheKey` 를 고칠 때 caller(`resolveCallerAgentId`), project, DB revision 필드를 키에서 빼지 않는다. 빼면 다른 에이전트의 결과나 쓰기 전 결과가 돌아온다
+- **ToolRegistry 캐시**: 기본 `enableCaching: false`. 켜거나 `generateCacheKey` 를 고칠 때 caller(`resolveCallerAgentId`), project, DB revision 필드를 키에서 빼지 않는다. 빼면 다른 에이전트의 결과나 쓰기 전 결과가 돌아온다. 캐시 무효화와 TTL 은 호출부 계약을 깨지 않게 하고, 추측성 이중 캐시 금지
 - **Security Check no-console (core)**: config 파서 경고는 `console.warn` 금지 — `process.stderr.write('[CONFIG WARN] ...\\n')` (예: `owner-scope-mode.ts`)
 - **preserve-caught-error (#1366)**: PII 마스킹 재throw는 `eslint-disable-next-line preserve-caught-error` 유지(raw `cause`가 PII 노출). 로컬은 `npm ci`로 ESLint 10 맞출 것 — ESLint 9는 해당 disable을 unused로 보고 `--fix`가 지워 버리면 CI lint/Security Check가 실패한다
 - **Node major / ESLint major**: 옛 `node_modules`가 lockfile보다 뒤처질 수 있음 — pre-push 전 `npx eslint --version`이 `package.json`/`package-lock`과 같은 major인지 확인
