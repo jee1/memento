@@ -84,7 +84,7 @@ alwaysApply: true
 Memento is your long-term memory across sessions.
 - Before a non-trivial task, call memory_injection (or recall) with the key words of the task.
 - After real work, a decision, or a fix, call remember so the next session knows it.
-- When a recalled memory helped or misled you, call feedback with its memory_id.
+- When a memory from recall helped or misled you, call feedback with its memory_id and helpful (true or false). memory_injection returns no ids.
 
 Queries: key words, not a sentence. Put issue numbers, feature names, and file names first. recall needs type or memory_types.
 
