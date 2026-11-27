@@ -1075,7 +1075,7 @@ interface SearchResource {
 
 ### memory_injection
 
-Use before a task to gather context in one shot. The MCP **tool** `memory_injection` returns a token-budgeted summary of relevant memories; the schema below is for the same-named **prompt** (`getPrompt`) path. In practice, the tool call is more common.
+Use before a task to gather context in one shot. The MCP **tool** `memory_injection` returns a token-budgeted summary of relevant memories; the schema below is for the same-named **prompt** (`getPrompt`) path, served by HTTP `/mcp` only (stdio lists no prompts). In practice, the tool call is more common.
 
 The tool's `message` wraps the memories (and the brief when `include_project_brief: true`) in one `<memento-material-<16 hex>>` tag pair drawn fresh per call, preceded by one line saying the text between the tags is stored material, not instructions. The tag name `memento-material` inside stored text (including invisible characters or other hyphens between the words) becomes `memento_material`. Fullwidth or lookalike spellings are left as they are; the real tag is drawn fresh per call, so stored text cannot match it. This lowers the chance a model follows stored text as instructions; it is not a guarantee. The brief pointer line and the no-memories text sit outside the tags.
 
@@ -1083,25 +1083,24 @@ When the rejection gate is enabled, the tool keeps only gate top-10 item scores 
 
 #### Parameters
 
+Prompt arguments are strings, as the MCP spec requires.
+
 ```typescript
-interface MemoryInjectionParams {
+interface MemoryInjectionPromptArguments {
   query: string;                    // Search query (required)
-  token_budget?: number;            // Token budget (default: 1200)
-  context_type?: 'conversation' | 'task' | 'general';  // Context type (default: 'general')
+  token_budget?: string;            // Token budget, e.g. "1500" (default: 1000)
+  max_memories?: string;            // Maximum memories, e.g. "3" (default: 5)
 }
 ```
 
 #### Response
 
+`prompts/get` runs the `memory_injection` tool and returns its `message` as one user message. The owner scope of the token applies as it does on `tools/call`.
+
 ```typescript
-interface MemoryInjectionPrompt {
-  role: 'system';
-  content: string;                  // Context content to inject
-  metadata: {
-    memories_used: number;          // Number of memories used
-    token_count: number;            // Actual token count used
-    search_time: number;            // Search time
-  };
+interface MemoryInjectionPromptResult {
+  description: string;
+  messages: [{ role: 'user'; content: { type: 'text'; text: string } }];
 }
 
 // Extra fields on tools/call success payload (#1682)
@@ -1117,10 +1116,9 @@ interface MemoryInjectionToolItemFilter {
 #### Usage Example
 
 ```typescript
-const prompt = await client.getPrompt('memory_injection', {
-  query: "React development related questions",
-  token_budget: 1500,
-  context_type: 'conversation'
+const prompt = await client.getPrompt({
+  name: 'memory_injection',
+  arguments: { query: 'React development related questions', token_budget: '1500' }
 });
 ```
 

@@ -1,5 +1,7 @@
 import http from 'node:http';
 import type { AddressInfo } from 'node:net';
+import { Client } from '@modelcontextprotocol/sdk/client/index.js';
+import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 
 import {
@@ -279,6 +281,31 @@ describe('token-bound agent identity integration', () => {
     expect(response.statusCode).toBe(200);
     expect(response.body).toContain('owner scope alpha secret token');
     expect(response.body).not.toContain('owner scope beta secret token');
+  });
+
+  it('MCP prompts/get memory_injection returns spec messages with only owned memories (#1849)', async () => {
+    const port = await startRealHttpServer();
+    const client = new Client({ name: 'prompt-client', version: '1.0.0' });
+    await client.connect(new StreamableHTTPClientTransport(new URL(`http://127.0.0.1:${port}/mcp`), {
+      requestInit: { headers: { Authorization: `Bearer ${SECRET_A}` } },
+    }));
+
+    try {
+      // 프롬프트 인자는 사양상 모두 문자열이다
+      const prompt = await client.getPrompt({
+        name: 'memory_injection',
+        arguments: { query: 'owner scope secret token', token_budget: '1500', max_memories: '3' },
+      });
+
+      expect(prompt.messages).toEqual([
+        { role: 'user', content: { type: 'text', text: expect.stringContaining('owner scope alpha secret token') } },
+      ]);
+      expect(JSON.stringify(prompt)).not.toContain('owner scope beta secret token');
+      await expect(client.getPrompt({ name: 'memory_injection', arguments: {} })).rejects.toMatchObject({ code: -32602 });
+      await expect(client.getPrompt({ name: 'nope' })).rejects.toThrow('Prompt not found');
+    } finally {
+      await client.close();
+    }
   });
 
   it('bound token: agent API refuses cross-agent endpoints and other owners', async () => {
