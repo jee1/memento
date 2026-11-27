@@ -253,6 +253,8 @@ describe('agent memory benchmark runner', () => {
       dimensions: expect.any(Number),
       embedded_documents: documentCount,
       total_documents: documentCount,
+      query_providers: { tfidf: report.scorecard?.query_count },
+      query_tfidf_fallbacks: 0,
     });
     expect(report.scorecard?.embedding.dimensions).toBeGreaterThan(0);
     const vectorLane = report.scorecard?.vector_lane;

@@ -73,6 +73,10 @@ export interface BenchmarkEmbedding {
   dimensions: number;
   embedded_documents: number;
   total_documents: number;
+  /** Queries per query-embedding provider the engine actually used. */
+  query_providers: Record<string, number>;
+  /** Queries whose query embedding fell back to tfidf. */
+  query_tfidf_fallbacks: number;
 }
 
 export interface ProductionRecallRun {
@@ -170,6 +174,8 @@ export async function runProductionRecallBenchmark(
     let textWeight = 0.4;
     let vectorWeight = 0.6;
     let fallbackUsed = false;
+    const queryProviders: Record<string, number> = {};
+    let queryTfidfFallbacks = 0;
     const rankingVersion = services.hybridSearchEngine.getRankingVersion();
 
     for (const query of dataset.queries) {
@@ -193,6 +199,11 @@ export async function runProductionRecallBenchmark(
         vectorWeight = funnelSource.vector_weight;
       }
       fallbackUsed = fallbackUsed || Boolean(searchResult.fallback_used);
+      const queryProviderKey = (searchResult.query_embedding_providers ?? []).join('+') || 'none';
+      queryProviders[queryProviderKey] = (queryProviders[queryProviderKey] ?? 0) + 1;
+      if (searchResult.tfidf_query_embedding_fallback) {
+        queryTfidfFallbacks++;
+      }
       const ids = searchResult.items
         .map((item) => item.id)
         .filter((id): id is string => typeof id === 'string' && id.length > 0)
@@ -226,7 +237,11 @@ export async function runProductionRecallBenchmark(
     }
 
     return {
-      embedding,
+      embedding: {
+        ...embedding,
+        query_providers: queryProviders,
+        query_tfidf_fallbacks: queryTfidfFallbacks,
+      },
       ranking_profile: DEFAULT_RANKING_PROFILE,
       production_path: 'hybridSearchEngine.search',
       imported_ids: dataset.documents.map((document) => document.id),
@@ -375,7 +390,7 @@ async function importFixture(
   db: Awaited<ReturnType<typeof createMementoCore>>['db'],
   embeddingService: Awaited<ReturnType<typeof createMementoCore>>['services']['embeddingService'],
   requestedProvider: BenchmarkEmbeddingProvider,
-): Promise<BenchmarkEmbedding> {
+): Promise<Omit<BenchmarkEmbedding, 'query_providers' | 'query_tfidf_fallbacks'>> {
   const insert = db.prepare(`
     INSERT INTO memory_item (
       id, type, content, importance, created_at, session_id, project_id, origin_source
