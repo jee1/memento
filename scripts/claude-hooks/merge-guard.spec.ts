@@ -1,5 +1,5 @@
 import { readFileSync } from "node:fs";
-import { execFileSync } from "node:child_process";
+import { execFileSync, spawnSync } from "node:child_process";
 import { join } from "node:path";
 import { describe, expect, it } from "vitest";
 
@@ -31,6 +31,27 @@ describe("merge-guard.sh", () => {
   it("denies commands that mention the human approval label", () => {
     const out = parseOutput(runHook("gh pr edit 1 --add-label approved:human"));
     expect(out?.hookSpecificOutput?.permissionDecision).toBe("deny");
+    expect(out?.hookSpecificOutput?.permissionDecisionReason).toContain("다른 Claude 모델 리뷰");
+  });
+
+  it.each(["{broken", "", "[]", "null", "{}", '{"tool_input": "ls"}', '{"tool_input": {"command": 1}}'])(
+    "blocks with exit 2 when the hook input cannot be read: %j",
+    (input) => {
+      const result = spawnSync("bash", [script], { encoding: "utf8", input });
+      expect(result.status).toBe(2);
+      expect(result.stderr).toContain("입력을 읽지 못해");
+      expect(result.stdout).toBe("");
+    },
+  );
+
+  it("blocks with exit 2 when jq is missing", () => {
+    const result = spawnSync("/bin/bash", [script], {
+      encoding: "utf8",
+      input: JSON.stringify({ tool_input: { command: "ls" } }),
+      env: { PATH: "/nonexistent" },
+    });
+    expect(result.status).toBe(2);
+    expect(result.stderr).toContain("입력을 읽지 못해");
   });
 
   it("allows normal merge-gate --merge without hook output", () => {

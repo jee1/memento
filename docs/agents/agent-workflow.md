@@ -97,7 +97,7 @@ UI를 손볼 때는 `static/css/tokens.css`에 정의된 디자인 토큰부터 
 
 이슈를 격리해서 작업하려면 `git worktree add -b issue-<num>-<slug> ~/git/memento-worktrees/issue-<num>-<slug> origin/main`으로 워크트리를 만든 뒤, 그 경로에서 `npm install`을 실행해 의존성을 맞춥니다([AGENTS.md](../../AGENTS.md) §3.1). 작업 흐름은 spec → plan → tasks → 구현 → PR(`Closes #이슈`) 순입니다. 작업이 끝나면 `git worktree remove <worktree-path>`로 먼저 연결을 끊고, 그 다음에 브랜치를 삭제해야 합니다. 순서가 바뀌면 로컬 브랜치 삭제에 실패합니다.
 
-대형 리팩터(god node 분해 #593 계열)는 public import·export를 그대로 두고 내부를 composition sub-module(단일 파일 ≤500줄)로 나눕니다. 선행 spec이 green인지 확인하고 시작하세요.
+대형 리팩터(god node 분해 #593 계열)는 public import·export를 그대로 두고 내부를 composition sub-module(단일 파일 ≤500줄, `npm run lint` 의 `max-lines` 가 검사)로 나눕니다. 선행 spec이 green인지 확인하고 시작하세요.
 
 ## PR
 
