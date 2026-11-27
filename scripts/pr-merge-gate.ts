@@ -4,9 +4,10 @@
  *
  *   low    : 필수 체크 + 현재 head 의 agent-review approve 마커(리뷰어 모델별 마지막 마커)
  *   medium : low 조건 + PR 본문 `## 동작 설명`
- *   high   : 현재 head 리뷰(Codex 마커 또는 다른 모델 계열 agent-review approve) + 사람 `approved:human` 라벨
+ *   high   : 현재 head 리뷰(Codex 마커 또는 작성자와 다른 모델의 agent-review approve) + 사람 `approved:human` 라벨
  *
  * PR 본문 `<!-- author-model=<id> -->` 에 작성 에이전트 모델을 적는다(high 교차 모델 판정).
+ * 다른 모델 = 다른 계열이거나, 같은 Claude 안에서 다른 단계(opus, sonnet, haiku, fable). 버전만 다르면 같은 모델이다.
  * 리뷰 마커 4개(3회 초과)면 멈춘다. 사용자가 계속하라고 하면 `--allow-review-overflow` 로 재실행.
  *
  * 에이전트는 머지 API 를 직접 부르지 않고 이 스크립트로만 머지한다(.claude 훅이 강제).
@@ -195,6 +196,28 @@ export function isDifferentModelFamily(authorModel: string, reviewerModel: strin
   return author !== reviewer;
 }
 
+const CLAUDE_TIERS = new Set(["opus", "sonnet", "haiku", "fable"]);
+
+/** Claude 모델 id 를 단계로 접는다(버전은 버린다). 단계 토큰이 정확히 한 종류가 아니면 undefined(fail-closed). */
+function claudeTier(model: string): string | undefined {
+  if (modelFamily(model) !== "claude") return undefined;
+  const tiers = new Set(model.toLowerCase().split(/[^a-z0-9]+/).filter((t) => CLAUDE_TIERS.has(t)));
+  return tiers.size === 1 ? [...tiers][0] : undefined;
+}
+
+function isKnownAuthorModel(model: string): boolean {
+  const family = modelFamily(model);
+  return family !== undefined && (family !== "claude" || claudeTier(model) !== undefined);
+}
+
+/** high 교차 리뷰: 다른 계열이거나, 둘 다 Claude 이면서 단계가 다르다. */
+function isDifferentReviewModel(authorModel: string, reviewerModel: string): boolean {
+  if (isDifferentModelFamily(authorModel, reviewerModel)) return true;
+  const author = claudeTier(authorModel);
+  const reviewer = claudeTier(reviewerModel);
+  return author !== undefined && reviewer !== undefined && author !== reviewer;
+}
+
 /** 저장소 소유자 코멘트 첫 줄의 codex-review 마커(코멘트당 1개)만 인정한다. */
 export function hasHeadCodexReview(
   comments: GateComment[],
@@ -225,7 +248,7 @@ export function highHeadReviewOk(
     (m) =>
       m.verdict === "approve" &&
       m.model !== undefined &&
-      isDifferentModelFamily(authorModel, m.model),
+      isDifferentReviewModel(authorModel, m.model),
   );
 }
 
@@ -304,11 +327,15 @@ export function decide(pr: GateInput): GateDecision {
     if (!highHeadReviewOk(pr.comments, pr.headRefOid, pr.repoOwnerLogin, pr.authorModel)) {
       if (!pr.authorModel) {
         reasons.push(
-          "high — PR 본문에 `<!-- author-model=<작성 모델> -->` 가 필요하고, 다른 모델 계열의 agent-review approve 또는 Codex 리뷰가 필요",
+          "high — PR 본문에 `<!-- author-model=<작성 모델> -->` 가 필요하고, 작성자와 다른 모델(다른 Claude 단계 또는 다른 계열)의 agent-review approve 또는 Codex 리뷰가 필요",
+        );
+      } else if (!isKnownAuthorModel(pr.authorModel)) {
+        reasons.push(
+          "high — author-model 의 모델을 알 수 없음: 단계까지 적은 id(예: `claude-opus-5-5`)로 PR 본문을 고친다",
         );
       } else if (hasHeadAgentApprove(pr.comments, pr.headRefOid, pr.repoOwnerLogin)) {
         reasons.push(
-          "high — head agent-review 가 작성자와 같은 모델 계열: 다른 계열 리뷰어로 `--post-review approve` 또는 Codex `--codex-review`",
+          "high — head agent-review 가 작성자와 같은 모델이거나 모르는 모델: 다른 Claude 단계(작성 opus 면 sonnet, fable 등)나 다른 계열 리뷰어로 `--post-review approve` 또는 Codex `--codex-review`",
         );
       } else {
         reasons.push(

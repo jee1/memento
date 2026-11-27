@@ -128,7 +128,7 @@ AI 가 짠 코드를 사람이 다 읽지 못하는 만큼, 리뷰를 두 단계
    - 공통 — 저장소 소유자가 PR 코멘트 **첫 줄**에 남긴 `agent-review` 마커만 센다(코멘트당 1개, 인용·코드 블록·들여쓰기 예시 제외). 현재 head sha 에 대해 리뷰어 `model` 별 **마지막** 마커가 `verdict=approve` 여야 머지합니다. 마커·코멘트 본문에는 건수와 판정만(지적 상세 금지). 마커가 4개면 3회 초과로 멈춥니다(사용자가 직접 `! node scripts/pr-merge-gate.ts <PR> --merge --allow-review-overflow`). 리뷰 남기기: `node scripts/pr-merge-gate.ts <PR> --post-review approve --findings I/N/P --model <리뷰 모델>`.
    - `risk:low` — 필수 체크 + 현재 head agent-review approve.
    - `risk:medium` — low 조건 + PR 본문 `## 동작 설명` 절.
-   - `risk:high` — 현재 head 의 다른 모델 계열 agent-review approve(본문 `<!-- author-model=... -->` 대비) 또는 과도기 Codex 첫 줄 `<!-- codex-review sha=... -->` 마커 + 사용자가 직접 단 승인 라벨. Codex 경로: `node scripts/pr-merge-gate.ts <PR> --codex-review` (선택, 11/7 이후 agent-review 권장).
+   - `risk:high` — 현재 head 에 작성자와 다른 모델의 agent-review approve(본문 `<!-- author-model=... -->` 대비. 다른 계열이거나 같은 Claude 안에서 다른 단계 opus, sonnet, haiku, fable 이면 다른 모델이고, 버전만 다른 같은 단계와 단계를 알 수 없는 id 는 거절) 또는 과도기 Codex 첫 줄 `<!-- codex-review sha=... -->` 마커 + 사용자가 직접 단 승인 라벨. Codex 경로: `node scripts/pr-merge-gate.ts <PR> --codex-review` (선택, 11/7 이후 agent-review 권장).
    - 종료 코드: 0 머지 가능(머지함) · 2 조치 필요 · 3 대기.
 
 같은 리뷰 지적이 반복되면 코멘트로 남기지 말고 `scripts/check-*.ts --ci` 같은 정적 검사로 승격해 CI 에 붙입니다.
