@@ -32,14 +32,13 @@ function expectNoDuplicateKeys(label: string, content: string): void {
 }
 
 describe('environment templates consistency', () => {
-  it('includes required security sections and base URL in root env.example', () => {
+  it('includes required security sections in root env.example', () => {
     const repoRoot = getRepoRoot();
     const envExamplePath = path.join(repoRoot, 'env.example');
     const content = readFileSync(envExamplePath, 'utf-8');
 
     expect(content).toContain('[REQUIRED in production]');
     expect(content).toContain('MEMENTO_ALLOW_INSECURE_HTTP_ADMIN');
-    expect(content).toContain('MEMENTO_BASE_URL=');
   });
 
   it('has no duplicate variable names in env.example', () => {

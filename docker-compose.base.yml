@@ -75,7 +75,6 @@ x-default-environment: &default-environment
   # 프록시 뒤 배포에서만 설정한다 (#1161). 빈 값 = 미설정 = X-Forwarded-For 무시.
   MEMENTO_TRUST_PROXY: ${MEMENTO_TRUST_PROXY:-}
   MEMENTO_RECALL_PROFILE: ${MEMENTO_RECALL_PROFILE:-}
-  MEMENTO_BASE_URL: ${MEMENTO_BASE_URL:-}
   MEMENTO_STATIC_ROOT: ${MEMENTO_STATIC_ROOT:-}
   # MCP 도구 노출
   MEMENTO_TOOLSET: ${MEMENTO_TOOLSET:-}

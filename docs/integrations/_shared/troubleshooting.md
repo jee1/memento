@@ -163,12 +163,7 @@ curl -vI https://memory.example.com/health
 
 각 디바이스에서 비서가 실제로 어디에 붙고 있는지부터 확인하세요. 가장 흔한 함정은 "둘 다 stdio로 자기 머신의 SQLite를 보고 있다"는 상황입니다.
 
-```bash
-# 각 디바이스에서
-echo "$MEMENTO_BASE_URL"   # 비서가 참조하는 base URL (있다면)
-```
-
-그리고 양쪽이 같은 HTTP base URL을 쓰는지, 같은 토큰을 쓰는지, 같은 사용자 식별자(`owner_id`)를 쓰는지 한 번에 확인합니다.
+각 디바이스의 비서 config 에서 transport 와 `url` 을 확인합니다. 양쪽이 같은 HTTP base URL, 같은 토큰, 같은 사용자 식별자(`owner_id`)를 쓰는지 봅니다.
 
 ### 흔한 원인과 처방
 
