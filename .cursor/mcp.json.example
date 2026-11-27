@@ -1,7 +1,0 @@
-{
-  "mcpServers": {
-    "memento": {
-      "url": "http://localhost:9001/mcp"
-    }
-  }
-}
