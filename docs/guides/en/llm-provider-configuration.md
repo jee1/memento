@@ -55,10 +55,10 @@ GEMINI_LLM_MODEL=gemini-flash-latest   # default
 ```bash
 LLM_PROVIDER=anthropic
 ANTHROPIC_API_KEY=sk-ant-...
-ANTHROPIC_LLM_MODEL=claude-haiku-5-5   # default; must accept thinking disabled
+ANTHROPIC_LLM_MODEL=claude-haiku-5-5   # default
 ```
 
-Only supersede candidate judging and procedural extraction use Claude. Judging uses structured output (verdict, rationale, evidence quote), with thinking disabled and effort `low`. Selecting `anthropic` builds no other provider client. A missing key or a failed call never falls back to OpenAI, Gemini or Ollama: supersede judging retries on the next scan and procedural extraction uses the rule-based extractor. Relation extraction's chat path, consolidation summaries and the personal agent do not use `anthropic` (relation extraction ends with no available provider). Select it with the global `LLM_PROVIDER` only; the per-job overrides (`LLM_PROVIDER_PROCEDURAL` and others) reject `anthropic` with a warning. The per-scan pair limit is `SUPERSEDE_CANDIDATE_SCAN_MAX_PAIRS` (default 20, editable on the dashboard settings tab, immediate).
+Only supersede candidate judging and procedural extraction use Claude. Judging uses structured output (verdict, rationale, evidence quote), with adaptive thinking and effort `medium`. Thinking tokens count against the output limit, so judging uses a 4,000-token limit. Selecting `anthropic` builds no other provider client. A missing key or a failed call never falls back to OpenAI, Gemini or Ollama: supersede judging retries on the next scan and procedural extraction uses the rule-based extractor. Relation extraction's chat path, consolidation summaries and the personal agent do not use `anthropic` (relation extraction ends with no available provider). Select it with the global `LLM_PROVIDER` only; the per-job overrides (`LLM_PROVIDER_PROCEDURAL` and others) reject `anthropic` with a warning. The per-scan pair limit is `SUPERSEDE_CANDIDATE_SCAN_MAX_PAIRS` (default 20, editable on the dashboard settings tab, immediate).
 
 ### auto (automatic selection)
 

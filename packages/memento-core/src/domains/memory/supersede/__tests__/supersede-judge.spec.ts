@@ -24,7 +24,7 @@ const next: ScopedMemory = {
 };
 
 describe('judgeSupersedePair (#1548)', () => {
-  it('JSON 모드, temperature 0, 출력 상한 400 으로 한 번 호출한다', async () => {
+  it('JSON 모드, temperature 0, 출력 상한 4000(Claude thinking 토큰 포함, #1840)으로 한 번 호출한다', async () => {
     const port = fakeChatPort(() => judgeReply('confirmed', '층이 바뀌었다'));
     const outcome = await judgeSupersedePair(port, 'model-x', old, next);
 
@@ -33,7 +33,7 @@ describe('judgeSupersedePair (#1548)', () => {
       judgment: { verdict: 'confirmed', rationale: '층이 바뀌었다', evidenceQuote: null },
     });
     expect(port.calls).toHaveLength(1);
-    expect(port.calls[0]).toMatchObject({ model: 'model-x', temperature: 0, json: true, maxOutputTokens: 400 });
+    expect(port.calls[0]).toMatchObject({ model: 'model-x', temperature: 0, json: true, maxOutputTokens: 4000, jsonSchema: expect.objectContaining({ required: ['verdict', 'rationale', 'evidence_quote'] }) });
   });
 
   it('세 상태의 정의를 system prompt 에 담고 본문은 구분자로 감싸 데이터로만 취급하게 한다', async () => {

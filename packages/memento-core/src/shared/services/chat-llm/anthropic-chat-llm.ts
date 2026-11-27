@@ -13,8 +13,8 @@ const ANTHROPIC_TIMEOUT_MS = 30_000;
 /**
  * Claude 채팅 어댑터 (#1840).
  * temperature 는 보내지 않는다. Haiku 5.5 이후 모델은 기본값이 아닌 sampling 값을 400 으로 거절한다.
- * thinking 은 끈다(Haiku 5.5 는 effort high 이하에서만 disabled 를 받는다). 그래서 ANTHROPIC_LLM_MODEL 은
- * thinking 을 끌 수 있는 모델이어야 한다.
+ * thinking 은 adaptive, effort medium. 운영 213쌍에서 thinking 끔보다 판정이 나았다(판정자 일치 15쌍 중 12 대 8).
+ * thinking 토큰도 maxOutputTokens 에 들어가므로 호출부는 상한을 넉넉히 준다.
  */
 export class AnthropicChatLlm implements ChatLlmPort {
   readonly provider = 'anthropic' as const;
@@ -42,9 +42,9 @@ export class AnthropicChatLlm implements ChatLlmPort {
           max_tokens: request.maxOutputTokens,
           messages,
           ...(system.length > 0 ? { system } : {}),
-          thinking: { type: 'disabled' },
+          thinking: { type: 'adaptive' },
           output_config: {
-            effort: 'low',
+            effort: 'medium',
             ...(request.jsonSchema ? { format: { type: 'json_schema' as const, schema: request.jsonSchema } } : {}),
           },
         }),

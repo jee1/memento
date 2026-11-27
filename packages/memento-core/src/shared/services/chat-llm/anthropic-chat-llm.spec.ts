@@ -27,7 +27,7 @@ function clientWith(create: ReturnType<typeof vi.fn>): Anthropic {
 }
 
 describe('AnthropicChatLlm (#1840)', () => {
-  it('보내는 요청: system 분리, temperature 없음, thinking 끔, effort low, schema 가 있을 때만 format', async () => {
+  it('보내는 요청: system 분리, temperature 없음, thinking adaptive, effort medium, schema 가 있을 때만 format', async () => {
     const create = vi.fn().mockResolvedValue(reply());
     const llm = new AnthropicChatLlm(clientWith(create), retryManager);
     const schema = { type: 'object', properties: {}, required: [], additionalProperties: false };
@@ -41,11 +41,11 @@ describe('AnthropicChatLlm (#1840)', () => {
       max_tokens: 400,
       system: 'system rule',
       messages: [{ role: 'user', content: 'user prompt' }],
-      thinking: { type: 'disabled' },
-      output_config: { effort: 'low', format: { type: 'json_schema', schema } },
+      thinking: { type: 'adaptive' },
+      output_config: { effort: 'medium', format: { type: 'json_schema', schema } },
     });
     expect(withSchema).not.toHaveProperty('temperature');
-    expect(withoutSchema.output_config).toEqual({ effort: 'low' });
+    expect(withoutSchema.output_config).toEqual({ effort: 'medium' });
   });
 
   it('응답의 실제 토큰 수를 usage 로 돌려준다', async () => {

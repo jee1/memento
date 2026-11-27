@@ -213,7 +213,8 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
       model,
       messages: messages as ChatLlmMessage[],
       temperature: 0.3,
-      maxOutputTokens: 1024,
+      // thinking 토큰이 상한에 들어간다(anthropic-chat-llm.ts).
+      maxOutputTokens: 4000,
       json: true,
       jsonSchema: PROCEDURAL_SCHEMA,
     });
