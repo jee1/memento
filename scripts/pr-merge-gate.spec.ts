@@ -556,6 +556,14 @@ describe("postReviewModelProblem", () => {
     }
   });
 
+  it("high 는 작성 모델을 읽을 수 없으면 리뷰 기록을 받지 않는다", () => {
+    for (const authorModel of [undefined, "composer-2.5", "claude"]) {
+      expect(postReviewModelProblem({ labels: ["risk:high"], authorModel }, "claude-sonnet-5-5")).toContain(
+        "author-model",
+      );
+    }
+  });
+
   it("low 와 medium 은 모델 꼴과 단계를 보지 않는다", () => {
     for (const labels of [["risk:low"], ["risk:medium"]]) {
       expect(postReviewModelProblem({ labels, authorModel: "claude-opus-5-5" }, "claude-opus-5-5")).toBeUndefined();

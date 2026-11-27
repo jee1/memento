@@ -207,11 +207,15 @@ export function postReviewModelProblem(
   model: string,
 ): string | undefined {
   if (highestRiskLevel(pr.labels) !== "high") return undefined;
+  const author = claudeTier(pr.authorModel);
+  if (author === undefined) {
+    return "risk:high 는 PR 본문의 author-model 이 `claude-<단계>-<버전>` 꼴이어야 리뷰 기록을 받는다. 작성자가 본문을 고친 뒤 리뷰한다";
+  }
   const reviewer = claudeTier(model);
   if (reviewer === undefined) {
     return "risk:high 의 --model 은 `claude-<단계>-<버전>` 꼴의 Claude 모델 id 여야 한다(예: claude-sonnet-5-5)";
   }
-  if (reviewer === claudeTier(pr.authorModel)) {
+  if (reviewer === author) {
     return `risk:high 의 리뷰어는 작성자(${pr.authorModel})와 다른 Claude 단계여야 한다. 같은 단계 마커는 판정에 세지 않고 리뷰 상한만 쓴다`;
   }
   return undefined;
