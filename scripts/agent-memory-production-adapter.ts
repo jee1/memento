@@ -88,6 +88,7 @@ export interface ProductionRecallRun {
   ranking_version: string;
   ranking_weights_path_override: boolean;
   vector_threshold: number;
+  ranked_vector_candidates_mean: number;
   vector_prefetch: number;
   text_weight: number;
   vector_weight: number;
@@ -166,6 +167,9 @@ export async function runProductionRecallBenchmark(
       services.embeddingService,
       embeddingProvider,
     );
+    if (dataset.documents.length > 0 && embedding.embedded_documents === 0) {
+      throw new Error(`No benchmark document was embedded with ${embeddingProvider}`);
+    }
 
     const documentById = new Map(dataset.documents.map((document) => [document.id, document]));
     const evaluations: ProductionQueryEvaluation[] = [];
@@ -176,6 +180,7 @@ export async function runProductionRecallBenchmark(
     let fallbackUsed = false;
     const queryProviders: Record<string, number> = {};
     let queryTfidfFallbacks = 0;
+    let rankedVectorCandidates = 0;
     const rankingVersion = services.hybridSearchEngine.getRankingVersion();
 
     for (const query of dataset.queries) {
@@ -201,6 +206,7 @@ export async function runProductionRecallBenchmark(
       fallbackUsed = fallbackUsed || Boolean(searchResult.fallback_used);
       const queryProviderKey = (searchResult.query_embedding_providers ?? []).join('+') || 'none';
       queryProviders[queryProviderKey] = (queryProviders[queryProviderKey] ?? 0) + 1;
+      rankedVectorCandidates += searchResult.vector_count ?? 0;
       if (searchResult.tfidf_query_embedding_fallback) {
         queryTfidfFallbacks++;
       }
@@ -249,6 +255,7 @@ export async function runProductionRecallBenchmark(
       ranking_version: rankingVersion,
       ranking_weights_path_override: Boolean(process.env.MEMENTO_RANKING_WEIGHTS_PATH),
       vector_threshold: vectorThreshold,
+      ranked_vector_candidates_mean: dataset.queries.length > 0 ? rankedVectorCandidates / dataset.queries.length : 0,
       vector_prefetch: vectorPrefetch,
       text_weight: textWeight,
       vector_weight: vectorWeight,
@@ -426,8 +433,10 @@ async function importFixture(
       dimensions = stored.embedding.length;
     }
   }
-  if (embeddedDocuments === 0) {
-    throw new Error(`No benchmark document was embedded with ${requestedProvider}`);
+  if (embeddedDocuments < documents.length) {
+    process.stderr.write(
+      `[agent-memory-benchmark] ${documents.length - embeddedDocuments}/${documents.length} documents were not embedded with ${requestedProvider}\n`,
+    );
   }
   return {
     requested_provider: requestedProvider,

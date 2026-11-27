@@ -262,6 +262,7 @@ describe('agent memory benchmark runner', () => {
     expect(vectorLane?.thresholded_vector_query_count).toBeLessThanOrEqual(report.scorecard?.query_count ?? 0);
     expect(vectorLane?.union_recall).toBeGreaterThanOrEqual(report.scorecard?.sql_candidate_recall ?? 1);
     expect(vectorLane?.raw_vector_recall).toBeGreaterThanOrEqual(vectorLane?.thresholded_vector_recall ?? 1);
+    expect(vectorLane?.ranked_vector_candidates_mean).toBeGreaterThan(0);
     const headSha = execFileSync('git', ['rev-parse', 'HEAD'], {
       cwd: process.cwd(),
       encoding: 'utf8',
