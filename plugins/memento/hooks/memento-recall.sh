@@ -9,12 +9,18 @@
 # 두 번째 인자 session → 세션 시작·compact 직후용 프로젝트 브리프 주입 지시 (#1271)
 #   memento-recall.sh claude session → Claude Code (SessionStart, compact 포함)
 #   memento-recall.sh codex session  → Codex       (SessionStart)
+#
+# Claude Code 의 질문마다 모드는 stdin 의 prompt 가 기계 알림이면 아무것도 출력하지 않는다 (#1770)
 
 HOST="${1:-claude}"
 MODE="${2:-prompt}"
 
-python3 - "$HOST" "$MODE" <<'EOF'
-import json, sys
+# stdin 이 닫혔거나 터미널이면 읽을 입력이 없다. 닫힌 채 3<&0 하면 훅이 실패하고, 터미널이면 EOF 를 기다리며 멈춘다.
+{ [ -e /dev/fd/0 ] && [ ! -t 0 ]; } || exec </dev/null
+
+# heredoc 이 stdin(프로그램)을 쓰므로 훅 입력 JSON 은 fd 3 으로 넘긴다. 인자나 env 는 큰 알림에서 길이 제한에 걸린다.
+python3 - "$HOST" "$MODE" 3<&0 <<'EOF'
+import json, re, sys
 
 host = sys.argv[1] if len(sys.argv) > 1 else "claude"
 mode = sys.argv[2] if len(sys.argv) > 2 else "prompt"
@@ -45,9 +51,19 @@ msg = (
     "응답에 updated: true 가 있어야 실제로 갱신된 것입니다."
 )
 
+# 백그라운드 작업 알림은 태그로 시작한다. 태그 앞에 다른 글이 있는 prompt 는 알림이 아니다.
+NOTIFICATION = re.compile(r"\s*(?:<system-reminder>\s*)?\[SYSTEM NOTIFICATION|\s*<task-notification>")
+
 event = "UserPromptSubmit"
 full_msg = msg
 if host == "claude" and mode != "session":
+    try:
+        with open(3, encoding="utf-8") as hook_input:
+            is_notification = bool(NOTIFICATION.match(json.load(hook_input)["prompt"]))
+    except Exception:  # 입력을 못 읽으면 안내를 빼지 않는다
+        is_notification = False
+    if is_notification:
+        sys.exit(0)
     # #1770: 저장 형식 전문(약 1,000자)은 세션 시작과 compact 직후에만 싣고, 질문마다는 한 줄만 싣는다.
     # Cursor, Codex 는 세션 시작 훅이 없어 그대로 전문을 싣는다.
     msg = (
