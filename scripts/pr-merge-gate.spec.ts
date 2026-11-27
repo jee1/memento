@@ -321,6 +321,48 @@ describe("decide", () => {
     expect(decide(pr({ ...high, comments })).action).toBe("merge");
   });
 
+  describe("high Claude 단계 교차 리뷰 (#1837)", () => {
+    const highFor = (authorModel: string | undefined, reviewer: string) =>
+      decide(
+        pr({
+          labels: ["risk:high", APPROVAL_LABEL],
+          authorModel,
+          comments: [headApprove(HEAD, reviewer)],
+        }),
+      ).action;
+
+    it("작성 Opus + 리뷰 Fable 또는 Sonnet 은 통과", () => {
+      expect(highFor("claude-opus-5-5", "claude-fable-5-2")).toBe("merge");
+      expect(highFor("claude-opus-5-5", "claude-sonnet-5-5")).toBe("merge");
+    });
+
+    it("같은 단계는 버전이나 별칭이 달라도 거절", () => {
+      expect(highFor("claude-opus-5-5", "claude-opus-5-5")).toBe("needs");
+      expect(highFor("claude-opus-5-5", "claude-opus-5")).toBe("needs");
+      expect(highFor("opus", "claude-opus-5-5")).toBe("needs");
+    });
+
+    it("작성 모델이 없거나 단계를 모르면 거절", () => {
+      expect(highFor(undefined, "claude-fable-5-2")).toBe("needs");
+      expect(highFor("claude", "claude-sonnet-5-5")).toBe("needs");
+      expect(highFor("claude-opus-5-5", "claude")).toBe("needs");
+      expect(highFor("claude-opus-5-5", "claude-opus-sonnet")).toBe("needs");
+      expect(highFor("claude-opus-5-5", "grok-4.7-high-fast")).toBe("needs");
+    });
+
+    it("승인 라벨이 없으면 다른 단계 리뷰여도 거절", () => {
+      expect(
+        decide(
+          pr({
+            labels: ["risk:high"],
+            authorModel: "claude-opus-5-5",
+            comments: [headApprove(HEAD, "claude-sonnet-5-5")],
+          }),
+        ).action,
+      ).toBe("needs");
+    });
+  });
+
   it("high stale agent-review (deadbeef) 는 차단", () => {
     const high = {
       labels: ["risk:high", APPROVAL_LABEL],
