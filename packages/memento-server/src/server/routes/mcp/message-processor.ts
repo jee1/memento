@@ -15,6 +15,7 @@ import {
   mapToolDispatchError,
   type ToolAuditContext,
 } from '../../audit-tool-dispatch.js';
+import { MEMENTO_SERVER_INSTRUCTIONS } from '../../mcp-instructions.js';
 import {
   isModernMcpServiceEnabled,
   mementoConfig,
@@ -34,12 +35,6 @@ const MCP_CAPABILITIES = {
   resources: {},
   prompts: {}
 };
-
-/** server/discover 의 instructions. 클라이언트가 이 서버의 용도를 알게 한다 (#840). */
-const SERVER_DISCOVER_INSTRUCTIONS =
-  'Memento는 AI 에이전트의 기억을 저장·검색·망각하는 MCP 서버입니다. ' +
-  'remember 로 기억을 저장하고 recall 로 검색하며, 오래되고 참조되지 않은 기억은 자동으로 망각됩니다. ' +
-  '사용 가능한 도구 목록은 tools/list 로 확인하십시오.';
 
 export function getDiscoverSupportedVersions(): string[] {
   if (isModernMcpServiceEnabled(mementoConfig.mcpEra)) {
@@ -93,6 +88,7 @@ export async function processMcpMessage(
         // 이 파일이 실제로 처리하는 것만 광고한다. logging 은 HTTP 에 핸들러가
         // 없으므로 넣지 않는다 (stdio 에만 있다).
         capabilities: MCP_CAPABILITIES,
+        instructions: MEMENTO_SERVER_INSTRUCTIONS,
         serverInfo: {
           name: 'memento-mcp-server',
           version: packageJson.version
@@ -113,7 +109,7 @@ export async function processMcpMessage(
       result: {
         supportedVersions: getDiscoverSupportedVersions(),
         capabilities: MCP_CAPABILITIES,
-        instructions: SERVER_DISCOVER_INSTRUCTIONS,
+        instructions: MEMENTO_SERVER_INSTRUCTIONS,
         _meta: {
           'io.modelcontextprotocol/serverInfo': {
             name: 'memento-mcp-server',

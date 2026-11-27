@@ -6,6 +6,7 @@ import { Client } from '@modelcontextprotocol/sdk/client/index.js';
 import { StreamableHTTPClientTransport } from '@modelcontextprotocol/sdk/client/streamableHttp.js';
 import { LATEST_PROTOCOL_VERSION } from '@modelcontextprotocol/sdk/types.js';
 import packageJson from '../../package.json' with { type: 'json' };
+import { MEMENTO_SERVER_INSTRUCTIONS } from './mcp-instructions.js';
 
 async function listenWithMcpRouter(): Promise<{ port: number; close: () => Promise<void> }> {
   const { createMcpRouter } = await import('./routes/mcp.routes.js');
@@ -168,6 +169,8 @@ describe('mcp.routes streamable_http', () => {
             resources: {},
             prompts: {}
           },
+          // #1836 으로 instructions 만 더함
+          instructions: MEMENTO_SERVER_INSTRUCTIONS,
           serverInfo: {
             name: 'memento-mcp-server',
             version: packageJson.version
@@ -612,6 +615,8 @@ describe('#840 Phase 1b HTTP dual-era', () => {
             resources: {},
             prompts: {},
           },
+          // #1836 으로 instructions 만 더함
+          instructions: MEMENTO_SERVER_INSTRUCTIONS,
           serverInfo: {
             name: 'memento-mcp-server',
             version: packageJson.version,

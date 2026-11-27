@@ -36,7 +36,8 @@ import { releaseLock, tryAcquireLock } from './utils/instance-lock.js';
 import { dispatchTool } from './audit-tool-dispatch.js';
 import { countConnectionSignal, stdioUsageConnection } from './usage-recording.js';
 import { closeHttpServer, startServer as startHttpServer } from './http-server.js';
-import { createMementoMcpServer, MEMENTO_SERVER_INSTRUCTIONS } from './mcp-server-factory.js';
+import { MEMENTO_SERVER_INSTRUCTIONS } from './mcp-instructions.js';
+import { createMementoMcpServer } from './mcp-server-factory.js';
 
 const currentDbPath = (): string => expandHomeDirPath(process.env.DB_PATH ?? mementoConfig.dbPath);
 
