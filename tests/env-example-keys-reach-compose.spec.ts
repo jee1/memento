@@ -72,15 +72,6 @@ const NOT_FORWARDED: Record<string, string> = {
   MCP_PUBLISH_HOST:
     '호스트 쪽 값이다. docker-compose.yml `ports:` 의 앞자리라 컨테이너 env 가 아니다.',
   MEMENTO_BACKUP_DIR: '호스트 CLI 백업 경로 (#963). 컨테이너 안에서 쓰이지 않는다.',
-  MEMENTO_AGENT_LLM_PROVIDER: '별도 배포물 services/agent/ 용 (#1126).',
-  MEMENTO_AGENT_OLLAMA_BASE_URL: '별도 배포물 services/agent/ 용 (#1126).',
-  MEMENTO_AGENT_OLLAMA_MODEL: '별도 배포물 services/agent/ 용 (#1126).',
-  MEMENTO_AGENT_OPENAI_API_KEY: '별도 배포물 services/agent/ 용 (#1126).',
-  MEMENTO_AGENT_OPENAI_MODEL: '별도 배포물 services/agent/ 용 (#1126).',
-  MEMENTO_AGENT_GEMINI_API_KEY: '별도 배포물 services/agent/ 용 (#1126).',
-  MEMENTO_AGENT_GEMINI_MODEL: '별도 배포물 services/agent/ 용 (#1126).',
-  MEMENTO_AGENT_LOG_LEVEL: '별도 배포물 services/agent/ 용 (#1126).',
-  MEMENTO_AGENT_TIMEOUT_MS: '별도 배포물 services/agent/ 용 (#1126).',
 };
 
 describe('#1133: env.example 이 문서화한 키가 컨테이너에 도달한다', () => {

@@ -14,11 +14,6 @@
 - [ ] `PORT` / `MCP_SERVER_PORT`가 실제 리스닝 포트와 일치하는지 확인했는가?
 - [ ] `CORS_ALLOWED_ORIGINS`가 필요한 오리진만 포함하는지 확인했는가?
 
-## 에이전트(해당 시)
-
-- [ ] `services/agent/env.example`를 기준으로 에이전트 전용 변수가 단일 출처로 관리되는지 확인했는가?
-- [ ] 루트 `MEMENTO_AGENT_*`와 `AGENT_*` 별칭을 혼용할 경우 우선순위가 문서와 일치하는지 확인했는가?
-
 ## 검증
 
 - [ ] `npm run lint`, `npm run type-check`, `npm test`가 통과했는가?

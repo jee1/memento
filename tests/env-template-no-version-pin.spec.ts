@@ -6,7 +6,6 @@ const ENV_TEMPLATE_PATHS = [
   'env.example',
   '.env.example',
   '.env.test',
-  'services/agent/env.example',
 ] as const;
 
 const ENV_ASSIGNMENT_PATTERN = /^\s*(?:export\s+)?MCP_SERVER_(?:NAME|VERSION)\s*=/;

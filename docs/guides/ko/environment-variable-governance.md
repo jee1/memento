@@ -1,31 +1,14 @@
 # 환경 변수 거버넌스 가이드
 
-Memento는 서버와 에이전트가 별도 프로세스로 동작할 수 있는 모노레포 구조를 가지고 있습니다. 이로 인해 "어떤 환경 변수를 어느 파일에서 관리하는가"라는 질문이 온보딩 과정에서 자주 혼선을 일으킵니다. 이 문서는 그 질문에 답하기 위한 단일 출처 정책을 정의합니다.
+이 문서는 Memento 의 환경 변수를 어느 파일에서 관리하는지 정합니다.
 
 ## 단일 출처 정책
 
-Memento의 환경 변수는 두 개의 템플릿 파일을 기준으로 관리합니다.
+Memento의 환경 변수는 루트 `env.example` 하나를 기준으로 관리합니다.
 
 **루트 `env.example`**은 서버(MCP stdio 서버와 HTTP 관리 서버)가 공통으로 사용하는 변수의 기준입니다. 데이터베이스 경로, 포트, 임베딩 프로바이더, 관리 API 키 같은 서버 수준의 설정이 여기에 속합니다.
 
-**`services/agent/env.example`**은 에이전트 런타임 프로세스가 읽는 변수의 기준입니다. 에이전트의 LLM 프로바이더, 모델 이름, 타임아웃 같은 설정이 `AGENT_*` 네이밍으로 정의됩니다.
-
-동일한 파일 안에서는 동일한 키가 두 번 나오지 않도록 유지해야 합니다. 같은 변수를 두 파일에서 서로 다른 이름으로 정의하는 것은 허용되지만, 이 경우 아래 매핑표를 명시하여 혼선을 방지합니다.
-
-## 에이전트 별칭 매핑
-
-루트 `env.example`에는 `MEMENTO_AGENT_*` 블록이 있습니다. 이 블록은 모노레포 루트의 단일 `.env` 파일에서 서버와 에이전트를 함께 구동할 때 쓰는 별칭 예시입니다. 에이전트 프로세스가 실제로 읽는 변수는 `services/agent/env.example`의 `AGENT_*` 키이며, `MEMENTO_AGENT_*`는 그것을 루트 `.env`에서 설정하기 위한 편의 이름입니다.
-
-| 의미 | 에이전트 템플릿 (`AGENT_*`) | 루트 별칭 (`MEMENTO_AGENT_*`) |
-|------|----------------------------|-------------------------------|
-| LLM 제공자 | `AGENT_LLM_PROVIDER` | `MEMENTO_AGENT_LLM_PROVIDER` |
-| Ollama 베이스 URL | `AGENT_OLLAMA_BASE_URL` | `MEMENTO_AGENT_OLLAMA_BASE_URL` |
-| Ollama 모델 | `AGENT_OLLAMA_MODEL` | `MEMENTO_AGENT_OLLAMA_MODEL` |
-| OpenAI 키·모델 | `AGENT_OPENAI_API_KEY`, `AGENT_OPENAI_MODEL` | `MEMENTO_AGENT_OPENAI_API_KEY`, `MEMENTO_AGENT_OPENAI_MODEL` |
-| Gemini 키·모델 | `AGENT_GEMINI_API_KEY`, `AGENT_GEMINI_MODEL` | `MEMENTO_AGENT_GEMINI_API_KEY`, `MEMENTO_AGENT_GEMINI_MODEL` |
-| 로그·타임아웃 | `AGENT_LOG_LEVEL`, `AGENT_TIMEOUT_MS` | `MEMENTO_AGENT_LOG_LEVEL`, `MEMENTO_AGENT_TIMEOUT_MS` |
-
-우선순위는 항상 에이전트 프로세스가 명시적으로 읽는 변수(`AGENT_*`)가 기준입니다. 루트와 `services/agent`를 동시에 사용할 때는 한쪽만 채우거나, 팀에서 정한 하나의 방식으로 통일합니다.
+같은 키가 파일 안에서 두 번 나오지 않게 유지합니다.
 
 ## 주요 서버 환경 변수
 
@@ -34,9 +17,9 @@ Memento의 환경 변수는 두 개의 템플릿 파일을 기준으로 관리�
 | 변수 | 기본값 | 설명 |
 |------|--------|------|
 | `DB_PATH` | `~/.memento/memory.db` | SQLite 데이터베이스 파일 경로 |
-| `MCP_SERVER_PORT` / `PORT` | `9001` | HTTP 관리 서버 포트 |
+| `MCP_SERVER_PORT` / `PORT` | `3000` | HTTP 관리 서버 포트. `env.example` 과 Docker 는 `9001` |
 | `EMBEDDING_PROVIDER` | `minilm` | 임베딩 프로바이더 (tfidf, minilm, openai, gemini) |
-| `LLM_PROVIDER` | `ollama` | 관계 추출 등에 사용하는 LLM 프로바이더 |
+| `LLM_PROVIDER` | `auto` | 관계 추출 등에 사용하는 LLM 프로바이더. `env.example` 은 `ollama` |
 | `ADMIN_API_KEY` | — | 브라우저 대시보드 로그인 키 (프로덕션 필수) |
 | `MEMENTO_API_TOKENS` | — | programmatic HTTP 인증 토큰 JSON 배열 (v2.0.0 부터 유일한 경로, #1241) |
 | `MEMENTO_HTTP_BIND_HOST` | `127.0.0.1` | HTTP 서버 바인드 주소 |
@@ -61,4 +44,4 @@ HTTP 서버와 MCP stdio 서버는 CLI와 다른 탐색 경로를 가질 수 있
 
 ## 비파괴 전환 원칙
 
-템플릿(`env.example`, `services/agent/env.example`)이 업데이트되더라도 사용자의 기존 `.env`는 자동으로 수정되거나 삭제되지 않습니다. 코드나 템플릿에서 제거된 미사용 키가 운영 `.env`에 남아도 Docker Compose 화이트리스트와 런타임 설정 로더는 이를 무시하므로 기동에 영향을 주지 않습니다. 운영자는 점검 시점에 불필요한 키를 정리하면 됩니다. 변수 이름이 바뀌는 경우 기존 이름과의 호환성을 일정 기간 유지하거나 마이그레이션 안내를 제공합니다.
+템플릿(`env.example`)이 업데이트되더라도 사용자의 기존 `.env`는 자동으로 수정되거나 삭제되지 않습니다. 코드나 템플릿에서 제거된 미사용 키가 운영 `.env`에 남아도 Docker Compose 화이트리스트와 런타임 설정 로더는 이를 무시하므로 기동에 영향을 주지 않습니다. 운영자는 점검 시점에 불필요한 키를 정리하면 됩니다. 변수 이름이 바뀌는 경우 기존 이름과의 호환성을 일정 기간 유지하거나 마이그레이션 안내를 제공합니다.
