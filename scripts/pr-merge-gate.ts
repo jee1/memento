@@ -4,17 +4,17 @@
  *
  *   low    : 필수 체크 + 현재 head 의 agent-review approve 마커(리뷰어 모델별 마지막 마커)
  *   medium : low 조건 + PR 본문 `## 동작 설명`
- *   high   : 현재 head 리뷰(Codex 마커 또는 작성자와 다른 모델의 agent-review approve) + 사람 `approved:human` 라벨
+ *   high   : 현재 head 에 작성자와 다른 Claude 단계의 agent-review approve, 남은 changes 없음 + 사람 `approved:human` 라벨
  *
  * PR 본문 `<!-- author-model=<id> -->` 에 작성 에이전트 모델을 적는다(high 교차 모델 판정).
- * 다른 모델 = 다른 계열이거나, 같은 Claude 안에서 다른 단계(opus, sonnet, haiku, fable). 버전만 다르면 같은 모델이다.
+ * high 는 `claude-<단계>` 나 `<단계>` 뒤에 숫자 버전(`-5-5`, `-4.5`)만 붙은 Claude 모델 id 만 읽는다(단계: opus, sonnet, haiku, fable).
+ * 작성자와 리뷰어의 단계가 달라야 한다. 버전만 다르면 같은 단계다. 다른 꼴의 id 는 인정하지 않는다.
  * 리뷰 마커 4개(3회 초과)면 멈춘다. 사용자가 계속하라고 하면 `--allow-review-overflow` 로 재실행.
  *
  * 에이전트는 머지 API 를 직접 부르지 않고 이 스크립트로만 머지한다(.claude 훅이 강제).
  *
  *   node scripts/pr-merge-gate.ts <PR>                  판정만 출력
  *   node scripts/pr-merge-gate.ts <PR> --merge          판정이 merge 면 squash 머지
- *   node scripts/pr-merge-gate.ts <PR> --codex-review   PR head 체크아웃에서 Codex 리뷰를 돌려 코멘트로 남긴다
  *   node scripts/pr-merge-gate.ts <PR> --post-review approve --findings 0/0/0 --model <id>
  *
  * 종료 코드: 0 머지 가능(또는 머지함) · 2 조치 필요 · 3 대기(체크 진행 중 등)
@@ -26,14 +26,11 @@ import { isMain, parseArgs as parseCliArgs } from "./lib/cli-runtime.js";
 export const EXPLANATION_HEADING_RE = /^##\s*동작 설명\s*$/m;
 // ponytail: 승인 라벨은 head sha 와 묶지 않는다 — 승인 후 push 를 막으려면 라벨 이벤트 시각과 마지막 커밋 시각을 비교
 export const APPROVAL_LABEL = "approved:human";
-export const CODEX_MARKER_PREFIX = "<!-- codex-review sha=";
 export const AGENT_REVIEW_MARKER_PREFIX = "<!-- agent-review ";
 export const AUTHOR_MODEL_MARKER_RE = /<!--\s*author-model=([^\s>]+)\s*-->/;
 
 const AGENT_REVIEW_LINE_RE =
   /^\s*<!--\s*agent-review\s+sha=([a-f0-9]+)\s+verdict=(approve|changes)\s+findings=(\d+)\/(\d+)\/(\d+)\s+round=(\d+)(?:\s+model=([^\s>]+))?\s*-->\s*$/i;
-
-const CODEX_REVIEW_LINE_RE = /^\s*<!--\s*codex-review\s+sha=([a-f0-9]+)\s*-->\s*$/i;
 
 export interface AgentReviewMarker {
   sha: string;
@@ -68,10 +65,6 @@ export type GateDecision =
   | { action: "merge"; level: string; reasons: string[] }
   | { action: "needs"; level: string; reasons: string[] }
   | { action: "wait"; level: string; reasons: string[] };
-
-export function codexMarker(sha: string): string {
-  return `${CODEX_MARKER_PREFIX}${sha} -->`;
-}
 
 export function agentReviewMarker(input: {
   sha: string;
@@ -172,84 +165,60 @@ export function lastApprovedSha(comments: GateComment[], repoOwnerLogin: string)
   return approved.length > 0 ? approved[approved.length - 1]!.sha : undefined;
 }
 
-/** 모델 id 를 거친 계열 키로 접는다(high 교차 리뷰용). 알 수 없으면 undefined(fail-closed). */
-export function modelFamily(model: string): string | undefined {
-  const id = model.toLowerCase();
-  if (
-    /^(opus|sonnet|haiku|fable)([-_.]|$)/.test(id) ||
-    id.startsWith("claude-") ||
-    id === "claude" ||
-    id.includes("claude")
-  ) {
-    return "claude";
+type ClaudeTier = "opus" | "sonnet" | "haiku" | "fable";
+
+const CLAUDE_MODEL_ID_RE = /^(?:claude-)?(opus|sonnet|haiku|fable)(?:[-.]\d+)*$/;
+
+/** high 교차 리뷰용 Claude 단계. 정해진 꼴(`claude-<단계>`, `<단계>`, 뒤에 숫자 버전)이 아니면 undefined(fail-closed). */
+function claudeTier(model: string | undefined): ClaudeTier | undefined {
+  return model?.toLowerCase().match(CLAUDE_MODEL_ID_RE)?.[1] as ClaudeTier | undefined;
+}
+
+/** high 용: head 마커를 리뷰어 단계마다 마지막 하나로 접는다. 같은 단계의 다른 철자는 같은 리뷰어로 본다. */
+function headMarkersPerTier(comments: GateComment[], headSha: string, repoOwnerLogin: string): AgentReviewMarker[] {
+  const byTier = new Map<string, AgentReviewMarker>();
+  for (const marker of parseTrustedAgentReviewMarkers(comments, repoOwnerLogin)) {
+    if (marker.sha !== headSha) continue;
+    byTier.set(claudeTier(marker.model) ?? `other:${(marker.model ?? "").toLowerCase()}`, marker);
   }
-  if (id.includes("composer") || id.includes("cursor")) return "cursor";
-  if (id.includes("gpt") || id.includes("codex") || id.includes("sol") || id.includes("luna")) return "openai";
-  if (id.includes("gemini")) return "google";
-  return undefined;
+  return [...byTier.values()];
 }
 
-export function isDifferentModelFamily(authorModel: string, reviewerModel: string): boolean {
-  const author = modelFamily(authorModel);
-  const reviewer = modelFamily(reviewerModel);
-  if (author === undefined || reviewer === undefined) return false;
-  return author !== reviewer;
-}
-
-const CLAUDE_TIERS = new Set(["opus", "sonnet", "haiku", "fable"]);
-
-/** Claude 모델 id 를 단계로 접는다(버전은 버린다). 단계 토큰이 정확히 한 종류가 아니면 undefined(fail-closed). */
-function claudeTier(model: string): string | undefined {
-  if (modelFamily(model) !== "claude") return undefined;
-  const tiers = new Set(model.toLowerCase().split(/[^a-z0-9]+/).filter((t) => CLAUDE_TIERS.has(t)));
-  return tiers.size === 1 ? [...tiers][0] : undefined;
-}
-
-function isKnownAuthorModel(model: string): boolean {
-  const family = modelFamily(model);
-  return family !== undefined && (family !== "claude" || claudeTier(model) !== undefined);
-}
-
-/** high 교차 리뷰: 다른 계열이거나, 둘 다 Claude 이면서 단계가 다르다. */
-function isDifferentReviewModel(authorModel: string, reviewerModel: string): boolean {
-  if (isDifferentModelFamily(authorModel, reviewerModel)) return true;
-  const author = claudeTier(authorModel);
-  const reviewer = claudeTier(reviewerModel);
-  return author !== undefined && reviewer !== undefined && author !== reviewer;
-}
-
-/** 저장소 소유자 코멘트 첫 줄의 codex-review 마커(코멘트당 1개)만 인정한다. */
-export function hasHeadCodexReview(
-  comments: GateComment[],
-  headSha: string,
-  repoOwnerLogin: string,
-): boolean {
-  const owner = repoOwnerLogin.toLowerCase();
-  for (const comment of comments) {
-    if (comment.authorLogin.toLowerCase() !== owner) continue;
-    const line = commentFirstLine(comment.body);
-    if (isExcludedMarkerLine(line)) continue;
-    const match = line.match(CODEX_REVIEW_LINE_RE);
-    if (match && match[1] === headSha) return true;
-  }
-  return false;
-}
-
+/** 작성자와 다른 Claude 단계의 approve 가 있고, head 에 남은 changes 가 없다. */
 export function highHeadReviewOk(
   comments: GateComment[],
   headSha: string,
   repoOwnerLogin: string,
   authorModel?: string,
 ): boolean {
-  if (hasHeadCodexReview(comments, headSha, repoOwnerLogin)) return true;
-  if (!authorModel || modelFamily(authorModel) === undefined) return false;
-  const markers = parseTrustedAgentReviewMarkers(comments, repoOwnerLogin);
-  return lastMarkersPerModelOnHead(markers, headSha).some(
-    (m) =>
-      m.verdict === "approve" &&
-      m.model !== undefined &&
-      isDifferentReviewModel(authorModel, m.model),
-  );
+  const author = claudeTier(authorModel);
+  if (author === undefined) return false;
+  const markers = headMarkersPerTier(comments, headSha, repoOwnerLogin);
+  if (markers.some((m) => m.verdict === "changes")) return false;
+  return markers.some((m) => {
+    const reviewer = claudeTier(m.model);
+    return m.verdict === "approve" && reviewer !== undefined && reviewer !== author;
+  });
+}
+
+/** `--post-review` 가 올릴 마커를 high 판정이 셀 수 없으면 그 까닭. low, medium 은 모델을 보지 않는다. */
+export function postReviewModelProblem(
+  pr: Pick<GateInput, "labels" | "authorModel">,
+  model: string,
+): string | undefined {
+  if (highestRiskLevel(pr.labels) !== "high") return undefined;
+  const author = claudeTier(pr.authorModel);
+  if (author === undefined) {
+    return "risk:high 는 PR 본문의 author-model 이 `claude-<단계>-<버전>` 꼴이어야 리뷰 기록을 받는다. 작성자가 본문을 고친 뒤 리뷰한다";
+  }
+  const reviewer = claudeTier(model);
+  if (reviewer === undefined) {
+    return "risk:high 의 --model 은 `claude-<단계>-<버전>` 꼴의 Claude 모델 id 여야 한다(예: claude-sonnet-5-5)";
+  }
+  if (reviewer === author) {
+    return `risk:high 의 리뷰어는 작성자(${pr.authorModel})와 다른 Claude 단계여야 한다. 같은 단계 마커는 판정에 세지 않고 리뷰 상한만 쓴다`;
+  }
+  return undefined;
 }
 
 export function reviewOverflowReason(prNumber?: string): string {
@@ -325,21 +294,26 @@ export function decide(pr: GateInput): GateDecision {
   if (level === "high") {
     const reasons: string[] = [];
     if (!highHeadReviewOk(pr.comments, pr.headRefOid, pr.repoOwnerLogin, pr.authorModel)) {
+      const markers = headMarkersPerTier(pr.comments, pr.headRefOid, pr.repoOwnerLogin);
       if (!pr.authorModel) {
         reasons.push(
-          "high — PR 본문에 `<!-- author-model=<작성 모델> -->` 가 필요하고, 작성자와 다른 모델(다른 Claude 단계 또는 다른 계열)의 agent-review approve 또는 Codex 리뷰가 필요",
+          "high — PR 본문에 `<!-- author-model=<작성 모델> -->` 가 필요하고, 작성자와 다른 Claude 단계의 agent-review approve 가 필요",
         );
-      } else if (!isKnownAuthorModel(pr.authorModel)) {
+      } else if (claudeTier(pr.authorModel) === undefined) {
         reasons.push(
-          "high — author-model 의 모델을 알 수 없음: 단계까지 적은 id(예: `claude-opus-5-5`)로 PR 본문을 고친다",
+          "high — author-model 이 Claude 모델 id 꼴이 아니다: 이 PR 을 쓴 실제 Claude 모델을 `claude-<단계>-<버전>` 꼴(예: `claude-opus-5-5`)로 적는다. Claude 가 아닌 모델이 쓴 PR 은 high 를 통과하지 못한다",
         );
-      } else if (hasHeadAgentApprove(pr.comments, pr.headRefOid, pr.repoOwnerLogin)) {
+      } else if (markers.some((m) => m.verdict === "changes")) {
         reasons.push(
-          "high — head agent-review 가 작성자와 같은 모델이거나 모르는 모델: 다른 Claude 단계(작성 opus 면 sonnet, fable 등)나 다른 계열 리뷰어로 `--post-review approve` 또는 Codex `--codex-review`",
+          "high — head 에 changes 리뷰가 남았다: 그 리뷰어가 같은 head 에 같은 단계의 `--model` 로 다시 approve 하거나, 고친 커밋을 올려 새로 리뷰한다(Claude 꼴이 아닌 id 의 changes 는 새 커밋으로만 풀린다)",
+        );
+      } else if (markers.some((m) => m.verdict === "approve")) {
+        reasons.push(
+          "high — head agent-review 가 작성자와 같은 단계이거나 Claude 모델 id 꼴이 아니다: 다른 Claude 단계(작성 opus 면 sonnet, fable 등)로 `--post-review approve --model claude-<단계>-<버전>`",
         );
       } else {
         reasons.push(
-          "high — 현재 head 리뷰 없음: 다른 모델 `--post-review approve` 또는 `--codex-review`",
+          "high — 현재 head 리뷰 없음: 작성자와 다른 Claude 단계로 `--post-review approve --model claude-<단계>-<버전>`",
         );
       }
     }
@@ -537,35 +511,11 @@ function runPostReview(
   }
 }
 
-function runCodexReview(pr: string, data: GateInput & { baseRefName: string }): void {
-  const head = execFileSync("git", ["rev-parse", "HEAD"], { encoding: "utf-8" }).trim();
-  if (head !== data.headRefOid) {
-    throw new Error(
-      `현재 체크아웃 ${head.slice(0, 8)} 이 PR head ${data.headRefOid.slice(0, 8)} 와 다르다 — PR worktree 에서 실행`,
-    );
-  }
-  execFileSync("git", ["fetch", "-q", "origin", data.baseRefName]);
-  const review = execFileSync("codex", ["review", "--base", `origin/${data.baseRefName}`], {
-    encoding: "utf-8",
-    maxBuffer: 32 * 1024 * 1024,
-    stdio: ["ignore", "pipe", "inherit"],
-  });
-  const body = [
-    codexMarker(data.headRefOid),
-    `## Codex review (\`${data.headRefOid.slice(0, 8)}\`)`,
-    "",
-    review.trim(),
-  ].join("\n");
-  gh(["pr", "comment", pr, "--body-file", "-"], body);
-  console.log(review.trim());
-}
-
 function main(): void {
   const { values, positionals } = parseCliArgs({
     allowPositionals: true,
     options: {
       merge: { type: "boolean", default: false },
-      "codex-review": { type: "boolean", default: false },
       "post-review": { type: "string" },
       findings: { type: "string" },
       model: { type: "string" },
@@ -575,17 +525,12 @@ function main(): void {
   const pr = positionals[0];
   if (!pr || !/^\d+$/.test(pr)) {
     console.error(
-      "usage: node scripts/pr-merge-gate.ts <PR> [--merge | --codex-review | --post-review approve|changes --findings I/N/P --model <id>]",
+      "usage: node scripts/pr-merge-gate.ts <PR> [--merge | --post-review approve|changes --findings I/N/P --model <id>]",
     );
     process.exit(64);
   }
 
   const data = loadPr(pr);
-  if (values["codex-review"]) {
-    runCodexReview(pr, data);
-    return;
-  }
-
   const postReview = values["post-review"];
   if (postReview !== undefined) {
     const verdict = postReview.toLowerCase();
@@ -596,6 +541,11 @@ function main(): void {
     const model = values.model;
     if (!model) {
       console.error("--post-review 는 --model 이 필요");
+      process.exit(64);
+    }
+    const modelProblem = postReviewModelProblem(data, model);
+    if (modelProblem) {
+      console.error(modelProblem);
       process.exit(64);
     }
     const findingsRaw = values.findings ?? "0/0/0";

@@ -4,7 +4,6 @@ import {
   agentReviewMarker,
   bucketOf,
   checkKey,
-  codexMarker,
   countAgentReviewMarkers,
   decide,
   checksFromRollup,
@@ -13,13 +12,11 @@ import {
   UNKNOWN_RETRY_ATTEMPTS,
   filterDuplicateCancelledRollup,
   hasHeadAgentApprove,
-  hasHeadCodexReview,
   highHeadReviewOk,
   isCancelledRollup,
-  isDifferentModelFamily,
   lastMarkersPerModelOnHead,
-  modelFamily,
   parseTrustedAgentReviewMarkers,
+  postReviewModelProblem,
   reviewOverflowReason,
   type GateComment,
   type GateInput,
@@ -64,20 +61,6 @@ const headChanges = (sha = HEAD, model = "grok-4.7-high-fast", round = 2) =>
       model,
     }),
   );
-
-describe("modelFamily", () => {
-  it("알려진 id 를 계열로 접는다", () => {
-    expect(modelFamily("claude-opus-5-5-high")).toBe("claude");
-    expect(modelFamily("composer-2.5")).toBe("cursor");
-    expect(modelFamily("gpt-5.6-sol-high")).toBe("openai");
-    expect(modelFamily("gemini-4-argon-medium")).toBe("google");
-  });
-
-  it("미지 모델은 undefined (fail-closed)", () => {
-    expect(modelFamily("grok-4.7-high-fast")).toBeUndefined();
-    expect(isDifferentModelFamily("composer-2.5", "grok-4.7-high-fast")).toBe(false);
-  });
-});
 
 describe("parseTrustedAgentReviewMarkers", () => {
   it("외부 작성자·인용·첫 줄 아님·코드 블록 예시·코멘트당 1개만 인정", () => {
@@ -259,66 +242,80 @@ describe("decide", () => {
     ).toBe("merge");
   });
 
-  it("high 는 head 의 다른 계열 approve 또는 Codex 와 사용자 승인 라벨이 있어야 머지", () => {
-    const high = { labels: ["risk:high"], authorModel: "composer-2.5" };
+  it("high 는 작성자와 다른 Claude 단계의 head approve 와 사용자 승인 라벨이 있어야 머지", () => {
+    const high = { labels: ["risk:high"], authorModel: "claude-opus-5-5" };
     expect(decide(pr(high)).reasons.length).toBeGreaterThanOrEqual(2);
-
-    const staleCodex = { comments: [gateComment(`${codexMarker("deadbeef")}\n## Codex review`)] };
-    expect(decide(pr({ ...high, ...staleCodex, labels: ["risk:high", APPROVAL_LABEL] })).action).toBe(
-      "needs",
-    );
-
     expect(decide(pr({ ...high, authorModel: undefined })).reasons.some((r) => r.includes("author-model"))).toBe(
       true,
     );
 
-    const sameModel = { comments: [headApprove(HEAD, "composer-2.5")] };
-    expect(decide(pr({ ...high, ...sameModel, labels: ["risk:high", APPROVAL_LABEL] })).action).toBe(
-      "needs",
-    );
-
-    const unknownReviewer = { comments: [headApprove(HEAD, "grok-4.7-high-fast")] };
+    const cross = { comments: [headApprove(HEAD, "claude-sonnet-5-5")] };
+    expect(decide(pr({ ...high, ...cross })).action).toBe("needs");
+    expect(decide(pr({ ...high, ...cross, labels: ["risk:high", APPROVAL_LABEL] })).action).toBe("merge");
     expect(
-      decide(pr({ ...high, ...unknownReviewer, labels: ["risk:high", APPROVAL_LABEL] })).action,
+      decide(pr({ ...cross, labels: ["risk:high", APPROVAL_LABEL], authorModel: undefined, body: "## Summary" }))
+        .action,
     ).toBe("needs");
-
-    const crossModel = { comments: [headApprove(HEAD, "gemini-4-argon-medium")] };
-    expect(decide(pr({ ...high, ...crossModel })).action).toBe("needs");
-    expect(
-      decide(pr({ ...high, ...crossModel, labels: ["risk:high", APPROVAL_LABEL] })).action,
-    ).toBe("merge");
-
-    const codex = { comments: [gateComment(`${codexMarker(HEAD)}\n## Codex review`)] };
-    expect(decide(pr({ ...high, ...codex, labels: ["risk:high", APPROVAL_LABEL] })).action).toBe(
-      "merge",
-    );
   });
 
-  it("authorModel 누락 + 다른 계열 head approve + 승인 라벨은 needs", () => {
-    const cross = { comments: [headApprove(HEAD, "gemini-4-argon-medium")] };
-    expect(
+  it("high 는 Claude 가 아닌 모델 id 를 작성자로도 리뷰어로도 인정하지 않는다", () => {
+    const highWith = (authorModel: string, reviewer: string) =>
+      decide(
+        pr({ labels: ["risk:high", APPROVAL_LABEL], authorModel, comments: [headApprove(HEAD, reviewer)] }),
+      ).action;
+    for (const other of ["gpt-5.5", "composer-2.5", "gemini-4-argon-medium", "grok-4.7-high-fast", "codex"]) {
+      expect(highWith("claude-opus-5-5", other)).toBe("needs");
+      expect(highWith(other, "claude-sonnet-5-5")).toBe("needs");
+    }
+    expect(highWith("composer-2.5", "gemini-4-argon-medium")).toBe("needs");
+  });
+
+  it("high 는 정해진 꼴의 Claude 모델 id 만 단계로 읽는다", () => {
+    const highWith = (reviewer: string) =>
       decide(
         pr({
           labels: ["risk:high", APPROVAL_LABEL],
-          authorModel: undefined,
-          body: "## Summary\n(no author-model marker)",
-          ...cross,
+          authorModel: "claude-opus-5-5",
+          comments: [headApprove(HEAD, reviewer)],
         }),
-      ).action,
-    ).toBe("needs");
+      ).action;
+    for (const ok of ["claude-sonnet-5-5", "claude-fable-5-2", "claude-haiku-5-5", "claude-sonnet-4.5", "sonnet", "Claude-Sonnet-5-5"]) {
+      expect(highWith(ok)).toBe("merge");
+    }
+    for (const bad of [
+      "anthropic/claude-sonnet-5-5",
+      "claude-sonnet-5-5:beta",
+      "my-claude-sonnet",
+      "claude_sonnet",
+      "claude-sonnet4-5",
+      "sonnet-claude",
+      "claude-x-sonnet",
+      "claude-sonnet-5-5-high",
+    ]) {
+      expect(highWith(bad)).toBe("needs");
+    }
   });
 
-  it("high 에서 같은 계열 approve 뒤 다른 계열 approve 면 통과", () => {
-    const high = {
-      labels: ["risk:high", APPROVAL_LABEL],
-      authorModel: "composer-2.5",
-      body: "<!-- author-model=composer-2.5 -->",
-    };
-    const comments = [
-      headApprove(HEAD, "cursor-fast"),
-      headApprove(HEAD, "gemini-4-argon-medium"),
-    ];
-    expect(decide(pr({ ...high, comments })).action).toBe("merge");
+  it("high 는 head 에 다른 리뷰어의 changes 가 남았으면 approve 가 있어도 거절", () => {
+    const high = { labels: ["risk:high", APPROVAL_LABEL], authorModel: "claude-opus-5-5" };
+    const comments = [headChanges(HEAD, "claude-fable-5-2", 1), headApprove(HEAD, "claude-sonnet-5-5")];
+    const d = decide(pr({ ...high, comments }));
+    expect(d.action).toBe("needs");
+    expect(d.reasons.some((r) => r.includes("changes"))).toBe(true);
+
+    const reApproved = [...comments, headApprove(HEAD, "claude-fable-5-2")];
+    expect(decide(pr({ ...high, comments: reApproved })).action).toBe("merge");
+
+    const reApprovedOtherSpelling = [...comments, headApprove(HEAD, "fable")];
+    expect(decide(pr({ ...high, comments: reApprovedOtherSpelling })).action).toBe("merge");
+  });
+
+  it("high 는 codex-review 마커로 통과하지 않는다", () => {
+    const codexLike = gateComment(`<!-- codex-review sha=${HEAD} -->\n## Codex review`);
+    expect(
+      decide(pr({ labels: ["risk:high", APPROVAL_LABEL], authorModel: "claude-opus-5-5", comments: [codexLike] }))
+        .action,
+    ).toBe("needs");
   });
 
   describe("high Claude 단계 교차 리뷰 (#1837)", () => {
@@ -334,7 +331,6 @@ describe("decide", () => {
     it("작성 Opus + 리뷰 Fable 또는 Sonnet 은 통과", () => {
       expect(highFor("claude-opus-5-5", "claude-fable-5-2")).toBe("merge");
       expect(highFor("claude-opus-5-5", "claude-sonnet-5-5")).toBe("merge");
-      expect(highFor("claude-opus-5-5", "anthropic/claude-3.5-sonnet:beta")).toBe("merge");
     });
 
     it("단계 없는 author-model 은 작성 모델을 고치라고 한다", () => {
@@ -346,7 +342,7 @@ describe("decide", () => {
         }),
       );
       expect(d.action).toBe("needs");
-      expect(d.reasons.some((r) => r.includes("author-model 의 모델을 알 수 없음"))).toBe(true);
+      expect(d.reasons.some((r) => r.includes("author-model 이 Claude 모델 id 꼴이 아니다"))).toBe(true);
     });
 
     it("같은 단계는 버전이나 별칭이 달라도 거절", () => {
@@ -380,11 +376,11 @@ describe("decide", () => {
   it("high stale agent-review (deadbeef) 는 차단", () => {
     const high = {
       labels: ["risk:high", APPROVAL_LABEL],
-      authorModel: "composer-2.5",
-      body: "<!-- author-model=composer-2.5 -->",
+      authorModel: "claude-opus-5-5",
+      body: "<!-- author-model=claude-opus-5-5 -->",
     };
     expect(
-      decide(pr({ ...high, comments: [headApprove("deadbeef", "gemini-4-argon-medium")] })).action,
+      decide(pr({ ...high, comments: [headApprove("deadbeef", "claude-sonnet-5-5")] })).action,
     ).toBe("needs");
   });
 });
@@ -398,41 +394,13 @@ describe("hasHeadAgentApprove", () => {
   });
 });
 
-describe("hasHeadCodexReview", () => {
-  it("저장소 소유자 코멘트 첫 줄 codex 마커만 인정 (--codex-review 형식)", () => {
-    const trusted = gateComment(`${codexMarker(HEAD)}\n## Codex review`);
-    expect(hasHeadCodexReview([trusted], HEAD, OWNER)).toBe(true);
-    expect(hasHeadCodexReview([gateComment(`> ${codexMarker(HEAD)}`)], HEAD, OWNER)).toBe(false);
-    expect(hasHeadCodexReview([gateComment(codexMarker(HEAD), "dependabot")], HEAD, OWNER)).toBe(
-      false,
-    );
-    expect(hasHeadCodexReview([gateComment(`${codexMarker("deadbeef")}\n`)], HEAD, OWNER)).toBe(
-      false,
-    );
-    expect(
-      hasHeadCodexReview([gateComment(`## Codex review\n${codexMarker(HEAD)}`)], HEAD, OWNER),
-    ).toBe(false);
-  });
-
-  it("여러 코멘트 중 head codex 마커가 뒤에 있으면 true, 옛 sha만 있으면 false", () => {
-    const oldOnly = [gateComment(`${codexMarker("deadbeef")}\n`)];
-    expect(hasHeadCodexReview(oldOnly, HEAD, OWNER)).toBe(false);
-
-    const oldThenHead = [
-      gateComment(`${codexMarker("deadbeef")}\n`),
-      gateComment(`${codexMarker(HEAD)}\n## Codex review`),
-    ];
-    expect(hasHeadCodexReview(oldThenHead, HEAD, OWNER)).toBe(true);
-  });
-});
-
 describe("highHeadReviewOk", () => {
-  it("find 대신 any cross-family effective approve", () => {
+  it("같은 단계 approve 가 먼저 있어도 다른 단계 approve 가 있으면 통과", () => {
     const comments = [
-      headApprove(HEAD, "composer-2.5"),
-      headApprove(HEAD, "gemini-4-argon-medium"),
+      headApprove(HEAD, "claude-opus-5-5"),
+      headApprove(HEAD, "claude-sonnet-5-5"),
     ];
-    expect(highHeadReviewOk(comments, HEAD, OWNER, "composer-2.5")).toBe(true);
+    expect(highHeadReviewOk(comments, HEAD, OWNER, "claude-opus-5-5")).toBe(true);
   });
 });
 
@@ -446,21 +414,18 @@ describe("regression mutations (broken helper vs correct)", () => {
   });
 
   it("high head 비교 제거 변이는 stale cross approve 를 통과시킨다", () => {
-    const comments = [headApprove("deadbeef", "gemini-4-argon-medium")];
+    const comments = [headApprove("deadbeef", "claude-sonnet-5-5")];
     const markers = parseTrustedAgentReviewMarkers(comments, OWNER);
     const broken = markers.some((m) => m.verdict === "approve" && m.model !== undefined);
     expect(broken).toBe(true);
-    expect(highHeadReviewOk(comments, HEAD, OWNER, "composer-2.5")).toBe(false);
+    expect(highHeadReviewOk(comments, HEAD, OWNER, "claude-opus-5-5")).toBe(false);
   });
 
   it("authorModel 누락 차단 변이는 cross approve + 라벨을 잘못 통과시킨다", () => {
-    const comments = [headApprove(HEAD, "gemini-4-argon-medium")];
+    const comments = [headApprove(HEAD, "claude-sonnet-5-5")];
     const markers = parseTrustedAgentReviewMarkers(comments, OWNER);
     const brokenHighOk = lastMarkersPerModelOnHead(markers, HEAD).some(
-      (m) =>
-        m.verdict === "approve" &&
-        m.model !== undefined &&
-        isDifferentModelFamily("composer-2.5", m.model),
+      (m) => m.verdict === "approve" && m.model !== undefined,
     );
     expect(brokenHighOk).toBe(true);
     expect(highHeadReviewOk(comments, HEAD, OWNER, undefined)).toBe(false);
@@ -500,14 +465,13 @@ describe("regression mutations (broken helper vs correct)", () => {
   });
 
   it("모델 비교 제거 변이는 unknown reviewer 를 통과시킨다", () => {
-    const author = "composer-2.5";
+    const author = "claude-opus-5-5";
     const reviewer = "grok-4.7-high-fast";
     const comments = [headApprove(HEAD, reviewer)];
     const brokenCrossOk = parseTrustedAgentReviewMarkers(comments, OWNER).some(
       (m) => m.verdict === "approve" && m.sha === HEAD,
     );
     expect(brokenCrossOk).toBe(true);
-    expect(isDifferentModelFamily(author, reviewer)).toBe(false);
     expect(highHeadReviewOk(comments, HEAD, OWNER, author)).toBe(false);
   });
 
@@ -569,6 +533,42 @@ describe("lastMarkersPerModelOnHead", () => {
     const last = lastMarkersPerModelOnHead(markers, HEAD);
     expect(last).toHaveLength(1);
     expect(last[0]!.verdict).toBe("changes");
+  });
+});
+
+describe("postReviewModelProblem", () => {
+  const high = { labels: ["risk:high"], authorModel: "claude-opus-5-5" };
+
+  it("high 는 작성자와 다른 Claude 단계의 정해진 꼴 id 만 마커로 받는다", () => {
+    expect(postReviewModelProblem(high, "claude-sonnet-5-5")).toBeUndefined();
+    expect(postReviewModelProblem(high, "fable")).toBeUndefined();
+  });
+
+  it("high 는 작성자와 같은 단계를 버전이나 철자가 달라도 거절한다", () => {
+    for (const same of ["claude-opus-5-5", "claude-opus-4.5", "opus", "Claude-Opus-5"]) {
+      expect(postReviewModelProblem(high, same)).toContain("같은 단계");
+    }
+  });
+
+  it("high 는 정해진 꼴이 아닌 id 를 거절한다", () => {
+    for (const bad of ["gpt-5", "claude-sonnet-5-5-high", "composer-2.5"]) {
+      expect(postReviewModelProblem(high, bad)).toContain("꼴");
+    }
+  });
+
+  it("high 는 작성 모델을 읽을 수 없으면 리뷰 기록을 받지 않는다", () => {
+    for (const authorModel of [undefined, "composer-2.5", "claude"]) {
+      expect(postReviewModelProblem({ labels: ["risk:high"], authorModel }, "claude-sonnet-5-5")).toContain(
+        "author-model",
+      );
+    }
+  });
+
+  it("low 와 medium 은 모델 꼴과 단계를 보지 않는다", () => {
+    for (const labels of [["risk:low"], ["risk:medium"]]) {
+      expect(postReviewModelProblem({ labels, authorModel: "claude-opus-5-5" }, "claude-opus-5-5")).toBeUndefined();
+      expect(postReviewModelProblem({ labels, authorModel: "claude-opus-5-5" }, "gpt-5")).toBeUndefined();
+    }
   });
 });
 
