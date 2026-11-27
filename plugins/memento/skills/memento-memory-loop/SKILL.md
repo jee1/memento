@@ -38,7 +38,7 @@ Write the outcome back. Pick the type by what the information *is*, not by when 
 | `semantic` | durable knowledge: how a thing works, why a rule exists | 180d unused |
 | `procedural` | repeatable steps: deploy, release, review checklist (versioned) | 90d unused |
 
-"Unused" means not returned by recall or injection. Past that window, an `episodic`, `semantic`, or `procedural` memory is soft-deleted only if its forget score also reaches 0.6, which takes low importance. Pinned memories and memories tagged `user-directive` are never removed by the automatic cleanup.
+"Unused" means not returned by recall or injection. For `episodic`, `semantic`, and `procedural`, those days are the earliest point, not the deletion date: the memory is soft-deleted only once its forget score also reaches 0.6. Higher importance delays that, and some type and importance combinations never reach it. Pinned memories and memories tagged `user-directive` are never removed by the automatic cleanup.
 
 ```
 remember(

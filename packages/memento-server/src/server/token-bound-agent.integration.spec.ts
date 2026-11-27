@@ -301,6 +301,12 @@ describe('token-bound agent identity integration', () => {
         { role: 'user', content: { type: 'text', text: expect.stringContaining('owner scope alpha secret token') } },
       ]);
       expect(JSON.stringify(prompt)).not.toContain('owner scope beta secret token');
+      // 비운 선택 인자는 기본값을 쓴다
+      const blank = await client.getPrompt({
+        name: 'memory_injection',
+        arguments: { query: 'owner scope secret token', token_budget: '', max_memories: ' ' },
+      });
+      expect(JSON.stringify(blank)).toContain('owner scope alpha secret token');
       await expect(client.getPrompt({ name: 'memory_injection', arguments: {} })).rejects.toMatchObject({ code: -32602 });
       await expect(client.getPrompt({ name: 'nope' })).rejects.toThrow('Prompt not found');
     } finally {

@@ -212,7 +212,8 @@ async function handlePromptsGet(
   }
   // 프롬프트 인자는 사양상 문자열이라 도구의 숫자 인자로 바꾼다. 선언한 인자만 넘긴다.
   const given = (message.params['arguments'] ?? {}) as Record<string, unknown>;
-  const toNumber = (value: unknown) => (value === undefined ? undefined : Number(value));
+  // 빈 값은 생략한 것으로 본다. Number('') 는 0 이라 결과가 비어 버린다.
+  const toNumber = (value: unknown) => (String(value ?? '').trim() === '' ? undefined : Number(value));
   const response = await handleToolsCall(
     {
       ...message,
