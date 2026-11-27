@@ -146,6 +146,18 @@ describe('SupersedeCandidateService (#1548)', () => {
     expect(candidates()).toHaveLength(1);
   });
 
+  it('새 기억의 범위가 바뀌면 본문이 같아도 다시 판정한다 (#1840)', async () => {
+    seedPair();
+    const port = fakeChatPort(() => judgeReply('compatible'));
+    await service(port).scan({ runId: 'run-1' });
+
+    db.prepare(`UPDATE memory_item SET project_id = 'other-project' WHERE id IN ('old', 'new')`).run();
+    const second = await service(port).scan({ runId: 'run-2' });
+
+    expect(second).toMatchObject({ judged: 1 });
+    expect(port.calls).toHaveLength(2);
+  });
+
   it('maxPairs 를 주지 않으면 한 번에 20쌍까지 판정한다 (#1840)', async () => {
     const at = isoDaysAgo(1);
     for (let i = 0; i < 22; i += 1) {

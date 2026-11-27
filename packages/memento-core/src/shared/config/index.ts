@@ -34,7 +34,6 @@ import {
   resolveOptionalString,
   resolveString,
   resolveBoolean,
-  resolveValidatedNumber,
   getRawEnvValue,
   expandHomeDirPath
 } from './environment.js';
@@ -135,14 +134,12 @@ export function resolveRejectionGateOnError(): MementoConfig['searchRejectionGat
   return 'open';
 }
 
-/** 대시보드 설정이 process.env 를 바꾸므로 스캔마다 부른다. 1~200 정수가 아니면 기본값. */
+export const SUPERSEDE_MAX_PAIRS_PATTERN = /^(?:[1-9]\d?|1\d\d|200)$/;
+
+/** 대시보드 설정이 process.env 를 바꾸므로 스캔마다 부른다. 1~200 정수 글자가 아니면('1.9', '20abc' 포함) 기본값. */
 export function resolveSupersedeMaxPairs(): number {
-  return resolveValidatedNumber(
-    'SUPERSEDE_CANDIDATE_SCAN_MAX_PAIRS',
-    SUPERSEDE_DEFAULT_MAX_PAIRS,
-    (n) => n >= 1 && n <= 200,
-    '1~200 정수',
-  );
+  const raw = getRawEnvValue('SUPERSEDE_CANDIDATE_SCAN_MAX_PAIRS')?.trim();
+  return raw && SUPERSEDE_MAX_PAIRS_PATTERN.test(raw) ? Number(raw) : SUPERSEDE_DEFAULT_MAX_PAIRS;
 }
 
 export function resolveProceduralExtractionStrategy(): MementoConfig['proceduralExtractionStrategy'] {

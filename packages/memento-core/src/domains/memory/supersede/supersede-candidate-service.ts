@@ -202,7 +202,18 @@ export class SupersedeCandidateService {
         continue;
       }
       // #1840: 본문이 같은 쌍은 제공자나 프롬프트가 바뀌어도 다시 판정하지 않는다. 검토 목록이 쌍을 묶지 않는다.
-      if (this.repository.hasJudgedPair(old.id, next.id, oldContentSha256, newContentSha256)) {
+      if (
+        this.repository.hasJudgedPair({
+          oldMemoryId: old.id,
+          newMemoryId: next.id,
+          oldContentSha256,
+          newContentSha256,
+          ownerId: next.ownerId,
+          projectId: next.projectId,
+          privacyScope: next.privacyScope,
+          memoryType: next.type,
+        })
+      ) {
         summary.skippedDuplicate += 1;
         continue;
       }

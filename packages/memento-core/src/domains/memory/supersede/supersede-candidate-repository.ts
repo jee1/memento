@@ -50,21 +50,30 @@ export interface SupersedeEventInsert {
 export class SupersedeCandidateRepository {
   constructor(private readonly db: Database.Database) {}
 
-  /** 본문(sha256)이 같은 쌍의 판정 행이 하나라도 있으면 true. provider/model/prompt 는 보지 않는다. */
-  hasJudgedPair(
-    oldMemoryId: string,
-    newMemoryId: string,
-    oldContentSha256: string,
-    newContentSha256: string,
-  ): boolean {
+  /**
+   * 본문(sha256)과 새 기억의 범위(owner, project, privacy, type)가 같은 쌍의 판정 행이 있으면 true.
+   * provider/model/prompt 는 보지 않는다. 범위가 바뀌면 검토 목록 필터가 옛 행을 못 찾으니 다시 판정한다.
+   */
+  hasJudgedPair(pair: {
+    oldMemoryId: string;
+    newMemoryId: string;
+    oldContentSha256: string;
+    newContentSha256: string;
+    ownerId: string | null;
+    projectId: string | null;
+    privacyScope: string;
+    memoryType: string;
+  }): boolean {
     return (
       this.db
         .prepare(
           `SELECT 1 FROM memory_supersede_candidate
-           WHERE old_memory_id = ? AND new_memory_id = ?
-             AND old_content_sha256 = ? AND new_content_sha256 = ?`,
+           WHERE old_memory_id = @oldMemoryId AND new_memory_id = @newMemoryId
+             AND old_content_sha256 = @oldContentSha256 AND new_content_sha256 = @newContentSha256
+             AND owner_id IS @ownerId AND project_id IS @projectId
+             AND privacy_scope = @privacyScope AND memory_type = @memoryType`,
         )
-        .get(oldMemoryId, newMemoryId, oldContentSha256, newContentSha256) !== undefined
+        .get(pair) !== undefined
     );
   }
 

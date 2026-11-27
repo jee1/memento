@@ -217,6 +217,7 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
       maxOutputTokens: 4000,
       json: true,
       jsonSchema: PROCEDURAL_SCHEMA,
+      timeoutMs: mementoConfig.proceduralLlmExtractorTimeoutMs ?? 10000,
     });
     return { raw: result.content, provider: 'anthropic', model };
   }

@@ -26,6 +26,8 @@ export interface ChatLlmRequest {
   json: boolean;
   /** 있으면 구조화 출력을 지원하는 어댑터(anthropic)가 이 JSON schema 로 응답을 묶는다. 나머지는 무시한다. */
   jsonSchema?: Record<string, unknown>;
+  /** 있으면 요청 하나의 시간 제한(ms). 지원하는 어댑터(anthropic)만 쓴다. */
+  timeoutMs?: number;
 }
 
 export interface ChatLlmUsage {

@@ -21,6 +21,8 @@ export interface ChatLlmRetryContext {
   transient: 'cloud' | 'local';
   /** SDK 내부 retry 가 attempt 수를 가릴 수 있다 (#1546). */
   attemptCoverage?: LlmAttemptCoverage;
+  /** 있으면 메시지 패턴 대신 이것으로 재시도를 정한다(오류 클래스와 status 를 아는 어댑터용, #1840). */
+  shouldRetry?: (error: Error) => boolean;
 }
 
 export async function retryChatLlmCall<T>(
@@ -59,10 +61,10 @@ export async function retryChatLlmCall<T>(
   const value = await retryManager.retry(instrumentedCall, {
     maxAttempts: retryOptions.external_api.maxAttempts,
     baseDelay: retryOptions.external_api.baseDelay,
-    shouldRetry: (error: Error) => {
+    shouldRetry: context.shouldRetry ?? ((error: Error) => {
       const message = error.message.toLowerCase();
       return patterns.some((pattern) => message.includes(pattern));
-    },
+    }),
     onRetry: (error: Error, attempt: number, delay: number) => {
       logger.warn('LLM 호출 재시도', {
         provider: context.provider,

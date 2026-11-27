@@ -18,6 +18,7 @@ import {
   resolveRejectionGateProvider,
   resolveRejectionGateThreshold,
   resolveSupersedeMaxPairs,
+  SUPERSEDE_MAX_PAIRS_PATTERN,
 } from '../../shared/config/index.js';
 import { getRawEnvValue, resolveBoolean, resolveOptionalString } from '../../shared/config/environment.js';
 import {
@@ -229,7 +230,8 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
     key: 'SUPERSEDE_CANDIDATE_SCAN_MAX_PAIRS',
     description: '대체 후보 스캔 한 번에 판정할 쌍의 최대 수. 429 를 받으면 그 전에 멈추고 남은 쌍은 다음 스캔이 맡는다.',
     kind: 'number',
-    range: { min: 1, max: 200 },
+    // 정수만 받는다. range 검사는 소수를 통과시켜 저장값과 적용값이 달라진다.
+    pattern: SUPERSEDE_MAX_PAIRS_PATTERN,
     defaultValue: String(SUPERSEDE_DEFAULT_MAX_PAIRS),
     defaultSource: 'shared/config/constants.ts SUPERSEDE_DEFAULT_MAX_PAIRS',
     apply: 'immediate',
