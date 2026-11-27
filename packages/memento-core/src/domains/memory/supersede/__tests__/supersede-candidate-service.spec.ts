@@ -158,6 +158,20 @@ describe('SupersedeCandidateService (#1548)', () => {
     expect(port.calls).toHaveLength(2);
   });
 
+  it('연속 3번 실패하면 남은 쌍을 다음 스캔에 넘기고 멈춘다 (#1840)', async () => {
+    const at = isoDaysAgo(1);
+    for (let i = 0; i < 4; i += 1) {
+      insertSeedMemory(db, { id: `old-${i}`, content: `옛 기억 ${i}`, createdAt: OLD_AT });
+      insertSeedMemory(db, { id: `new-${i}`, content: `새 기억 ${i}`, createdAt: at });
+    }
+    const port = fakeChatPort(() => new Error('529 overloaded_error'));
+
+    const summary = await service(port).scan({ runId: 'run-1' });
+
+    expect(port.calls).toHaveLength(3);
+    expect(summary).toMatchObject({ status: 'deferred', failed: 3, judged: 0 });
+  });
+
   it('maxPairs 를 주지 않으면 한 번에 20쌍까지 판정한다 (#1840)', async () => {
     const at = isoDaysAgo(1);
     for (let i = 0; i < 22; i += 1) {

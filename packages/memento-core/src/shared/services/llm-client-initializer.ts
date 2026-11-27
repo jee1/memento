@@ -79,9 +79,10 @@ export class LLMClientInitializer {
       throw new Error(`remote provider ${selectedProvider} is forbidden in offline strict mode`);
     }
 
-    // 클라이언트 초기화
-    result.openaiClient = initializeOpenAI(result, selectedProvider);
-    result.geminiClient = initializeGemini(result, selectedProvider);
+    // 클라이언트 초기화. #1840: anthropic 은 이 초기화기를 쓰지 않으므로 키가 있어도 OpenAI, Gemini 클라이언트를 만들지 않는다.
+    const buildsCloudClients = selectedProvider !== 'anthropic';
+    result.openaiClient = buildsCloudClients ? initializeOpenAI(result, selectedProvider) : null;
+    result.geminiClient = buildsCloudClients ? initializeGemini(result, selectedProvider) : null;
 
     // Ollama 연결 테스트: ollama 모드; auto+클라우드 없음; 또는 job override가 ollama (FR-005)
     const jobOverrideSelectsOllama = Object.values(mementoConfig.llmProviderOverrides ?? {}).some(

@@ -1,7 +1,8 @@
 import Anthropic from '@anthropic-ai/sdk';
 import { describe, expect, it, vi } from 'vitest';
 import type { IRetryManager } from '../../interfaces/retry-manager.interface.js';
-import { AnthropicChatLlm, isRetryableAnthropicError } from './anthropic-chat-llm.js';
+import { mementoConfig } from '../../config/index.js';
+import { AnthropicChatLlm, createAnthropicChatLlm, isRetryableAnthropicError } from './anthropic-chat-llm.js';
 
 const retryManager: IRetryManager = { retry: (fn) => fn() };
 
@@ -84,6 +85,20 @@ describe('AnthropicChatLlm (#1840)', () => {
     expect([429, 400, 401].map((s) => isRetryableAnthropicError(apiError(s)))).toEqual([false, false, false]);
     expect(isRetryableAnthropicError(connection)).toBe(true);
     expect(isRetryableAnthropicError(new Error('429 rate limit'))).toBe(false);
+  });
+
+  it('오프라인 엄격 모드면 키가 있어도 만들지 않는다', () => {
+    const saved = { key: mementoConfig.anthropicApiKey, offline: mementoConfig.offlineStrict };
+    try {
+      mementoConfig.anthropicApiKey = 'k';
+      mementoConfig.offlineStrict = true;
+      expect(createAnthropicChatLlm()).toBeNull();
+      mementoConfig.offlineStrict = false;
+      expect(createAnthropicChatLlm()).toBeInstanceOf(AnthropicChatLlm);
+    } finally {
+      mementoConfig.anthropicApiKey = saved.key;
+      mementoConfig.offlineStrict = saved.offline;
+    }
   });
 
   it('거절과 빈 응답은 throw 한다', async () => {

@@ -29,6 +29,8 @@ import { SUPERSEDE_DEFAULT_MAX_PAIRS } from '../../../shared/config/constants.js
 
 const SUPERSEDE_DEFAULT_LOOKBACK_DAYS = 7;
 const TOP_OLD_PER_NEW = 3;
+/** #1840: 제공자 장애(5xx, 시간 초과) 때 상한까지 같은 실패를 되풀이하지 않는다. 남은 쌍은 다음 스캔이 맡는다. */
+const MAX_CONSECUTIVE_FAILURES = 3;
 /** sleep consolidation 의 seed 유사도에서 출발한 탐색 신호다. 대체 판정이 맞다는 근거가 아니다. */
 const MIN_COSINE = LOCAL_EMBEDDING_MODEL.memorySimilarity.supersedeCandidate;
 
@@ -175,6 +177,7 @@ export class SupersedeCandidateService {
     summary.pairsConsidered = pairs.length;
 
     let attempts = 0;
+    let consecutiveFailures = 0;
     let nextId: string | null = null;
     let nextText: string | undefined;
     for (const { old, next } of pairs) {
@@ -222,7 +225,7 @@ export class SupersedeCandidateService {
       }
       attempts += 1;
 
-      const rateLimited = await runWithLlmUsageLogicalContext('supersede_judge', options.runId, async () => {
+      const step = await runWithLlmUsageLogicalContext('supersede_judge', options.runId, async (): Promise<'judged' | 'rate_limited' | 'failed'> => {
         const outcome = await judgeSupersedePair(port, model, oldScoped, nextScoped);
         const usage = { provider: port.provider, model };
         if (outcome.kind === 'judged') {
@@ -248,18 +251,19 @@ export class SupersedeCandidateService {
           summary.judged += 1;
           summary.byVerdict[judgment.verdict] += 1;
           recordLlmUsageLogicalFinal({ finalPath: 'llm', ...usage });
-          return false;
+          return 'judged';
         }
         if (outcome.kind === 'rate_limited') {
           recordLlmUsageLogicalFinal({ finalPath: 'deferred', finalReason: 'rate_limited', ...usage });
-          return true;
+          return 'rate_limited';
         }
         recordLlmUsageLogicalFinal({ finalPath: 'failed', finalReason: outcome.reason, ...usage });
         summary.failed += 1;
-        return false;
+        return 'failed';
       });
 
-      if (rateLimited) {
+      consecutiveFailures = step === 'failed' ? consecutiveFailures + 1 : 0;
+      if (step === 'rate_limited' || consecutiveFailures >= MAX_CONSECUTIVE_FAILURES) {
         summary.status = 'deferred';
         break;
       }
