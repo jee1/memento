@@ -51,7 +51,7 @@ ADR은 되돌리기 어렵고, 맥락 없이 보면 놀랍고, 실제 대안을 
 
 - **Docker 배포**: `npm run deploy:docker` (정지 전 DB 무결성 점검, 정지 뒤 복사, 기동과 사본 점검, 첫 recall 확인). 손으로 할 때는 정지 뒤 `npm run db:pre-docker-deploy`
 - **배포와 릴리스**: main 에 머지되면 바로 운영 docker 에 배포한다(몰리면 묶어서 한 번). 릴리스는 매주 월요일, 운영에서 돈 커밋에 태그를 걸어 `gh release create <버전> --verify-tag` 로 발행하고 `release.yml` 이 npm 게시까지 한다(OIDC, 손 게시 없음). 릴리스 때문에 PR 을 묶어 두지 않는다. 절차: [github-release-workflow.md](./docs/operations/ko/github-release-workflow.md)
-- **Node 24 정합**: 루트 `.nvmrc`=`24`; `nvm use` 후 `node -v`·`which node` 확인. major 전환 후 `npm run rebuild-native`. Docker 베이스는 `node:24.22.1-alpine`(builder, log-issue-monitor) / `node:24.22.1-slim`(production). 플로팅 `node:24-*` 는 로컬 캐시가 2026-10 패치 이전에 남으면 구버전이 들어가므로 쓰지 않는다 (#702 는 major 24)
+- **Node 24 정합**: 루트 `.nvmrc`=`24`; `nvm use` 후 `node -v`, `which node` 확인. major 전환 후 `npm run rebuild-native`. Docker 베이스는 `node:24.22.1-alpine`(builder, log-issue-monitor) / `node:24.22.1-slim`(production). 플로팅 `node:24-*` 는 로컬 캐시가 2026-10 패치 이전에 남으면 구버전이 들어가므로 쓰지 않는다 (#702 는 major 24)
 - **`DB_PATH`**: 프로덕션은 절대 경로; `~`는 확장되지 않음
 - **memory_embedding migrate rebuild (#755)**: create/copy/drop/rename + `memory_embedding_vec_*` DROP은 단일 `db.transaction()`; 실패 시 live 테이블·트리거 함께 롤백. `recreateVecTriggers`는 성공 후 트랜잭션 밖
 - **memory_embedding metadata repair (#753)**: `ensureMemoryEmbeddingMetadataDefaults`는 `migrate.ts`·`initializeDatabase` 1회만 — `MemoryEmbeddingService` create/search/stats hot path에 테이블 전역 UPDATE 금지
