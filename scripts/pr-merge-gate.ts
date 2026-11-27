@@ -201,8 +201,13 @@ const CLAUDE_TIERS = new Set(["opus", "sonnet", "haiku", "fable"]);
 /** Claude 모델 id 를 단계로 접는다(버전은 버린다). 단계 토큰이 정확히 한 종류가 아니면 undefined(fail-closed). */
 function claudeTier(model: string): string | undefined {
   if (modelFamily(model) !== "claude") return undefined;
-  const tiers = new Set(model.toLowerCase().split(/[-_.]/).filter((t) => CLAUDE_TIERS.has(t)));
+  const tiers = new Set(model.toLowerCase().split(/[^a-z0-9]+/).filter((t) => CLAUDE_TIERS.has(t)));
   return tiers.size === 1 ? [...tiers][0] : undefined;
+}
+
+function isKnownAuthorModel(model: string): boolean {
+  const family = modelFamily(model);
+  return family !== undefined && (family !== "claude" || claudeTier(model) !== undefined);
 }
 
 /** high 교차 리뷰: 다른 계열이거나, 둘 다 Claude 이면서 단계가 다르다. */
@@ -323,6 +328,10 @@ export function decide(pr: GateInput): GateDecision {
       if (!pr.authorModel) {
         reasons.push(
           "high — PR 본문에 `<!-- author-model=<작성 모델> -->` 가 필요하고, 작성자와 다른 모델(다른 Claude 단계 또는 다른 계열)의 agent-review approve 또는 Codex 리뷰가 필요",
+        );
+      } else if (!isKnownAuthorModel(pr.authorModel)) {
+        reasons.push(
+          "high — author-model 의 모델을 알 수 없음: 단계까지 적은 id(예: `claude-opus-5-5`)로 PR 본문을 고친다",
         );
       } else if (hasHeadAgentApprove(pr.comments, pr.headRefOid, pr.repoOwnerLogin)) {
         reasons.push(

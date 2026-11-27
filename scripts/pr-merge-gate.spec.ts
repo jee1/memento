@@ -334,6 +334,19 @@ describe("decide", () => {
     it("작성 Opus + 리뷰 Fable 또는 Sonnet 은 통과", () => {
       expect(highFor("claude-opus-5-5", "claude-fable-5-2")).toBe("merge");
       expect(highFor("claude-opus-5-5", "claude-sonnet-5-5")).toBe("merge");
+      expect(highFor("claude-opus-5-5", "anthropic/claude-3.5-sonnet:beta")).toBe("merge");
+    });
+
+    it("단계 없는 author-model 은 작성 모델을 고치라고 한다", () => {
+      const d = decide(
+        pr({
+          labels: ["risk:high", APPROVAL_LABEL],
+          authorModel: "claude",
+          comments: [headApprove(HEAD, "claude-sonnet-5-5")],
+        }),
+      );
+      expect(d.action).toBe("needs");
+      expect(d.reasons.some((r) => r.includes("author-model 의 모델을 알 수 없음"))).toBe(true);
     });
 
     it("같은 단계는 버전이나 별칭이 달라도 거절", () => {
