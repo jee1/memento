@@ -99,10 +99,8 @@ UI를 손볼 때는 `static/css/tokens.css`에 정의된 디자인 토큰부터 
 
 대형 리팩터(god node 분해 #593 계열)는 public import·export를 그대로 두고 내부를 composition sub-module(단일 파일 ≤500줄)로 나눕니다. 선행 spec이 green인지 확인하고 시작하세요.
 
-## PR·지식 복리
+## PR
 
-커밋할 때 `.cursor/hooks.json`에 설정된 `revise-claude-md` 훅이 주로 `AGENTS.md` §3.1을 갱신·스테이징합니다(`CLAUDE.md`는 AGENTS 위임이면 건드리지 않아도 됨). 건너뛰려면 `REVISE_CLAUDE_MD_SKIP=1`. 저장소 `pre-push`는 `lint`·`type-check`만 돌린다(테스트는 CI required).
-
-재현이 어려운 버그나 운영 함정을 해결한 뒤 PR을 준비할 때는 `/ce-compound`를 제안받을 수 있습니다(검증 완료 후). 생성된 초안을 그대로 쌓지 말고 재사용 가능한 절차는 기존 공식 가이드에, 장기 설계 결정은 ADR에 반영한 뒤 PR 템플릿의 「지식 복리」 섹션을 채우세요.
+저장소 `pre-push`는 `lint`·`type-check`만 돌린다(테스트는 CI required).
 
 관련 문서: [docs/README.md](../README.md) · [CONTRIBUTING.md](../../CONTRIBUTING.md) · [.github/PULL_REQUEST_TEMPLATE.md](../../.github/PULL_REQUEST_TEMPLATE.md)

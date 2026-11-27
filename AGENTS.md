@@ -51,7 +51,7 @@ ADR은 되돌리기 어렵고, 맥락 없이 보면 놀랍고, 실제 대안을 
 
 - **Docker 배포**: `npm run deploy:docker` (정지 전 DB 무결성 점검, 정지 뒤 복사, 기동과 사본 점검, 첫 recall 확인). 손으로 할 때는 정지 뒤 `npm run db:pre-docker-deploy`
 - **배포와 릴리스**: main 에 머지되면 바로 운영 docker 에 배포한다(몰리면 묶어서 한 번). 릴리스는 매주 월요일, 운영에서 돈 커밋에 태그를 걸어 `gh release create <버전> --verify-tag` 로 발행하고 `release.yml` 이 npm 게시까지 한다(OIDC, 손 게시 없음). 릴리스 때문에 PR 을 묶어 두지 않는다. 절차: [github-release-workflow.md](./docs/operations/ko/github-release-workflow.md)
-- **Node 24 정합**: 루트 `.nvmrc`=`24`; `nvm use` 후 `node -v`·`which node` 확인(Cursor agent PATH가 nvm을 가릴 수 있음). major 전환 후 `npm run rebuild-native`. Docker 베이스는 `node:24.22.1-alpine`(builder, log-issue-monitor) / `node:24.22.1-slim`(production). 플로팅 `node:24-*` 는 로컬 캐시가 2026-10 패치 이전에 남으면 구버전이 들어가므로 쓰지 않는다 (#702 는 major 24)
+- **Node 24 정합**: 루트 `.nvmrc`=`24`; `nvm use` 후 `node -v`, `which node` 확인. major 전환 후 `npm run rebuild-native`. Docker 베이스는 `node:24.22.1-alpine`(builder, log-issue-monitor) / `node:24.22.1-slim`(production). 플로팅 `node:24-*` 는 로컬 캐시가 2026-10 패치 이전에 남으면 구버전이 들어가므로 쓰지 않는다 (#702 는 major 24)
 - **`DB_PATH`**: 프로덕션은 절대 경로; `~`는 확장되지 않음
 - **memory_embedding migrate rebuild (#755)**: create/copy/drop/rename + `memory_embedding_vec_*` DROP은 단일 `db.transaction()`; 실패 시 live 테이블·트리거 함께 롤백. `recreateVecTriggers`는 성공 후 트랜잭션 밖
 - **memory_embedding metadata repair (#753)**: `ensureMemoryEmbeddingMetadataDefaults`는 `migrate.ts`·`initializeDatabase` 1회만 — `MemoryEmbeddingService` create/search/stats hot path에 테이블 전역 UPDATE 금지
@@ -73,9 +73,10 @@ ADR은 되돌리기 어렵고, 맥락 없이 보면 놀랍고, 실제 대안을 
 - **rate limit 키 (#1161)**: `express-rate-limit` 기본 키(`req.ip`)는 Docker 포트 퍼블리싱·프록시 뒤에서 전원 공용 버킷이 된다 — 버킷 추가 시 `keyGenerator: resolveRateLimitKey` 유지(API 키 해시 → 세션 id 해시 → `ipKeyGenerator(req.ip)`). rate limit 은 인증 **앞**이라 `req.programmaticAuth` 없음 전제; 감사 로그의 `'session'` 상수를 키로 재사용 금지(세션 뭉침). `trust proxy` 는 `MEMENTO_TRUST_PROXY` 로만 켠다 — 기본 미설정(=XFF 무시)이 스펙이고 `true` 는 헤더 위조로 한도 우회
 - **http-server 미들웨어 순서**: `/tools` — rateLimit → programmaticAuth → resolveCaller → ownerScope → httpAudit → router; `middleware/index.ts` export 누락 시 `tsc` 실패
 - **도구 실행 경계 (#793)**: stdio·HTTP MCP·WebSocket·REST의 `tools/call`은 모두 `server/audit-tool-dispatch.ts`의 `dispatchTool()`을 경유 — transport에서 `executeTool()` 직접 호출 금지(동시성·audit·에러 매핑 분기 방지)
+- **ToolRegistry 캐시**: 기본 `enableCaching: false`. 켜거나 `generateCacheKey` 를 고칠 때 caller(`resolveCallerAgentId`), project, DB revision 필드를 키에서 빼지 않는다. 빼면 다른 에이전트의 결과나 쓰기 전 결과가 돌아온다
 - **Security Check no-console (core)**: config 파서 경고는 `console.warn` 금지 — `process.stderr.write('[CONFIG WARN] ...\\n')` (예: `owner-scope-mode.ts`)
 - **preserve-caught-error (#1366)**: PII 마스킹 재throw는 `eslint-disable-next-line preserve-caught-error` 유지(raw `cause`가 PII 노출). 로컬은 `npm ci`로 ESLint 10 맞출 것 — ESLint 9는 해당 disable을 unused로 보고 `--fix`가 지워 버리면 CI lint/Security Check가 실패한다
-- **Node major / ESLint major**: Cursor agent PATH·옛 `node_modules`가 lockfile보다 뒤처질 수 있음 — pre-push 전 `npx eslint --version`이 `package.json`/`package-lock`과 같은 major인지 확인
+- **Node major / ESLint major**: 옛 `node_modules`가 lockfile보다 뒤처질 수 있음 — pre-push 전 `npx eslint --version`이 `package.json`/`package-lock`과 같은 major인지 확인
 - **LLM provider use-case override (#820/#1126)**: `LLM_PROVIDER_RELATION_EXTRACTION`·`LLM_PROVIDER_PROCEDURAL`·`LLM_PROVIDER_CONSOLIDATION`(unset→global, invalid→`[CONFIG WARN]` 1회). call site `resolveLlmProvider`/`resolveBoundLlmProvider`; `resolveLlmModel(...,{boundProvider})` — runtime≠bound면 `LLM_MODEL_*` 폐기; job override `ollama`면 global cloud여도 Ollama readiness; Ollama 가용성은 `initializedProviders.includes('ollama')`(preferred만 X). `LLM_PROVIDER_TRIPLE_*` 없음(triple 제거)
 - **관계 추출 LLM 가용성 (#819)**: `RelationExtractor`는 sync `isAvailable()` 금지 — `isAvailableAsync()`(init await 후 판정); `isOllamaAvailable`에 `LLM_PROVIDER===ollama` 조건 금지(`auto`+로컬 채택 시 불일치); 폴백 로그 `reason`: `llm_unavailable`|`llm_call_failed`|`init_failed` — `specs/656-819-fix-llm-init-race/`
 - **관계 추출 chat LLM 포트 (#1532)**: `extract-relations-{gemini,openai,ollama}.ts` 는 없다 — `shared/services/chat-llm` 의 `ChatLlmPort` 구현(`OpenAiChatLlm`·`GeminiChatLlm`·`OllamaChatLlm`) 경유. 출력 상한·thinking·provider 파라미터 이름(`max_completion_tokens`·`maxOutputTokens`·`num_predict`)은 어댑터에만 — 호출부에서 `max_tokens`·`thinkingConfig` 금지(gpt-5.x 가 `max_tokens` 를 400 으로 거절). 모델·provider 결정은 포트 밖(`resolveLlmModel`·`resolveLlmProvider`) 그대로. procedural(`procedural-llm-extractor.ts`)·consolidation 요약은 아직 자체 호출(2단계)
@@ -104,7 +105,7 @@ ADR은 되돌리기 어렵고, 맥락 없이 보면 놀랍고, 실제 대안을 
 - **core-deprecated-inventory**: 활성 표 먼저 확인 (#617 후 shim 제거 완료; #636은 type-param 롤아웃); merge 전 inventory·CHANGELOG 갱신
 - **deps minor/patch**: `npm outdated` → wanted만; `better-sqlite3` 후 `npm run rebuild-native`; **major** bump는 별도 PR
 - **`@types/node`**: major는 `engines.node`(≥24)와 맞춤 — root·워크스페이스 package.json 동시 갱신
-- **Node major 전환**: `npm ci` → `npm run rebuild-native` → smoke(`better-sqlite3`/`sqlite-vec`/`sharp`/`onnxruntime-node`) → type-check; Cursor agent PATH가 nvm을 가릴 수 있음
+- **Node major 전환**: `npm ci` → `npm run rebuild-native` → smoke(`better-sqlite3`/`sqlite-vec`/`sharp`/`onnxruntime-node`) → type-check
 - **도메인 회귀 테스트**: `npm test -- packages/memento-core/src/domains/<domain>/.../__tests__/<module>` (전체 `npm test` 전 선행)
 - **recall search_quality 텔레메트리**: `ranking_version`은 hybrid면 `HybridSearchEngine.getRankingVersion()`(생성 시 캐시, `ranking-sha256:`+가중치 SHA12) 아니면 `getRankingVersion()`; funnel은 SQL `json_extract`로 `text_candidate_count`/`vector_candidate_count`/`union_candidate_count`(없으면 `candidate_count`) — extra_data 전량 JS 파싱 금지, 키 변경 시 admin `/telemetry/search-quality`·`get_telemetry_summary`·telemetry-cli 동시 갱신
 - **feedback_quality 텔레메트리 (#729)**: `recall_without_feedback_rate` 등 키 변경 시 `get_telemetry_summary`·admin `/telemetry/feedback`·`npm run telemetry -- --type feedback-quality` 동시 갱신; 관측 지표는 [agent-workflow.md](./docs/agents/agent-workflow.md)
@@ -128,7 +129,6 @@ ADR은 되돌리기 어렵고, 맥락 없이 보면 놀랍고, 실제 대안을 
 - **fts5↔database cycle (#749)**: `fts5-migration-status.ts`는 `DatabaseUtils`/`database.ts` 대신 `shared/utils/database/query-helpers.js`의 `getQuery`/`runQuery` 사용 (schema-init 순환 차단)
 - **infrastructure async·reflexion** (#615): `async-optimizer/`(types·parsers·queue·worker·batch-processor), `reflexion-procedural-memory-service/`(extraction·create·update-*); orchestrator는 re-export·early-return; Worker↔Queue는 `import type`으로 순환 방지; 선행 spec — `reflexion-worker.spec.ts` + `failure-detector.spec.ts`
 - **composition import 깊이**: `infrastructure/foo.ts` → `../shared/`; `infrastructure/foo/bar.ts` → `../../shared/` (`tsc` 모듈 not found 시 우선 확인)
-- **커밋 훅 (revise-claude-md)**: `git commit` 직전 `.cursor/hooks/pre-commit-revise-claude-md.sh`가 `AGENTS.md` §3.1 등을 갱신·스테이징; 스킵 `REVISE_CLAUDE_MD_SKIP=1`
 
 ## 4. 코딩 에이전트 행동 지침 (Karpathy Guidelines)
 
