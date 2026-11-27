@@ -201,6 +201,22 @@ export function highHeadReviewOk(
   });
 }
 
+/** `--post-review` 가 올릴 마커를 high 판정이 셀 수 없으면 그 까닭. low, medium 은 모델을 보지 않는다. */
+export function postReviewModelProblem(
+  pr: Pick<GateInput, "labels" | "authorModel">,
+  model: string,
+): string | undefined {
+  if (highestRiskLevel(pr.labels) !== "high") return undefined;
+  const reviewer = claudeTier(model);
+  if (reviewer === undefined) {
+    return "risk:high 의 --model 은 `claude-<단계>-<버전>` 꼴의 Claude 모델 id 여야 한다(예: claude-sonnet-5-5)";
+  }
+  if (reviewer === claudeTier(pr.authorModel)) {
+    return `risk:high 의 리뷰어는 작성자(${pr.authorModel})와 다른 Claude 단계여야 한다. 같은 단계 마커는 판정에 세지 않고 리뷰 상한만 쓴다`;
+  }
+  return undefined;
+}
+
 export function reviewOverflowReason(prNumber?: string): string {
   const n = prNumber ?? "<번호>";
   return `조치 필요 — 3회 초과, 접근 재검토 (사용자가 계속하라고 하면 \`! node scripts/pr-merge-gate.ts ${n} --merge --allow-review-overflow\`)`;
@@ -285,7 +301,7 @@ export function decide(pr: GateInput): GateDecision {
         );
       } else if (markers.some((m) => m.verdict === "changes")) {
         reasons.push(
-          "high — head 에 changes 리뷰가 남았다: 그 리뷰어가 같은 head 에 다시 approve 하거나, 고친 커밋에 새로 리뷰한다",
+          "high — head 에 changes 리뷰가 남았다: 그 리뷰어가 같은 head 에 같은 단계의 `--model` 로 다시 approve 하거나, 고친 커밋을 올려 새로 리뷰한다(Claude 꼴이 아닌 id 의 changes 는 새 커밋으로만 풀린다)",
         );
       } else if (markers.some((m) => m.verdict === "approve")) {
         reasons.push(
@@ -523,8 +539,9 @@ function main(): void {
       console.error("--post-review 는 --model 이 필요");
       process.exit(64);
     }
-    if (highestRiskLevel(data.labels) === "high" && claudeTier(model) === undefined) {
-      console.error("risk:high 의 --model 은 `claude-<단계>-<버전>` 꼴의 Claude 모델 id 여야 한다(예: claude-sonnet-5-5)");
+    const modelProblem = postReviewModelProblem(data, model);
+    if (modelProblem) {
+      console.error(modelProblem);
       process.exit(64);
     }
     const findingsRaw = values.findings ?? "0/0/0";

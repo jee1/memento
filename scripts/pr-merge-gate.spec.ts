@@ -16,6 +16,7 @@ import {
   isCancelledRollup,
   lastMarkersPerModelOnHead,
   parseTrustedAgentReviewMarkers,
+  postReviewModelProblem,
   reviewOverflowReason,
   type GateComment,
   type GateInput,
@@ -532,6 +533,34 @@ describe("lastMarkersPerModelOnHead", () => {
     const last = lastMarkersPerModelOnHead(markers, HEAD);
     expect(last).toHaveLength(1);
     expect(last[0]!.verdict).toBe("changes");
+  });
+});
+
+describe("postReviewModelProblem", () => {
+  const high = { labels: ["risk:high"], authorModel: "claude-opus-5-5" };
+
+  it("high 는 작성자와 다른 Claude 단계의 정해진 꼴 id 만 마커로 받는다", () => {
+    expect(postReviewModelProblem(high, "claude-sonnet-5-5")).toBeUndefined();
+    expect(postReviewModelProblem(high, "fable")).toBeUndefined();
+  });
+
+  it("high 는 작성자와 같은 단계를 버전이나 철자가 달라도 거절한다", () => {
+    for (const same of ["claude-opus-5-5", "claude-opus-4.5", "opus", "Claude-Opus-5"]) {
+      expect(postReviewModelProblem(high, same)).toContain("같은 단계");
+    }
+  });
+
+  it("high 는 정해진 꼴이 아닌 id 를 거절한다", () => {
+    for (const bad of ["gpt-5", "claude-sonnet-5-5-high", "composer-2.5"]) {
+      expect(postReviewModelProblem(high, bad)).toContain("꼴");
+    }
+  });
+
+  it("low 와 medium 은 모델 꼴과 단계를 보지 않는다", () => {
+    for (const labels of [["risk:low"], ["risk:medium"]]) {
+      expect(postReviewModelProblem({ labels, authorModel: "claude-opus-5-5" }, "claude-opus-5-5")).toBeUndefined();
+      expect(postReviewModelProblem({ labels, authorModel: "claude-opus-5-5" }, "gpt-5")).toBeUndefined();
+    }
   });
 });
 
