@@ -65,7 +65,12 @@ describe('agent memory production adapter', () => {
 
     expect(searchSpy).toHaveBeenCalledTimes(dataset.queries.length);
     expect(result.production_path).toBe('hybridSearchEngine.search');
-    expect(result.embedding_provider).toBe('tfidf');
+    expect(result.embedding).toMatchObject({
+      requested_provider: 'tfidf',
+      provider: 'tfidf',
+      embedded_documents: dataset.documents.length,
+      total_documents: dataset.documents.length,
+    });
     expect(result.imported_ids).toEqual(dataset.documents.map((document) => document.id));
     expect(result.evaluations).toHaveLength(dataset.queries.length);
     expect(result.evaluations.some((evaluation) => evaluation.ranked.length > 0)).toBe(true);
