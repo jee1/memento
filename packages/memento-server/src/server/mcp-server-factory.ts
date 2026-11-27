@@ -3,10 +3,9 @@ import { Server, type ListToolsResult } from '@modelcontextprotocol/server';
 import type Database from 'better-sqlite3';
 import packageJson from '../../package.json' with { type: 'json' };
 import { dispatchTool } from './audit-tool-dispatch.js';
+import { MEMENTO_SERVER_INSTRUCTIONS } from './mcp-instructions.js';
 import { mcpLogger } from './mcp-logger.js';
 import { countConnectionSignal, stdioUsageConnection } from './usage-recording.js';
-
-export const MEMENTO_SERVER_INSTRUCTIONS = `Memento MCP provides persistent memory for AI agents (recall, remember, feedback, memory_injection).`;
 
 interface McpServerFactoryDeps {
   /** resolved once heavy init finishes; handlers await it before touching db/services */

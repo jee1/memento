@@ -10,29 +10,27 @@ The difference is practical. With `instructions`, the model starts with explicit
 
 ## How Memento implements it
 
-Memento uses the Node.js `@modelcontextprotocol/sdk` `Server` class. The constructor accepts `instructions` in its options object; the SDK attaches it to `InitializeResult` on `initialize`.
+The text is a single constant, `MEMENTO_SERVER_INSTRUCTIONS` in `packages/memento-server/src/server/mcp-instructions.ts`. All three connection paths send the same value.
 
-```typescript
-// packages/memento-server/src/server/index.ts
-new Server(serverInfo, {
-  capabilities,
-  instructions: MEMENTO_SERVER_INSTRUCTIONS
-})
-```
+| Path | Where it is sent |
+|---|---|
+| stdio | `InitializeResult` (earlier revisions), `server/discover` (2026-07-28) |
+| HTTP `/mcp`, earlier revisions | `initialize` response |
+| HTTP `/mcp`, 2026-07-28 | `server/discover` response |
 
-`MEMENTO_SERVER_INSTRUCTIONS` encodes Memento habits: recall or `memory_injection` before work, `remember` after, explicit `type` and tags, and related guidance. Cursor reads this during MCP init and treats it as serverUseInstructions.
+It says to call `memory_injection` or `recall` before work, `remember` after, and `feedback` on memories you used, plus the core of the save format. A test caps it at 1,000 characters. The paste-in block in `README.en.md` must carry the same text, and a test compares them.
 
 ## Applying the pattern to other MCP servers
 
 For `@modelcontextprotocol/sdk` servers, add `instructions` to the `Server` constructor options. For other stacks, return `instructions: string` on your `initialize` response.
 
-## How Cursor uses it
+## What clients do (documentation checked 2026-11-28)
 
-Cursor reads `instructions` from the initialize handshake and may surface it in the agent context. Some versions also persist it under `~/.cursor/projects/<project-id>/mcps/<server>/INSTRUCTIONS.md`; behavior varies by Cursor version and settings.
+The client decides whether `instructions` reaches the model. Claude Code documentation and Gemini CLI source say it does, and Codex documentation says it is read (keep the first 512 characters self-contained). Cursor documentation does not describe it. For a client that does not pass it on, paste the README block into your project instructions.
 
 ## References
 
 - MCP spec: https://modelcontextprotocol.io/specification/ (`InitializeResult.instructions`)
 - Server instructions overview: https://modelcontextprotocol.info/tags/server-instructions/
 - Cursor MCP config: `~/.cursor/mcp.json` or project `.cursor/mcp.json` (Settings → Tools & MCP)
-- Memento agent rules: [AGENTS.md](../../../AGENTS.md)
+- Paste-in block: [README.en.md](../../../README.en.md)
