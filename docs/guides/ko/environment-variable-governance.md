@@ -17,9 +17,9 @@ Memento의 환경 변수는 루트 `env.example` 하나를 기준으로 관리�
 | 변수 | 기본값 | 설명 |
 |------|--------|------|
 | `DB_PATH` | `~/.memento/memory.db` | SQLite 데이터베이스 파일 경로 |
-| `MCP_SERVER_PORT` / `PORT` | `9001` | HTTP 관리 서버 포트 |
+| `MCP_SERVER_PORT` / `PORT` | `3000` | HTTP 관리 서버 포트. `env.example` 과 Docker 는 `9001` |
 | `EMBEDDING_PROVIDER` | `minilm` | 임베딩 프로바이더 (tfidf, minilm, openai, gemini) |
-| `LLM_PROVIDER` | `ollama` | 관계 추출 등에 사용하는 LLM 프로바이더 |
+| `LLM_PROVIDER` | `auto` | 관계 추출 등에 사용하는 LLM 프로바이더. `env.example` 은 `ollama` |
 | `ADMIN_API_KEY` | — | 브라우저 대시보드 로그인 키 (프로덕션 필수) |
 | `MEMENTO_API_TOKENS` | — | programmatic HTTP 인증 토큰 JSON 배열 (v2.0.0 부터 유일한 경로, #1241) |
 | `MEMENTO_HTTP_BIND_HOST` | `127.0.0.1` | HTTP 서버 바인드 주소 |

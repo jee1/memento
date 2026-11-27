@@ -32,7 +32,7 @@ function expectNoDuplicateKeys(label: string, content: string): void {
 }
 
 describe('environment templates consistency', () => {
-  it('includes required security and agent sections in root env.example', () => {
+  it('includes required security sections and base URL in root env.example', () => {
     const repoRoot = getRepoRoot();
     const envExamplePath = path.join(repoRoot, 'env.example');
     const content = readFileSync(envExamplePath, 'utf-8');
@@ -42,7 +42,7 @@ describe('environment templates consistency', () => {
     expect(content).toContain('MEMENTO_BASE_URL=');
   });
 
-  it('has no duplicate variable names in env templates', () => {
+  it('has no duplicate variable names in env.example', () => {
     const repoRoot = getRepoRoot();
     const rootExample = readFileSync(path.join(repoRoot, 'env.example'), 'utf-8');
     expectNoDuplicateKeys('env.example', rootExample);
