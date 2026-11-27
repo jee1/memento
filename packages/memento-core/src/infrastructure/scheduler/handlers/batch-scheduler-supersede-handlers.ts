@@ -1,4 +1,5 @@
 import { randomUUID } from 'node:crypto';
+import { resolveSupersedeMaxPairs } from '../../../shared/config/index.js';
 import { resolveSupersedeLlm } from '../../../domains/memory/supersede/supersede-llm-resolver.js';
 import { SupersedeCandidateService } from '../../../domains/memory/supersede/supersede-candidate-service.js';
 import { createEmptyBatchJobResult, finalizeBatchJobTiming } from '../batch-scheduler/batch-scheduler-internal-helpers.js';
@@ -29,7 +30,7 @@ export async function runSupersedeCandidateScan(ctx: BatchSchedulerRunContext): 
       db: ctx.db,
       port: llm?.port ?? null,
       model: llm?.model ?? null,
-    }).scan({ runId });
+    }).scan({ runId, maxPairs: resolveSupersedeMaxPairs() });
 
     result.success = true;
     result.processed = summary.judged;

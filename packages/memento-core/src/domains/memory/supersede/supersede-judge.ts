@@ -33,6 +33,17 @@ export type SupersedeJudgeOutcome =
   | { kind: 'failed'; reason: 'llm_failed' | 'parse_failed' };
 
 const VERDICTS: readonly SupersedeVerdict[] = ['confirmed', 'pending', 'compatible'];
+/** 구조화 출력을 지원하는 어댑터(anthropic)만 쓴다. 파싱은 어느 제공자든 parseJudgment 가 한다. */
+const JUDGMENT_SCHEMA: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    verdict: { type: 'string', enum: [...VERDICTS] },
+    rationale: { type: 'string' },
+    evidence_quote: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+  },
+  required: ['verdict', 'rationale', 'evidence_quote'],
+  additionalProperties: false,
+};
 const MAX_OUTPUT_TOKENS = 400;
 const MAX_RATIONALE_CHARS = 1000;
 
@@ -166,6 +177,7 @@ export async function judgeSupersedePair(
       temperature: 0,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
       json: true,
+      jsonSchema: JUDGMENT_SCHEMA,
     });
     content = result.content;
   } catch (error) {

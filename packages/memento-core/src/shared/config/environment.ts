@@ -8,6 +8,7 @@ import os from 'os';
 import path from 'path';
 import packageJson from '../../../package.json' with { type: 'json' };
 import {
+  DEFAULT_ANTHROPIC_LLM_MODEL,
   DEFAULT_GEMINI_LLM_MODEL,
   DEFAULT_MEMORY_INJECTION_ITEM_SCORE_MIN,
   DEFAULT_RELEVANCE_GATE_THRESHOLD,
@@ -30,6 +31,7 @@ const ENV_DEFAULTS: Record<string, string> = {
   OPENAI_LLM_MODEL: 'gpt-4o-mini',
   GEMINI_MODEL: 'text-embedding-004',
   GEMINI_LLM_MODEL: DEFAULT_GEMINI_LLM_MODEL,
+  ANTHROPIC_LLM_MODEL: DEFAULT_ANTHROPIC_LLM_MODEL,
   OLLAMA_BASE_URL: 'http://localhost:11434',
   OLLAMA_MODEL: 'llama3',
   LLM_PROVIDER: 'auto',

@@ -50,11 +50,21 @@ export interface SupersedeEventInsert {
 export class SupersedeCandidateRepository {
   constructor(private readonly db: Database.Database) {}
 
-  hasInputHash(inputHash: string): boolean {
+  /** 본문(sha256)이 같은 쌍의 판정 행이 하나라도 있으면 true. provider/model/prompt 는 보지 않는다. */
+  hasJudgedPair(
+    oldMemoryId: string,
+    newMemoryId: string,
+    oldContentSha256: string,
+    newContentSha256: string,
+  ): boolean {
     return (
       this.db
-        .prepare('SELECT 1 FROM memory_supersede_candidate WHERE input_hash = ?')
-        .get(inputHash) !== undefined
+        .prepare(
+          `SELECT 1 FROM memory_supersede_candidate
+           WHERE old_memory_id = ? AND new_memory_id = ?
+             AND old_content_sha256 = ? AND new_content_sha256 = ?`,
+        )
+        .get(oldMemoryId, newMemoryId, oldContentSha256, newContentSha256) !== undefined
     );
   }
 

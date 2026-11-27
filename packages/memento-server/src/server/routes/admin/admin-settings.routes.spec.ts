@@ -87,8 +87,8 @@ describe('admin settings routes (#1582)', () => {
     };
 
     expect(response.status).toBe(200);
-    expect(body.settings).toHaveLength(13);
-    expect(body.read_only).toHaveLength(18);
+    expect(body.settings).toHaveLength(14);
+    expect(body.read_only).toHaveLength(20);
     expect(body.read_only.find((entry) => entry.key === 'OPENAI_API_KEY')).toEqual({
       key: 'OPENAI_API_KEY',
       secret: true,

@@ -31,4 +31,9 @@ describe('relation LLM common primitives', () => {
       determineLlmProvider('openai', availability, { includeOllamaInFallback: false }),
     ).toBeNull();
   });
+
+  it('관계 추출 채팅 갈래는 anthropic 을 다른 제공자로 넘기지 않고 없음으로 본다 (#1840)', () => {
+    const everything = { openai: true, gemini: true, ollama: true };
+    expect(determineLlmProvider('anthropic' as 'openai', everything)).toBeNull();
+  });
 });

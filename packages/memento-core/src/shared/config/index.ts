@@ -25,6 +25,7 @@ import { resolveApiTokens } from './api-tokens.js';
 import {
   DEFAULT_MEMORY_INJECTION_ITEM_SCORE_MIN,
   DEFAULT_RELEVANCE_GATE_THRESHOLD,
+  SUPERSEDE_DEFAULT_MAX_PAIRS,
 } from './constants.js';
 import {
   providerDimensionDefaults,
@@ -33,6 +34,7 @@ import {
   resolveOptionalString,
   resolveString,
   resolveBoolean,
+  resolveValidatedNumber,
   getRawEnvValue,
   expandHomeDirPath
 } from './environment.js';
@@ -133,6 +135,16 @@ export function resolveRejectionGateOnError(): MementoConfig['searchRejectionGat
   return 'open';
 }
 
+/** 대시보드 설정이 process.env 를 바꾸므로 스캔마다 부른다. 1~200 정수가 아니면 기본값. */
+export function resolveSupersedeMaxPairs(): number {
+  return resolveValidatedNumber(
+    'SUPERSEDE_CANDIDATE_SCAN_MAX_PAIRS',
+    SUPERSEDE_DEFAULT_MAX_PAIRS,
+    (n) => n >= 1 && n <= 200,
+    '1~200 정수',
+  );
+}
+
 export function resolveProceduralExtractionStrategy(): MementoConfig['proceduralExtractionStrategy'] {
   return getRawEnvValue('PROCEDURAL_EXTRACTION_STRATEGY') === 'llm_first' ? 'llm_first' : 'rule_only';
 }
@@ -154,6 +166,8 @@ export const mementoConfig: MementoConfig = {
   geminiApiKey: resolveOptionalString('GEMINI_API_KEY'),
   geminiModel: resolveString('GEMINI_MODEL'),
   geminiLlmModel: resolveString('GEMINI_LLM_MODEL'),
+  anthropicApiKey: resolveOptionalString('ANTHROPIC_API_KEY'),
+  anthropicLlmModel: resolveString('ANTHROPIC_LLM_MODEL'),
   embeddingDimensions,
   // LLM 설정
   llmProvider,

@@ -330,7 +330,7 @@ ${memoryList}
    * @returns 계산된 비용 (USD)
    */
   private calculateAndLogCost(
-    provider: 'openai' | 'gemini' | 'ollama',
+    provider: ChatLlmPort['provider'],
     promptTokens: number,
     completionTokens: number
   ): number {

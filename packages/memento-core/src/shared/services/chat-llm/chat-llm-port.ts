@@ -9,7 +9,7 @@
  * 모델을 정해 `model` 로 넘긴다.
  */
 
-export type ChatLlmProvider = 'openai' | 'gemini' | 'ollama';
+export type ChatLlmProvider = 'openai' | 'gemini' | 'ollama' | 'anthropic';
 
 export interface ChatLlmMessage {
   role: 'system' | 'user' | 'assistant';
@@ -24,6 +24,8 @@ export interface ChatLlmRequest {
   maxOutputTokens: number;
   /** true 면 provider 의 JSON 전용 응답 모드를 켠다. */
   json: boolean;
+  /** 있으면 구조화 출력을 지원하는 어댑터(anthropic)가 이 JSON schema 로 응답을 묶는다. 나머지는 무시한다. */
+  jsonSchema?: Record<string, unknown>;
 }
 
 export interface ChatLlmUsage {

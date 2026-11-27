@@ -1,6 +1,7 @@
 import { resolveLlmModel } from '../../../shared/config/llm-model-resolver.js';
 import { mementoConfig } from '../../../shared/config/index.js';
 import { getRetryOptions } from '../../../shared/config/retry-options-loader.js';
+import { createAnthropicChatLlm } from '../../../shared/services/chat-llm/anthropic-chat-llm.js';
 import type { ChatLlmPort } from '../../../shared/services/chat-llm/chat-llm-port.js';
 import { GeminiChatLlm } from '../../../shared/services/chat-llm/gemini-chat-llm.js';
 import { OpenAiChatLlm } from '../../../shared/services/chat-llm/openai-chat-llm.js';
@@ -17,9 +18,14 @@ export async function resolveSupersedeLlm(): Promise<{ port: ChatLlmPort; model:
   if (mementoConfig.offlineStrict) {
     return null;
   }
+  const requested = getSelectedProvider();
+  if (requested === 'anthropic') {
+    // #1840: 다른 제공자 클라이언트를 만들지 않는다. 키가 없으면 다음 스캔에 다시 본다.
+    const port = createAnthropicChatLlm();
+    return port ? { port, model: resolveLlmModel('anthropic') } : null;
+  }
   try {
     const clients = await new LLMClientInitializer().initialize();
-    const requested = getSelectedProvider();
     const provider = requested === 'auto' ? clients.preferredProvider : requested;
     const retryOptions = getRetryOptions();
     const retryManager = new RetryManager({

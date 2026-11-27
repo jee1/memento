@@ -25,9 +25,9 @@ import {
   type SupersedeVerdict,
 } from './supersede-judge.js';
 import { LOCAL_EMBEDDING_MODEL } from '../../../shared/config/embedding-models.js';
+import { SUPERSEDE_DEFAULT_MAX_PAIRS } from '../../../shared/config/constants.js';
 
 const SUPERSEDE_DEFAULT_LOOKBACK_DAYS = 7;
-const SUPERSEDE_DEFAULT_MAX_PAIRS = 5;
 const TOP_OLD_PER_NEW = 3;
 /** sleep consolidation 의 seed 유사도에서 출발한 탐색 신호다. 대체 판정이 맞다는 근거가 아니다. */
 const MIN_COSINE = LOCAL_EMBEDDING_MODEL.memorySimilarity.supersedeCandidate;
@@ -201,7 +201,8 @@ export class SupersedeCandidateService {
         summary.skippedDismissed += 1;
         continue;
       }
-      if (this.repository.hasInputHash(inputHash)) {
+      // #1840: 본문이 같은 쌍은 제공자나 프롬프트가 바뀌어도 다시 판정하지 않는다. 검토 목록이 쌍을 묶지 않는다.
+      if (this.repository.hasJudgedPair(old.id, next.id, oldContentSha256, newContentSha256)) {
         summary.skippedDuplicate += 1;
         continue;
       }

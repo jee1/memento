@@ -48,7 +48,7 @@ export interface MemoryItem {
   isConsolidated?: boolean;
 }
 
-export type LLMProvider = 'openai' | 'gemini' | 'ollama' | 'auto';
+export type LLMProvider = 'openai' | 'gemini' | 'ollama' | 'anthropic' | 'auto';
 
 export interface MementoConfig {
   dbPath: string;
@@ -63,6 +63,9 @@ export interface MementoConfig {
   geminiModel: string;
   /** Gemini generateContent/chat 전용 (GEMINI_MODEL 임베딩과 분리) */
   geminiLlmModel: string;
+  /** #1840: 대체 후보 판정과 절차 추출의 Claude 갈래만 읽는다. */
+  anthropicApiKey: string | undefined;
+  anthropicLlmModel: string;
   embeddingDimensions: number;
   llmProvider: LLMProvider;
   ollamaBaseUrl: string;

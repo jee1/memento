@@ -3,7 +3,7 @@
  * 임베딩 모델(GEMINI_MODEL, OPENAI_MODEL)과 분리한다.
  */
 
-import { DEFAULT_GEMINI_LLM_MODEL } from './constants.js';
+import { DEFAULT_ANTHROPIC_LLM_MODEL, DEFAULT_GEMINI_LLM_MODEL } from './constants.js';
 import { mementoConfig } from './index.js';
 import type { LLMProvider, MementoConfig } from '../types/memory.types.js';
 import { logger } from '../utils/logger.js';
@@ -15,19 +15,20 @@ type LlmUseCase =
 
 type InScopeLlmProviderUseCase = LlmUseCase;
 
-type LlmModelProvider = 'openai' | 'gemini' | 'ollama';
+type LlmModelProvider = 'openai' | 'gemini' | 'ollama' | 'anthropic';
 
 const PROVIDER_CODE_DEFAULTS: Record<LlmModelProvider, string> = {
   openai: 'gpt-4o-mini',
   gemini: DEFAULT_GEMINI_LLM_MODEL,
   ollama: 'llama3',
+  anthropic: DEFAULT_ANTHROPIC_LLM_MODEL,
 };
 
-const CONCRETE_LLM_PROVIDERS = new Set<LlmModelProvider>(['openai', 'gemini', 'ollama']);
+const CONCRETE_LLM_PROVIDERS = new Set<LlmModelProvider>(['openai', 'gemini', 'ollama', 'anthropic']);
 
 export type LlmModelConfigSlice = Pick<
   MementoConfig,
-  'openaiLlmModel' | 'geminiLlmModel' | 'ollamaModel' | 'llmModelOverrides'
+  'openaiLlmModel' | 'geminiLlmModel' | 'ollamaModel' | 'anthropicLlmModel' | 'llmModelOverrides'
 >;
 
 export type LlmProviderConfigSlice = Pick<
@@ -56,6 +57,8 @@ function resolveProviderDefaultModel(
       return config.geminiLlmModel || PROVIDER_CODE_DEFAULTS.gemini;
     case 'ollama':
       return config.ollamaModel || PROVIDER_CODE_DEFAULTS.ollama;
+    case 'anthropic':
+      return config.anthropicLlmModel || PROVIDER_CODE_DEFAULTS.anthropic;
     default: {
       const _exhaustive: never = provider;
       return _exhaustive;
