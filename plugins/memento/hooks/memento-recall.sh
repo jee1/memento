@@ -47,8 +47,8 @@ msg = (
     "memory_id 파라미터에 그대로 넣고 update_mode "
     "(replace | incremental | versioned) 를 함께 주세요. "
     "어느 모드든 content 는 합치지 않으니 전체를 보냅니다(옛 판 유지는 versioned). "
-    "memory_id 가 없으면 새 기억입니다 (#1000). "
-    "type·owner_id·project_id 가 같아야 하고, replace 와 incremental 은 updated: true 로 확인합니다."
+    "memory_id 가 없으면 새 기억이지만 incremental 은 비슷한 기억을 덮기도 합니다 (#1000). "
+    "type, owner_id, project_id 가 같아야 하고, replace 와 incremental 은 updated: true 로 확인합니다."
 )
 
 # 백그라운드 작업 알림은 태그로 시작한다. 태그 앞에 다른 글이 있는 prompt 는 알림이 아니다.

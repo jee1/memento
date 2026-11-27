@@ -34,7 +34,7 @@ export class RememberProcedureTool extends BaseTool {
           update_mode: {
             type: 'string',
             enum: ['replace', 'incremental', 'versioned'],
-            description: '업데이트 모드: replace(교체), incremental(증분), versioned(버전 관리)',
+            description: '업데이트 모드: replace(교체), incremental(steps 이어붙이기, content 는 교체), versioned(버전 관리)',
           },
           tags: { type: 'array', items: { type: 'string' }, description: '태그 목록' },
           importance: { type: 'number', minimum: 0, maximum: 1, description: '중요도 (0-1)', default: 0.5 },

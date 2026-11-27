@@ -71,7 +71,9 @@ Save `semantic` and `procedural` memories only when all three hold. The problem 
 
 Write a memory whenever a turn produced real work — a code change, a decision, a configuration, a fix. Search first (`recall`) so you update instead of duplicating.
 
-To update, pass `memory_id` with `update_mode`. `content` is never merged: every mode stores exactly what you send, so send the whole text. Fields you omit are cleared or reset to defaults.
+To update, pass `memory_id` with `update_mode`. `content` is never merged: every mode stores exactly what you send, so send the whole text. Input fields you omit, such as `tags`, `source`, `steps`, or `record`, are cleared or reset to defaults; `project_id` is kept. For a memory saved with `record`, send the whole `record` again rather than the labelled text that recall shows.
+
+Without `memory_id`, `incremental` can still overwrite an existing memory: a close near-duplicate, or for `procedural` the one with the same `workflow_name` and `skill_name`.
 
 - `replace` overwrites the row.
 - `incremental` overwrites too, but appends `steps`. For `working`, `episodic`, and `semantic` it also unions `tags` and keeps the higher `importance`.

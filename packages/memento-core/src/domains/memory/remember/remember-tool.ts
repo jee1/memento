@@ -103,14 +103,14 @@ export class RememberTool extends BaseTool {
           },
           memory_id: {
             type: 'string',
-            description: '갱신 대상 memory_id(recall, remember 응답의 값). procedural 은 workflow_name+skill_name 도 된다. update_mode 와 함께. 없으면 새 기억. versioned 는 새 id 반환'
+            description: '갱신 대상 id. procedural 은 workflow_name+skill_name 도 된다. update_mode 와 함께. 없으면 새 기억(incremental 은 비슷한 기억을 덮기도 함). versioned 는 새 id 반환'
           },
           update_mode: {
             type: 'string',
             enum: ['replace', 'incremental', 'versioned'],
             description: `갱신 방식. content 는 합치지 않고 바꾼다. 안 보낸 칸은 비거나 기본값
 - replace: 덮어쓰기
-- incremental: tags 합집합, importance 큰 값(procedural 제외), steps 이어붙이기
+- incremental: steps 이어붙이기. procedural 외에는 tags 합집합, importance 큰 값
 - versioned: 새 행, 옛 행 유지(VERSION_OF)`
           },
           expected_version: {
