@@ -7,7 +7,7 @@
  *   high   : 현재 head 에 작성자와 다른 Claude 단계의 agent-review approve, 남은 changes 없음 + 사람 `approved:human` 라벨
  *
  * PR 본문 `<!-- author-model=<id> -->` 에 작성 에이전트 모델을 적는다(high 교차 모델 판정).
- * high 는 `claude-<단계>-<버전>` 이나 `<단계>` 꼴의 Claude 모델 id 만 읽는다(단계: opus, sonnet, haiku, fable).
+ * high 는 `claude-<단계>` 나 `<단계>` 뒤에 숫자 버전(`-5-5`, `-4.5`)만 붙은 Claude 모델 id 만 읽는다(단계: opus, sonnet, haiku, fable).
  * 작성자와 리뷰어의 단계가 달라야 한다. 버전만 다르면 같은 단계다. 다른 꼴의 id 는 인정하지 않는다.
  * 리뷰 마커 4개(3회 초과)면 멈춘다. 사용자가 계속하라고 하면 `--allow-review-overflow` 로 재실행.
  *
@@ -167,15 +167,21 @@ export function lastApprovedSha(comments: GateComment[], repoOwnerLogin: string)
 
 type ClaudeTier = "opus" | "sonnet" | "haiku" | "fable";
 
-const CLAUDE_MODEL_ID_RE = /^(?:claude-)?(opus|sonnet|haiku|fable)(?:-\d+)*$/;
+const CLAUDE_MODEL_ID_RE = /^(?:claude-)?(opus|sonnet|haiku|fable)(?:[-.]\d+)*$/;
 
-/** high 교차 리뷰용 Claude 단계. 정해진 꼴(`claude-<단계>-<버전>`, `<단계>`)이 아니면 undefined(fail-closed). */
+/** high 교차 리뷰용 Claude 단계. 정해진 꼴(`claude-<단계>`, `<단계>`, 뒤에 숫자 버전)이 아니면 undefined(fail-closed). */
 function claudeTier(model: string | undefined): ClaudeTier | undefined {
   return model?.toLowerCase().match(CLAUDE_MODEL_ID_RE)?.[1] as ClaudeTier | undefined;
 }
 
-function headMarkers(comments: GateComment[], headSha: string, repoOwnerLogin: string): AgentReviewMarker[] {
-  return lastMarkersPerModelOnHead(parseTrustedAgentReviewMarkers(comments, repoOwnerLogin), headSha);
+/** high 용: head 마커를 리뷰어 단계마다 마지막 하나로 접는다. 같은 단계의 다른 철자는 같은 리뷰어로 본다. */
+function headMarkersPerTier(comments: GateComment[], headSha: string, repoOwnerLogin: string): AgentReviewMarker[] {
+  const byTier = new Map<string, AgentReviewMarker>();
+  for (const marker of parseTrustedAgentReviewMarkers(comments, repoOwnerLogin)) {
+    if (marker.sha !== headSha) continue;
+    byTier.set(claudeTier(marker.model) ?? `other:${(marker.model ?? "").toLowerCase()}`, marker);
+  }
+  return [...byTier.values()];
 }
 
 /** 작성자와 다른 Claude 단계의 approve 가 있고, head 에 남은 changes 가 없다. */
@@ -187,7 +193,7 @@ export function highHeadReviewOk(
 ): boolean {
   const author = claudeTier(authorModel);
   if (author === undefined) return false;
-  const markers = headMarkers(comments, headSha, repoOwnerLogin);
+  const markers = headMarkersPerTier(comments, headSha, repoOwnerLogin);
   if (markers.some((m) => m.verdict === "changes")) return false;
   return markers.some((m) => {
     const reviewer = claudeTier(m.model);
@@ -268,18 +274,18 @@ export function decide(pr: GateInput): GateDecision {
   if (level === "high") {
     const reasons: string[] = [];
     if (!highHeadReviewOk(pr.comments, pr.headRefOid, pr.repoOwnerLogin, pr.authorModel)) {
-      const markers = headMarkers(pr.comments, pr.headRefOid, pr.repoOwnerLogin);
+      const markers = headMarkersPerTier(pr.comments, pr.headRefOid, pr.repoOwnerLogin);
       if (!pr.authorModel) {
         reasons.push(
           "high — PR 본문에 `<!-- author-model=<작성 모델> -->` 가 필요하고, 작성자와 다른 Claude 단계의 agent-review approve 가 필요",
         );
       } else if (claudeTier(pr.authorModel) === undefined) {
         reasons.push(
-          "high — author-model 의 모델을 알 수 없음: `claude-<단계>-<버전>` 꼴(예: `claude-opus-5-5`)로 PR 본문을 고친다",
+          "high — author-model 이 Claude 모델 id 꼴이 아니다: 이 PR 을 쓴 실제 Claude 모델을 `claude-<단계>-<버전>` 꼴(예: `claude-opus-5-5`)로 적는다. Claude 가 아닌 모델이 쓴 PR 은 high 를 통과하지 못한다",
         );
       } else if (markers.some((m) => m.verdict === "changes")) {
         reasons.push(
-          "high — head 에 changes 리뷰가 남아 있다: 그 리뷰어가 같은 head 에 다시 approve 하거나, 고친 커밋에 새로 리뷰한다",
+          "high — head 에 changes 리뷰가 남았다: 그 리뷰어가 같은 head 에 다시 approve 하거나, 고친 커밋에 새로 리뷰한다",
         );
       } else if (markers.some((m) => m.verdict === "approve")) {
         reasons.push(
@@ -515,6 +521,10 @@ function main(): void {
     const model = values.model;
     if (!model) {
       console.error("--post-review 는 --model 이 필요");
+      process.exit(64);
+    }
+    if (highestRiskLevel(data.labels) === "high" && claudeTier(model) === undefined) {
+      console.error("risk:high 의 --model 은 `claude-<단계>-<버전>` 꼴의 Claude 모델 id 여야 한다(예: claude-sonnet-5-5)");
       process.exit(64);
     }
     const findingsRaw = values.findings ?? "0/0/0";

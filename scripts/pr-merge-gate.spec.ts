@@ -278,7 +278,7 @@ describe("decide", () => {
           comments: [headApprove(HEAD, reviewer)],
         }),
       ).action;
-    for (const ok of ["claude-sonnet-5-5", "claude-fable-5-2", "claude-haiku-5-5", "sonnet", "Claude-Sonnet-5-5"]) {
+    for (const ok of ["claude-sonnet-5-5", "claude-fable-5-2", "claude-haiku-5-5", "claude-sonnet-4.5", "sonnet", "Claude-Sonnet-5-5"]) {
       expect(highWith(ok)).toBe("merge");
     }
     for (const bad of [
@@ -289,12 +289,13 @@ describe("decide", () => {
       "claude-sonnet4-5",
       "sonnet-claude",
       "claude-x-sonnet",
+      "claude-sonnet-5-5-high",
     ]) {
       expect(highWith(bad)).toBe("needs");
     }
   });
 
-  it("high 는 head 에 다른 리뷰어의 changes 가 남아 있으면 approve 가 있어도 거절", () => {
+  it("high 는 head 에 다른 리뷰어의 changes 가 남았으면 approve 가 있어도 거절", () => {
     const high = { labels: ["risk:high", APPROVAL_LABEL], authorModel: "claude-opus-5-5" };
     const comments = [headChanges(HEAD, "claude-fable-5-2", 1), headApprove(HEAD, "claude-sonnet-5-5")];
     const d = decide(pr({ ...high, comments }));
@@ -303,6 +304,9 @@ describe("decide", () => {
 
     const reApproved = [...comments, headApprove(HEAD, "claude-fable-5-2")];
     expect(decide(pr({ ...high, comments: reApproved })).action).toBe("merge");
+
+    const reApprovedOtherSpelling = [...comments, headApprove(HEAD, "fable")];
+    expect(decide(pr({ ...high, comments: reApprovedOtherSpelling })).action).toBe("merge");
   });
 
   it("high 는 codex-review 마커로 통과하지 않는다", () => {
@@ -337,7 +341,7 @@ describe("decide", () => {
         }),
       );
       expect(d.action).toBe("needs");
-      expect(d.reasons.some((r) => r.includes("author-model 의 모델을 알 수 없음"))).toBe(true);
+      expect(d.reasons.some((r) => r.includes("author-model 이 Claude 모델 id 꼴이 아니다"))).toBe(true);
     });
 
     it("같은 단계는 버전이나 별칭이 달라도 거절", () => {
