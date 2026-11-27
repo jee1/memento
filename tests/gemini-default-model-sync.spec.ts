@@ -14,10 +14,9 @@ describe('Gemini LLM default model (#1407)', () => {
 
   it('env templates show the code default', () => {
     const values = [
-      ...read('env.example').matchAll(/^#?\s*(?:GEMINI_LLM_MODEL|MEMENTO_AGENT_GEMINI_MODEL|MEMENTO_PERSONAL_AGENT_GEMINI_MODEL)=(\S+)/gm),
-      ...read('services/agent/env.example').matchAll(/^AGENT_GEMINI_MODEL=(\S+)/gm),
+      ...read('env.example').matchAll(/^#?\s*(?:GEMINI_LLM_MODEL|MEMENTO_PERSONAL_AGENT_GEMINI_MODEL)=(\S+)/gm),
     ].map((match) => match[1]);
-    expect(values.length).toBeGreaterThanOrEqual(4);
+    expect(values.length).toBeGreaterThanOrEqual(2);
     expect(new Set(values)).toEqual(new Set([DEFAULT_GEMINI_LLM_MODEL]));
   });
 });

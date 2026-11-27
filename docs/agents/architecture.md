@@ -16,7 +16,7 @@ Memento는 **npm workspaces 모노레포**로 구성되어 있습니다. 도메�
 | `packages/memento-assistant` | `@jee1/memento-assistant` | 어시스턴트 유틸 |
 | `packages/memento-agent-integration` | `@memento/agent-integration` | 에이전트 훅·계약(private) |
 
-`apps/experimental-example`은 `@memento/core`를 in-process로 쓴다. `apps/experimental-assistant-example`은 `@jee1/memento-assistant`를 쓴다. `apps/multi-agent-orchestration/`은 `package.json`이 없어 워크스페이스 멤버가 아니다. `plugins/memento/`(Claude Code 플러그인)·`services/agent/`(README·env 예시)는 workspaces 밖이다.
+`apps/experimental-example`은 `@memento/core`를 in-process로 쓴다. `apps/experimental-assistant-example`은 `@jee1/memento-assistant`를 쓴다. `apps/multi-agent-orchestration/`은 `package.json`이 없어 워크스페이스 멤버가 아니다. `plugins/memento/`(Claude Code 플러그인)는 workspaces 밖이다.
 
 ### 워크스페이스 의존 (package.json 기준)
 
