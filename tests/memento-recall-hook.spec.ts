@@ -4,11 +4,16 @@ import { describe, expect, it } from 'vitest';
 
 const script = join(process.cwd(), 'plugins/memento/hooks/memento-recall.sh');
 
-function run(host: string, mode?: string): unknown {
+function runRaw(host: string, mode?: string, input = ''): string {
   const args = mode ? [script, host, mode] : [script, host];
-  const stdout = execFileSync('bash', args, { encoding: 'utf8' });
-  return JSON.parse(stdout);
+  return execFileSync('bash', args, { encoding: 'utf8', input });
 }
+
+function run(host: string, mode?: string): unknown {
+  return JSON.parse(runRaw(host, mode));
+}
+
+const promptInput = (prompt: string): string => JSON.stringify({ prompt });
 
 describe('memento recall hook (#1447)', () => {
   it('cursor prompt JSON tells episodic writes to use record', () => {
@@ -66,5 +71,44 @@ describe('memento recall hook (#1447)', () => {
     for (const [host, mode] of [['claude'], ['codex'], ['cursor'], ['claude', 'session']] as const) {
       expect(JSON.stringify(run(host, mode))).not.toContain('키워드 나열보다');
     }
+  });
+});
+
+describe('memento recall hook on machine notification turns (#1770)', () => {
+  const notifications = [
+    '<task-notification>\n<task-id>a1</task-id>',
+    '[SYSTEM NOTIFICATION - NOT USER INPUT]\nbackground task finished',
+    '<system-reminder>\n[SYSTEM NOTIFICATION - NOT USER INPUT]',
+    '  \n<task-notification>',
+    `<task-notification>${'x'.repeat(300_000)}`,
+  ];
+
+  it.each(notifications)('claude prompt mode prints nothing for notification %#', (prompt) => {
+    expect(runRaw('claude', undefined, promptInput(prompt))).toBe('');
+  });
+
+  it.each([
+    promptInput('릴리스 준비해줘'),
+    promptInput('로그에 <task-notification> 이 왜 찍히지?'),
+    promptInput('붙여 넣은 로그:\n<task-notification>'),
+    promptInput('<system-reminder>\n오늘 날짜가 바뀌었다'),
+    JSON.stringify({ session_id: 's' }),
+    JSON.stringify({ prompt: 1 }),
+    '[]',
+    '{broken',
+  ])('claude prompt mode keeps the one line for input %#', (input) => {
+    expect(runRaw('claude', undefined, input)).toBe(runRaw('claude'));
+  });
+
+  it.each([['claude', 'session'], ['codex', 'prompt'], ['codex', 'session'], ['cursor', 'prompt']] as const)(
+    '%s %s ignores the notification check',
+    (host, mode) => {
+      expect(runRaw(host, mode, promptInput('<task-notification>'))).toBe(runRaw(host, mode));
+    },
+  );
+
+  it.each(['claude', 'codex', 'cursor'])('%s still prints the guide when stdin is closed', (host) => {
+    const stdout = execFileSync('bash', ['-c', 'bash "$1" "$2" <&-', 'closed', script, host], { encoding: 'utf8' });
+    expect(stdout).toBe(runRaw(host));
   });
 });
