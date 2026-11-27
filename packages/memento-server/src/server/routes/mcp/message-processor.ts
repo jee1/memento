@@ -151,18 +151,7 @@ export async function processMcpMessage(
   }
 
   if (message.method === 'prompts/get') {
-    const { name } = message.params ?? {};
-    if (name === 'memory_injection') {
-      return {
-        jsonrpc: '2.0',
-        id: message.id,
-        result: {
-          description: '관련 기억을 요약하여 프롬프트에 주입',
-          arguments: memoryInjectionPromptDefinition().arguments
-        }
-      };
-    }
-    return createJsonRpcError(message.id, -32601, 'Prompt not found');
+    return handlePromptsGet(message, db, serverServices, auditContext);
   }
 
   if (message.method === 'prompts/call') {
@@ -208,6 +197,50 @@ function memoryInjectionPromptDefinition(): {
         required: false
       }
     ]
+  };
+}
+
+/** memory_injection 도구를 실행해 GetPromptResult 꼴로 감싼다 (#1849). owner 범위는 tools/call 과 같은 dispatch 가 건다. */
+async function handlePromptsGet(
+  message: McpRequestMessage,
+  db: Database.Database | null,
+  serverServices: ServerServices | null,
+  auditContext: ToolAuditContext,
+): Promise<JsonRpcResponse> {
+  if (message.params?.['name'] !== 'memory_injection') {
+    return createJsonRpcError(message.id, -32602, 'Prompt not found');
+  }
+  // 프롬프트 인자는 사양상 문자열이라 도구의 숫자 인자로 바꾼다. 선언한 인자만 넘긴다.
+  const given = (message.params['arguments'] ?? {}) as Record<string, unknown>;
+  // 빈 값은 생략한 것으로 본다. Number('') 는 0 이라 결과가 비어 버린다.
+  const toNumber = (value: unknown) => (String(value ?? '').trim() === '' ? undefined : Number(value));
+  const response = await handleToolsCall(
+    {
+      ...message,
+      params: {
+        name: 'memory_injection',
+        arguments: {
+          query: given['query'],
+          token_budget: toNumber(given['token_budget']),
+          max_memories: toNumber(given['max_memories']),
+        },
+      },
+    },
+    db,
+    serverServices,
+    auditContext,
+  );
+  if (response.error) return response;
+
+  const toolResult = response.result as { content: Array<{ text: string }> };
+  const { message: text } = JSON.parse(toolResult.content[0]!.text) as { message: string };
+  return {
+    jsonrpc: '2.0',
+    id: message.id,
+    result: {
+      description: memoryInjectionPromptDefinition().description,
+      messages: [{ role: 'user', content: { type: 'text', text } }],
+    },
   };
 }
 

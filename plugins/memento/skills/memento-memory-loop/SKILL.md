@@ -33,10 +33,12 @@ Write the outcome back. Pick the type by what the information *is*, not by when 
 
 | Type | Use for | Lifetime |
 |------|---------|----------|
-| `working` | in-flight state for the current session | 48h |
-| `episodic` | what happened: decisions, incidents, completed work | 90d (pinned: forever) |
-| `semantic` | durable knowledge: how a thing works, why a rule exists | forever |
-| `procedural` | repeatable steps: deploy, release, review checklist | forever, versioned |
+| `working` | in-flight state for the current session | soft-deleted after 48h |
+| `episodic` | what happened: decisions, incidents, completed work | 30d unused |
+| `semantic` | durable knowledge: how a thing works, why a rule exists | 180d unused |
+| `procedural` | repeatable steps: deploy, release, review checklist (versioned) | 90d unused |
+
+"Unused" means not returned by recall or injection. For `episodic`, `semantic`, and `procedural`, those days are the earliest point, not the deletion date: the memory is soft-deleted only once its forget score also reaches 0.6. Higher importance delays that, and some type and importance combinations never reach it. Pinned memories and memories tagged `user-directive` are never removed by the automatic cleanup.
 
 ```
 remember(
