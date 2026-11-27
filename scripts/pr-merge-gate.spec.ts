@@ -346,8 +346,9 @@ describe("decide", () => {
       expect(highFor(undefined, "claude-fable-5-2")).toBe("needs");
       expect(highFor("claude", "claude-sonnet-5-5")).toBe("needs");
       expect(highFor("claude-opus-5-5", "claude")).toBe("needs");
-      expect(highFor("claude-opus-5-5", "claude-opus-sonnet")).toBe("needs");
+      expect(highFor("claude-opus-5-5", "claude-sonnet-haiku")).toBe("needs");
       expect(highFor("claude-opus-5-5", "grok-4.7-high-fast")).toBe("needs");
+      expect(highFor("claude-opus-5-5", "grok-sonnet")).toBe("needs");
     });
 
     it("승인 라벨이 없으면 다른 단계 리뷰여도 거절", () => {
