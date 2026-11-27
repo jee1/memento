@@ -50,6 +50,16 @@ GEMINI_LLM_MODEL=gemini-flash-latest   # 기본값
 
 `GEMINI_LLM_MODEL`은 LLM 추론 전용입니다. 임베딩에 사용되는 `GEMINI_MODEL`과 별개입니다.
 
+### Anthropic (Claude, #1840)
+
+```bash
+LLM_PROVIDER=anthropic
+ANTHROPIC_API_KEY=sk-ant-...
+ANTHROPIC_LLM_MODEL=claude-haiku-5-5   # 기본값
+```
+
+대체 후보 판정과 절차 추출만 Claude 를 씁니다. 판정은 구조화 출력(판정 값, 이유 문장, 근거 인용)으로 받고, thinking 은 adaptive, effort 는 `medium` 으로 부릅니다. thinking 토큰이 출력 상한에 들어가므로 판정은 4,000 토큰 상한을 씁니다. `anthropic` 을 고르면 다른 제공자 클라이언트를 만들지 않습니다. 키가 없거나 호출이 실패하면 OpenAI, Gemini, Ollama 로 넘어가지 않고, 대체 후보 판정은 다음 스캔에 다시 시도하며 절차 추출은 규칙 추출로 만듭니다. 관계 추출 채팅 갈래, consolidation 요약, 개인 비서는 `anthropic` 을 쓰지 않습니다(관계 추출은 사용 가능한 제공자 없음으로 끝납니다). 고르는 곳은 전역 `LLM_PROVIDER` 하나입니다. 용도별 오버라이드(`LLM_PROVIDER_PROCEDURAL` 등)는 `anthropic` 을 받지 않고 경고 후 무시합니다. 스캔 한 번의 쌍 상한은 `SUPERSEDE_CANDIDATE_SCAN_MAX_PAIRS`(기본 20, 대시보드 설정 탭에서 즉시 바꿈)입니다. 이 상한은 제공자와 관계없이 적용되므로 Gemini 무료 한도(하루 20회)를 쓰면 5 로 낮춥니다.
+
 ### auto (자동 선택)
 
 `LLM_PROVIDER=auto`로 설정하면 다음 순서로 사용 가능한 제공자를 자동 선택합니다.

@@ -23,6 +23,8 @@ import {
   recordLlmUsageLogicalFinal,
 } from '../../../shared/services/llm-usage/llm-usage-recorder.js';
 import { runWithLlmUsageLogicalContext } from '../../../shared/services/llm-usage/llm-usage-logical-context.js';
+import { createAnthropicChatLlm } from '../../../shared/services/chat-llm/anthropic-chat-llm.js';
+import type { ChatLlmMessage } from '../../../shared/services/chat-llm/chat-llm-port.js';
 
 type ConcreteLlmProvider = 'openai' | 'gemini' | 'ollama';
 
@@ -46,6 +48,21 @@ const SYSTEM_PROMPT = `Reflexion 결과에서 절차적 기억(workflow, skill, 
 필드가 없으면 null 또는 빈 문자열을 사용한다.
 
 예시: {"workflow_name":"...","skill_name":"...","steps":"[...]","trigger_conditions":"{...}","task_goal":"..."}`;
+
+const NULLABLE_STRING = { anyOf: [{ type: 'string' }, { type: 'null' }] };
+/** #1840: anthropic 구조화 출력용. 필드 뜻은 SYSTEM_PROMPT, 해석은 parseResponse 가 맡는다. */
+const PROCEDURAL_SCHEMA: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    workflow_name: NULLABLE_STRING,
+    skill_name: NULLABLE_STRING,
+    steps: NULLABLE_STRING,
+    trigger_conditions: NULLABLE_STRING,
+    task_goal: NULLABLE_STRING,
+  },
+  required: ['workflow_name', 'skill_name', 'steps', 'trigger_conditions', 'task_goal'],
+  additionalProperties: false,
+};
 
 interface LlmProceduralExtractorOptions {
   /** 테스트용: 주입 시 실제 LLM 호출 없이 이 함수로 응답 대체 */
@@ -141,6 +158,10 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
     provider: string;
     model: string;
   }> {
+    const requested = resolveLlmProvider('procedural');
+    if (requested === 'anthropic') {
+      return this.callAnthropic(messages);
+    }
     if (!this.initPromise) {
       this.initPromise = new LLMClientInitializer().initialize();
     }
@@ -148,7 +169,6 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
     this.initResult = result;
 
     const timeoutMs = mementoConfig.proceduralLlmExtractorTimeoutMs ?? 10000;
-    const requested = resolveLlmProvider('procedural');
     const actual = pickProceduralProvider(requested, {
       openai: result.openaiClient !== null,
       gemini: result.geminiClient !== null,
@@ -178,6 +198,28 @@ export class LlmProceduralExtractor implements IProceduralMemoryExtractor {
     }
 
     throw new Error('사용 가능한 LLM provider 없음');
+  }
+
+  /** #1840: 다른 제공자 클라이언트를 만들지 않는다. 키가 없거나 실패하면 throw 해서 호출자가 규칙 추출로 간다. */
+  private async callAnthropic(
+    messages: Array<{ role: string; content: string }>,
+  ): Promise<{ raw: string; provider: string; model: string }> {
+    const port = createAnthropicChatLlm();
+    if (!port) {
+      throw new Error('LLM_PROVIDER 가 anthropic 인데 ANTHROPIC_API_KEY 가 없다');
+    }
+    const model = resolveLlmModel('anthropic', 'procedural', mementoConfig, { boundProvider: 'anthropic' });
+    const result = await port.complete({
+      model,
+      messages: messages as ChatLlmMessage[],
+      temperature: 0.3,
+      // thinking 토큰이 상한에 들어간다(anthropic-chat-llm.ts).
+      maxOutputTokens: 4000,
+      json: true,
+      jsonSchema: PROCEDURAL_SCHEMA,
+      timeoutMs: mementoConfig.proceduralLlmExtractorTimeoutMs ?? 10000,
+    });
+    return { raw: result.content, provider: 'anthropic', model };
   }
 
   private async callOpenAI(

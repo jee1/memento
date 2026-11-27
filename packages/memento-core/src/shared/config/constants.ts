@@ -191,3 +191,6 @@ export const DEFAULT_MEMORY_INJECTION_ITEM_SCORE_MIN = 0.5;
  * 2026-10-18 이 별칭은 gemini-3.8-flash 를 가리켰고 thinkingBudget 0 + JSON 응답이 정상이었다.
  */
 export const DEFAULT_GEMINI_LLM_MODEL = 'gemini-flash-latest';
+export const DEFAULT_ANTHROPIC_LLM_MODEL = 'claude-haiku-5-5';
+/** #1840: 대체 후보 스캔 한 번의 판정 시도 수. 주인 결정으로 5 에서 20. */
+export const SUPERSEDE_DEFAULT_MAX_PAIRS = 20;

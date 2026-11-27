@@ -8,6 +8,7 @@ import type { MementoConfig } from '../../shared/types/memory.types.js';
 import {
   DEFAULT_MEMORY_INJECTION_ITEM_SCORE_MIN,
   DEFAULT_RELEVANCE_GATE_THRESHOLD,
+  SUPERSEDE_DEFAULT_MAX_PAIRS,
 } from '../../shared/config/constants.js';
 import {
   mementoConfig,
@@ -16,6 +17,8 @@ import {
   resolveRejectionGateOnError,
   resolveRejectionGateProvider,
   resolveRejectionGateThreshold,
+  resolveSupersedeMaxPairs,
+  SUPERSEDE_MAX_PAIRS_PATTERN,
 } from '../../shared/config/index.js';
 import { getRawEnvValue, resolveBoolean, resolveOptionalString } from '../../shared/config/environment.js';
 import {
@@ -224,6 +227,19 @@ const DEFINITIONS: readonly RuntimeSettingDefinition[] = [
     current: () => String(resolveBoolean('SUPERSEDE_CANDIDATE_SCAN_ENABLED', { defaultValue: false })),
   },
   {
+    key: 'SUPERSEDE_CANDIDATE_SCAN_MAX_PAIRS',
+    description: '대체 후보 스캔 한 번에 판정할 쌍의 최대 수. 429 를 받으면 그 전에 멈추고 남은 쌍은 다음 스캔이 맡는다.',
+    kind: 'number',
+    // 정수만 받는다. range 검사는 소수를 통과시켜 저장값과 적용값이 달라진다.
+    pattern: SUPERSEDE_MAX_PAIRS_PATTERN,
+    defaultValue: String(SUPERSEDE_DEFAULT_MAX_PAIRS),
+    defaultSource: 'shared/config/constants.ts SUPERSEDE_DEFAULT_MAX_PAIRS',
+    apply: 'immediate',
+    risk: 'low',
+    refresh: readsEnvDirectly,
+    current: () => String(resolveSupersedeMaxPairs()),
+  },
+  {
     key: 'SUPERSEDE_APPLY_ENABLED',
     description: '사람이 승인한 대체 후보를 실제 기억에 적용하는 API 를 연다. 꺼져 있으면 승인이 403 으로 거절된다.',
     kind: 'boolean',
@@ -291,12 +307,14 @@ export const READ_ONLY_SETTINGS: readonly ReadOnlySettingDefinition[] = [
   { key: 'OPENAI_API_KEY', secret: true, config: 'openaiApiKey' },
   { key: 'GEMINI_API_KEY', secret: true, config: 'geminiApiKey' },
   { key: 'TYPESAFE_API_KEY', secret: true, config: 'typesafeApiKey' },
+  { key: 'ANTHROPIC_API_KEY', secret: true, config: 'anthropicApiKey' },
   { key: 'EMBEDDING_PROVIDER', secret: false, config: 'embeddingProvider' },
   { key: 'EMBEDDING_DIMENSIONS', secret: false, config: 'embeddingDimensions' },
   { key: 'LLM_PROVIDER', secret: false, config: 'llmProvider' },
   { key: 'OPENAI_LLM_MODEL', secret: false, config: 'openaiLlmModel' },
   { key: 'GEMINI_LLM_MODEL', secret: false, config: 'geminiLlmModel' },
   { key: 'OLLAMA_MODEL', secret: false, config: 'ollamaModel' },
+  { key: 'ANTHROPIC_LLM_MODEL', secret: false, config: 'anthropicLlmModel' },
   { key: 'TYPESAFE_MODEL', secret: false, config: 'typesafeModel' },
   { key: 'MEMENTO_MCP_ERA', secret: false, config: 'mcpEra' },
   { key: 'MEMENTO_TOOLSET', secret: false },

@@ -4,6 +4,7 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 import { SUPERSEDE_PROMPT_VERSION } from '../supersede-judge.js';
 import { dismissSupersedeCandidate } from '../supersede-apply-service.js';
 import { SupersedeCandidateService } from '../supersede-candidate-service.js';
+import { resolveSupersedeMaxPairs } from '../../../../shared/config/index.js';
 import { embeddingColumnToNumbers } from '../../../../shared/utils/embedding-serialization.js';
 import { cosineSimilarity } from '../../../../shared/utils/vector-math.js';
 import {
@@ -129,6 +130,60 @@ describe('SupersedeCandidateService (#1548)', () => {
 
     expect(port.calls).toHaveLength(2);
     expect(candidates()).toHaveLength(2);
+  });
+
+  it('제공자를 바꿔도 본문이 같은 쌍은 다시 판정하지 않는다 (#1840)', async () => {
+    seedPair();
+    await service(fakeChatPort(() => judgeReply('compatible'))).scan({ runId: 'run-1' });
+
+    const claude = { ...fakeChatPort(() => judgeReply('confirmed')), provider: 'anthropic' as const };
+    const second = await new SupersedeCandidateService({ db, port: claude, model: 'claude-haiku-5-5' }).scan({
+      runId: 'run-2',
+    });
+
+    expect(second).toMatchObject({ judged: 0, skippedDuplicate: 1 });
+    expect(claude.calls).toHaveLength(0);
+    expect(candidates()).toHaveLength(1);
+  });
+
+  it('새 기억의 범위가 바뀌면 본문이 같아도 다시 판정한다 (#1840)', async () => {
+    seedPair();
+    const port = fakeChatPort(() => judgeReply('compatible'));
+    await service(port).scan({ runId: 'run-1' });
+
+    db.prepare(`UPDATE memory_item SET project_id = 'other-project' WHERE id IN ('old', 'new')`).run();
+    const second = await service(port).scan({ runId: 'run-2' });
+
+    expect(second).toMatchObject({ judged: 1 });
+    expect(port.calls).toHaveLength(2);
+  });
+
+  it('연속 3번 실패하면 남은 쌍을 다음 스캔에 넘기고 멈춘다 (#1840)', async () => {
+    const at = isoDaysAgo(1);
+    for (let i = 0; i < 4; i += 1) {
+      insertSeedMemory(db, { id: `old-${i}`, content: `옛 기억 ${i}`, createdAt: OLD_AT });
+      insertSeedMemory(db, { id: `new-${i}`, content: `새 기억 ${i}`, createdAt: at });
+    }
+    const port = fakeChatPort(() => new Error('529 overloaded_error'));
+
+    const summary = await service(port).scan({ runId: 'run-1' });
+
+    expect(port.calls).toHaveLength(3);
+    expect(summary).toMatchObject({ status: 'deferred', failed: 3, judged: 0 });
+  });
+
+  it('maxPairs 를 주지 않으면 한 번에 20쌍까지 판정한다 (#1840)', async () => {
+    const at = isoDaysAgo(1);
+    for (let i = 0; i < 22; i += 1) {
+      insertSeedMemory(db, { id: `old-${i}`, content: `옛 기억 ${i}`, createdAt: OLD_AT });
+      insertSeedMemory(db, { id: `new-${i}`, content: `새 기억 ${i}`, createdAt: at });
+    }
+    const port = fakeChatPort(() => judgeReply('compatible'));
+
+    const summary = await service(port).scan({ runId: 'run-1' });
+
+    expect(summary.pairsConsidered).toBeGreaterThan(20);
+    expect(port.calls).toHaveLength(20);
   });
 
   it('거절한 (old,new) 쌍은 내용이 같으면 모델만 바뀌어도 다시 후보로 만들지 않고 skippedDismissed 로 센다', async () => {
@@ -411,5 +466,22 @@ describe('SupersedeCandidateService (#1548)', () => {
       .all() as Array<{ old_memory_id: string; new_memory_id: string }>;
     expect(judged.map((r) => [r.old_memory_id, r.new_memory_id])).toEqual(expected);
     expect(summary.skippedNoEmbedding).toBe(8);
+  });
+});
+
+describe('resolveSupersedeMaxPairs (#1840)', () => {
+  const saved = process.env.SUPERSEDE_CANDIDATE_SCAN_MAX_PAIRS;
+  afterEach(() => {
+    if (saved === undefined) delete process.env.SUPERSEDE_CANDIDATE_SCAN_MAX_PAIRS;
+    else process.env.SUPERSEDE_CANDIDATE_SCAN_MAX_PAIRS = saved;
+  });
+
+  it('비었거나 1~200 밖이면 20, 안이면 그 값', () => {
+    const read = (value: string | undefined) => {
+      if (value === undefined) delete process.env.SUPERSEDE_CANDIDATE_SCAN_MAX_PAIRS;
+      else process.env.SUPERSEDE_CANDIDATE_SCAN_MAX_PAIRS = value;
+      return resolveSupersedeMaxPairs();
+    };
+    expect([undefined, '', '0', '201', 'x', '7', '200'].map(read)).toEqual([20, 20, 20, 20, 20, 7, 200]);
   });
 });

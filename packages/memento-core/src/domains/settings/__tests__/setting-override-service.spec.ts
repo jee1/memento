@@ -452,7 +452,7 @@ describe('runtime setting override (#1582)', () => {
     const { listRuntimeSettings } = await load();
     const { read_only: readOnly } = listRuntimeSettings(db);
 
-    expect(readOnly).toHaveLength(18);
+    expect(readOnly).toHaveLength(20);
     expect(readOnly.find((r) => r.key === 'OPENAI_API_KEY')).toEqual({
       key: 'OPENAI_API_KEY',
       secret: true,

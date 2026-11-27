@@ -15,6 +15,9 @@ export function determinePreferredProvider(
     return determineProviderForGemini(result, selectedProvider);
   } else if (selectedProvider === 'ollama') {
     return determineProviderForOllama(result, selectedProvider);
+  } else if (selectedProvider === 'anthropic') {
+    // #1840: anthropic 은 이 초기화기를 거치지 않는다(createAnthropicChatLlm). 다른 채팅 제공자로 넘기지 않는다.
+    return null;
   } else {
     // 'auto' 모드: OpenAI -> Gemini -> Ollama 순서로 사용 가능한 첫 번째 provider 선택
     return determineProviderForAuto(result);

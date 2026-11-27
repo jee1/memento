@@ -67,6 +67,10 @@ export class SummarizationService {
     if (provider === 'ollama') {
       return true;
     }
+    if (provider === 'anthropic') {
+      // #1840: 요약은 anthropic 을 부르지 않는다. 실패가 아니라 미설정으로 남긴다.
+      return false;
+    }
     const openai = process.env.OPENAI_API_KEY?.trim();
     const gemini = process.env.GEMINI_API_KEY?.trim();
     if (provider === 'openai') {

@@ -33,7 +33,19 @@ export type SupersedeJudgeOutcome =
   | { kind: 'failed'; reason: 'llm_failed' | 'parse_failed' };
 
 const VERDICTS: readonly SupersedeVerdict[] = ['confirmed', 'pending', 'compatible'];
-const MAX_OUTPUT_TOKENS = 400;
+/** 구조화 출력을 지원하는 어댑터(anthropic)만 쓴다. 파싱은 어느 제공자든 parseJudgment 가 한다. */
+const JUDGMENT_SCHEMA: Record<string, unknown> = {
+  type: 'object',
+  properties: {
+    verdict: { type: 'string', enum: [...VERDICTS] },
+    rationale: { type: 'string' },
+    evidence_quote: { anyOf: [{ type: 'string' }, { type: 'null' }] },
+  },
+  required: ['verdict', 'rationale', 'evidence_quote'],
+  additionalProperties: false,
+};
+/** #1840: Claude 는 thinking 토큰이 이 상한에 들어간다. 400 이면 답이 잘린다. */
+const MAX_OUTPUT_TOKENS = 4000;
 const MAX_RATIONALE_CHARS = 1000;
 
 const SYSTEM_PROMPT = `너는 기억 저장소의 검수 보조자다. 옛 기억과 새 기억 한 쌍을 읽고 새 기억이 옛 기억을 대체하는지 세 가지 상태 중 하나로 판정한다.
@@ -166,6 +178,7 @@ export async function judgeSupersedePair(
       temperature: 0,
       maxOutputTokens: MAX_OUTPUT_TOKENS,
       json: true,
+      jsonSchema: JUDGMENT_SCHEMA,
     });
     content = result.content;
   } catch (error) {
