@@ -1,6 +1,7 @@
 import { execFileSync } from 'node:child_process';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { MemoryEmbeddingService } from '@memento/core';
+import { describe, expect, it, vi } from 'vitest';
 import {
   deterministicProjection,
   evaluateGraphAdoptionGate,
@@ -294,6 +295,29 @@ describe('production embedding option (#1850)', () => {
     expect(() => parseArgs(['--production', '--embedding'])).toThrow(/requires a value/);
     expect(() => parseArgs(['--embedding', '--production'])).toThrow(/requires a value/);
     expect(() => parseArgs(['--embedding', 'minilm'])).toThrow(/only to --production/);
+  });
+
+  it('embeds fixture documents with the provider chosen for the production path', async () => {
+    const original = MemoryEmbeddingService.prototype.createAndStoreEmbedding;
+    const requested: Array<string | undefined> = [];
+    const spy = vi
+      .spyOn(MemoryEmbeddingService.prototype, 'createAndStoreEmbedding')
+      .mockImplementation(function (this: MemoryEmbeddingService, db, memoryId, content, type, provider) {
+        requested.push(provider);
+        return original.call(this, db, memoryId, content, type, 'tfidf');
+      });
+    try {
+      const report = await runProductionAgentMemoryBenchmark({
+        fixtureDir: FIXTURE_DIR,
+        embeddingProvider: 'minilm',
+      });
+      const documentCount = loadDataset({ fixtureDir: FIXTURE_DIR }).documents.length;
+      expect(requested.filter((provider) => provider === 'minilm').length).toBeGreaterThanOrEqual(documentCount);
+      expect(requested).not.toContain('tfidf');
+      expect(report.scorecard?.embedding.requested_provider).toBe('minilm');
+    } finally {
+      spy.mockRestore();
+    }
   });
 });
 
