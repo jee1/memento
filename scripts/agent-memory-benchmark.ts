@@ -109,7 +109,7 @@ export interface ProductionScorecard {
   /** Vector lane funnel: whether vectors that pass the similarity threshold add gold beyond the text lane. */
   vector_lane: {
     vector_threshold: number;
-    /** Mean vector candidates entering ranking per query; the engine tops up below-threshold candidates to the limit. */
+    /** Mean vector-lane pool per query (thresholded plus below-threshold underfill). Excludes vector scores backfilled onto text-only candidates. */
     ranked_vector_candidates_mean: number;
     raw_vector_recall: number;
     thresholded_vector_recall: number;

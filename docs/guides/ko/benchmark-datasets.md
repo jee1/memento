@@ -55,7 +55,7 @@ npx tsx scripts/agent-memory-benchmark.ts \
 npx vitest run scripts/acquire-locomo.spec.ts scripts/agent-memory-benchmark-adapter.spec.ts scripts/agent-memory-benchmark.spec.ts
 ```
 
-`--fixture` · `--longmemeval-s` · `--locomo`는 상호 배타입니다. `--embedding`은 `--production`과만 쓰며 문서 임베딩 제공자를 고릅니다(`tfidf` 기본, `minilm`). 기본값을 `tfidf`로 둬서 같은 제공자로 잰 2026-08-16, 2026-11-28 기록과 비교가 이어집니다. 질의 임베딩은 엔진이 저장된 임베딩의 제공자를 따라 고르므로 따로 지정하지 않습니다. `scorecard.embedding`에 요청한 제공자, 실제로 저장된 제공자, 모델, 차원, 임베딩된 문서 수가, `scorecard.vector_lane`에 벡터 레인 funnel(문턱, 문턱을 넘은 쿼리 수, union recall)이 남습니다. 로컬 모델은 npm 의존성 `@jee1/memento-embedding-e5-small-ko-v2`(약 129 MB)에 들어 있어 실행 중에 내려받지 않습니다. 리포트의 `scorecard.dataset_revision`은 데이터셋 옆의 `acquisition-receipt.json`에서 읽으므로, 실제로 내려받은 파일의 revision이 그대로 기록됩니다.
+`--fixture`, `--longmemeval-s`, `--locomo`는 상호 배타입니다. `--embedding`은 `--production`과만 쓰며 문서 임베딩 제공자를 고릅니다(`tfidf` 기본, `minilm`). 기본값을 `tfidf`로 둬서 같은 제공자로 잰 2026-08-16, 2026-11-28 기록과 비교가 이어집니다. sqlite-vec 경로에서는 엔진이 저장된 임베딩의 제공자를 따라 질의를 임베딩하므로 따로 지정하지 않습니다. sqlite-vec 를 쓰지 못해 대체 경로로 가면 질의는 `EMBEDDING_PROVIDER`(기본 `minilm`)로 임베딩되니, `scorecard.embedding.query_providers`가 요청한 제공자와 같은지 확인하십시오. `scorecard.embedding`에 요청한 제공자, 실제로 저장된 제공자, 모델, 차원, 임베딩된 문서 수가, `scorecard.vector_lane`에 벡터 레인 funnel(문턱, 문턱을 넘은 쿼리 수, union recall)이 남습니다. 로컬 모델은 npm 의존성 `@jee1/memento-embedding-e5-small-ko-v2`(약 129 MB)에 들어 있어 실행 중에 내려받지 않습니다. 리포트의 `scorecard.dataset_revision`은 데이터셋 옆의 `acquisition-receipt.json`에서 읽으므로, 실제로 내려받은 파일의 revision이 그대로 기록됩니다.
 
 ## 4. 어댑터가 데이터를 다루는 방식
 
@@ -77,11 +77,11 @@ LoCoMo는 대화 세션 단위로 문서를 만듭니다. 표본(`sample_id`) �
 
 ## 5. 측정 결과
 
-### 2026-11-28 (`tfidf` main `26f061e5`, `minilm` 브랜치 `451e58be`, 이슈 #1850)
+### 2026-11-28 (이슈 #1850)
 
-조건은 2026-08-16과 같습니다(데이터셋 revision `3eb6f2c5…`, 어댑터 해시 `dcc4cf88…`, 채점 쿼리 1,536개, `top_k=10`, 토큰 예산 4,096). 베이스라인 네 개는 8월 값과 소수점까지 같습니다. 운영 경로는 문서 임베딩을 두 가지로 쟀습니다. `tfidf`는 8월과 같은 조건이고, `minilm`은 운영 기본 제공자(로컬 e5)입니다. 품질 지표는 단독 2회 실행에서 같았습니다. 지연은 `nice -n 10`과 다른 작업이 도는 PC에서 쟀으므로 참고만 하십시오.
+`tfidf` 품질 지표는 main `26f061e5`에서, `minilm` 값과 벡터 레인 두 열은 이 이슈의 `--embedding` 옵션과 `scorecard.vector_lane`을 더한 측정 도구로 쟀습니다. 측정 도구만 바뀌고 검색 경로는 같아 `tfidf` 품질 지표가 두 코드에서 같았습니다. 조건은 2026-08-16과 같습니다(데이터셋 revision `3eb6f2c5…`, 어댑터 해시 `dcc4cf88…`, 채점 쿼리 1,536개, `top_k=10`, 토큰 예산 4,096). 베이스라인 네 개는 8월 값과 소수점까지 같습니다. 운영 경로는 문서 임베딩을 두 가지로 쟀습니다. `tfidf`는 8월과 같은 조건이고, `minilm`은 운영 기본 제공자(로컬 e5)입니다. 품질 지표는 단독 2회 실행에서 같았습니다. 지연은 `nice -n 10`과 다른 작업이 도는 PC에서 쟀으므로 참고만 하십시오.
 
-| 경로 | 임베딩 | recall@10 | MRR | nDCG@10 | 쿼리당 토큰 | p95 지연 | 벡터 문턱을 넘은 쿼리 | 순위에 든 벡터 후보 (쿼리당) |
+| 경로 | 임베딩 | recall@10 | MRR | nDCG@10 | 쿼리당 토큰 | p95 지연 | 벡터 문턱을 넘은 쿼리 | 벡터 레인 후보 (쿼리당) |
 |---|---|---|---|---|---|---|---|---|
 | fts_only | 해당 없음 | 0.882 | 0.713 | 0.735 | 3,794 | 0.3 ms | 해당 없음 | 해당 없음 |
 | rrf_sim | TF-IDF 비교선 | 0.888 | 0.703 | 0.729 | 3,796 | 0.4 ms | 해당 없음 | 해당 없음 |
@@ -156,7 +156,7 @@ npm run quality:agent-memory:production -- \
 
 ## 7. 공개 여부
 
-이슈 #767은 "수치가 낮으면 공개하지 말고 내부 개선 지표로만 사용"을 완료 조건에 두었습니다. 2026-08-16에는 프로덕션 경로가 단순 FTS 베이스라인보다 recall@10 기준 0.501 낮았습니다. 2026-11-28 측정에서는 LoCoMo에서 베이스라인을 넘었고(`tfidf` +0.006, `minilm` +0.043), LongMemEval-S에서도 `minilm`이 넘었습니다(recall@10 0.969 대 0.951, `tfidf`는 0.936으로 아래, [longmemeval-s-validation.md](./longmemeval-s-validation.md)). LoCoMo는 라이선스상 상업적 사용이 불가합니다. 대외 공개 여부는 저장소 주인의 결정을 기다리며, 그때까지 내부 회귀 지표로만 씁니다.
+이슈 #767은 "수치가 낮으면 공개하지 말고 내부 개선 지표로만 사용"을 완료 조건에 두었습니다. 2026-08-16에는 프로덕션 경로가 단순 FTS 베이스라인보다 recall@10 기준 0.501 낮았습니다. 2026-11-28 측정에서는 LoCoMo에서 베이스라인을 넘었고(recall@10 `tfidf` 0.889, `minilm` 0.925, `fts_only` 0.882), LongMemEval-S에서도 `minilm`이 넘었습니다(recall@10 0.969 대 0.951, `tfidf`는 0.936으로 아래, [longmemeval-s-validation.md](./longmemeval-s-validation.md)). LoCoMo는 라이선스상 상업적 사용이 불가합니다. 대외 공개 여부는 저장소 주인의 결정을 기다리며, 그때까지 내부 회귀 지표로만 씁니다.
 
 ## 채택 계약 agent_panel (#1545)
 

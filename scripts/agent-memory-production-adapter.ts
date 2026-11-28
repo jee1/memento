@@ -204,7 +204,7 @@ export async function runProductionRecallBenchmark(
         vectorWeight = funnelSource.vector_weight;
       }
       fallbackUsed = fallbackUsed || Boolean(searchResult.fallback_used);
-      const queryProviderKey = (searchResult.query_embedding_providers ?? []).join('+') || 'none';
+      const queryProviderKey = [...(searchResult.query_embedding_providers ?? [])].sort().join('+') || 'none';
       queryProviders[queryProviderKey] = (queryProviders[queryProviderKey] ?? 0) + 1;
       rankedVectorCandidates += searchResult.vector_count ?? 0;
       if (searchResult.tfidf_query_embedding_fallback) {
