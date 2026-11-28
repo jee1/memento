@@ -53,8 +53,34 @@ export interface ProductionQueryEvaluation {
   funnel: FunnelStage[];
 }
 
+export const BENCHMARK_EMBEDDING_PROVIDERS = ['tfidf', 'minilm'] as const;
+export type BenchmarkEmbeddingProvider = (typeof BENCHMARK_EMBEDDING_PROVIDERS)[number];
+export const DEFAULT_BENCHMARK_EMBEDDING_PROVIDER: BenchmarkEmbeddingProvider = 'tfidf';
+
+export function parseBenchmarkEmbeddingProvider(value: string): BenchmarkEmbeddingProvider {
+  const provider = BENCHMARK_EMBEDDING_PROVIDERS.find((candidate) => candidate === value);
+  if (!provider) {
+    throw new Error(`--embedding must be one of ${BENCHMARK_EMBEDDING_PROVIDERS.join(', ')} (got ${value})`);
+  }
+  return provider;
+}
+
+export interface BenchmarkEmbedding {
+  requested_provider: BenchmarkEmbeddingProvider;
+  /** Provider the stored vectors actually came from. */
+  provider: string;
+  model: string;
+  dimensions: number;
+  embedded_documents: number;
+  total_documents: number;
+  /** Queries per query-embedding provider the engine actually used. */
+  query_providers: Record<string, number>;
+  /** Queries whose query embedding fell back to tfidf. */
+  query_tfidf_fallbacks: number;
+}
+
 export interface ProductionRecallRun {
-  embedding_provider: string;
+  embedding: BenchmarkEmbedding;
   ranking_profile: string;
   production_path: 'hybridSearchEngine.search';
   imported_ids: string[];
@@ -62,6 +88,7 @@ export interface ProductionRecallRun {
   ranking_version: string;
   ranking_weights_path_override: boolean;
   vector_threshold: number;
+  ranked_vector_candidates_mean: number;
   vector_prefetch: number;
   text_weight: number;
   vector_weight: number;
@@ -111,9 +138,19 @@ export function meanFunnelGoldFraction(
   return total / evaluations.length;
 }
 
+export function countQueriesWithCandidates(
+  evaluations: Array<{ funnel: FunnelStage[] }>,
+  stageName: FunnelStageName,
+): number {
+  return evaluations.filter((evaluation) =>
+    (evaluation.funnel.find((entry) => entry.name === stageName)?.candidate_count ?? 0) > 0,
+  ).length;
+}
+
 export async function runProductionRecallBenchmark(
   dataset: AgentMemoryBenchmarkDataset,
   topK: number,
+  embeddingProvider: BenchmarkEmbeddingProvider = DEFAULT_BENCHMARK_EMBEDDING_PROVIDER,
 ): Promise<ProductionRecallRun> {
   const directory = await mkdtemp(join(tmpdir(), 'memento-agent-memory-benchmark-'));
   const dbPath = join(directory, 'benchmark.db');
@@ -124,11 +161,15 @@ export async function runProductionRecallBenchmark(
     const core = await createMementoCore({ dbPath });
     db = core.db;
     services = core.services;
-    const embeddingProvider = await importFixture(
+    const embedding = await importFixture(
       dataset.documents,
       db,
       services.embeddingService,
+      embeddingProvider,
     );
+    if (dataset.documents.length > 0 && embedding.embedded_documents === 0) {
+      throw new Error(`No benchmark document was embedded with ${embeddingProvider}`);
+    }
 
     const documentById = new Map(dataset.documents.map((document) => [document.id, document]));
     const evaluations: ProductionQueryEvaluation[] = [];
@@ -137,6 +178,9 @@ export async function runProductionRecallBenchmark(
     let textWeight = 0.4;
     let vectorWeight = 0.6;
     let fallbackUsed = false;
+    const queryProviders: Record<string, number> = {};
+    let queryTfidfFallbacks = 0;
+    let rankedVectorCandidates = 0;
     const rankingVersion = services.hybridSearchEngine.getRankingVersion();
 
     for (const query of dataset.queries) {
@@ -160,6 +204,12 @@ export async function runProductionRecallBenchmark(
         vectorWeight = funnelSource.vector_weight;
       }
       fallbackUsed = fallbackUsed || Boolean(searchResult.fallback_used);
+      const queryProviderKey = [...(searchResult.query_embedding_providers ?? [])].sort().join('+') || 'none';
+      queryProviders[queryProviderKey] = (queryProviders[queryProviderKey] ?? 0) + 1;
+      rankedVectorCandidates += searchResult.vector_count ?? 0;
+      if (searchResult.tfidf_query_embedding_fallback) {
+        queryTfidfFallbacks++;
+      }
       const ids = searchResult.items
         .map((item) => item.id)
         .filter((id): id is string => typeof id === 'string' && id.length > 0)
@@ -193,7 +243,11 @@ export async function runProductionRecallBenchmark(
     }
 
     return {
-      embedding_provider: embeddingProvider,
+      embedding: {
+        ...embedding,
+        query_providers: queryProviders,
+        query_tfidf_fallbacks: queryTfidfFallbacks,
+      },
       ranking_profile: DEFAULT_RANKING_PROFILE,
       production_path: 'hybridSearchEngine.search',
       imported_ids: dataset.documents.map((document) => document.id),
@@ -201,6 +255,7 @@ export async function runProductionRecallBenchmark(
       ranking_version: rankingVersion,
       ranking_weights_path_override: Boolean(process.env.MEMENTO_RANKING_WEIGHTS_PATH),
       vector_threshold: vectorThreshold,
+      ranked_vector_candidates_mean: dataset.queries.length > 0 ? rankedVectorCandidates / dataset.queries.length : 0,
       vector_prefetch: vectorPrefetch,
       text_weight: textWeight,
       vector_weight: vectorWeight,
@@ -266,7 +321,12 @@ export async function runProductionInjectionBenchmark(
     const core = await createMementoCore({ dbPath });
     db = core.db;
     services = core.services;
-    await importFixture(dataset.documents, db, services.embeddingService);
+    await importFixture(
+      dataset.documents,
+      db,
+      services.embeddingService,
+      DEFAULT_BENCHMARK_EMBEDDING_PROVIDER,
+    );
     void options.topK;
 
     const evaluations: ProductionInjectionEvaluation[] = [];
@@ -336,14 +396,18 @@ async function importFixture(
   documents: AgentMemoryDocument[],
   db: Awaited<ReturnType<typeof createMementoCore>>['db'],
   embeddingService: Awaited<ReturnType<typeof createMementoCore>>['services']['embeddingService'],
-): Promise<string> {
+  requestedProvider: BenchmarkEmbeddingProvider,
+): Promise<Omit<BenchmarkEmbedding, 'query_providers' | 'query_tfidf_fallbacks'>> {
   const insert = db.prepare(`
     INSERT INTO memory_item (
       id, type, content, importance, created_at, session_id, project_id, origin_source
     ) VALUES (?, ?, ?, ?, ?, ?, ?, ?)
   `);
 
-  let provider = 'tfidf';
+  const providers = new Set<string>();
+  let model = '';
+  let dimensions = 0;
+  let embeddedDocuments = 0;
   for (const document of documents) {
     insert.run(
       document.id,
@@ -360,13 +424,28 @@ async function importFixture(
       document.id,
       document.content,
       document.type as MemoryItem['type'],
-      'tfidf',
+      requestedProvider,
     );
-    if (stored?.provider) {
-      provider = stored.provider;
+    if (stored) {
+      embeddedDocuments++;
+      providers.add(stored.provider ?? requestedProvider);
+      model = stored.model;
+      dimensions = stored.embedding.length;
     }
   }
-  return provider;
+  if (embeddedDocuments < documents.length) {
+    process.stderr.write(
+      `[agent-memory-benchmark] ${documents.length - embeddedDocuments}/${documents.length} documents were not embedded with ${requestedProvider}\n`,
+    );
+  }
+  return {
+    requested_provider: requestedProvider,
+    provider: [...providers].sort().join('+'),
+    model,
+    dimensions,
+    embedded_documents: embeddedDocuments,
+    total_documents: documents.length,
+  };
 }
 
 function estimateTokens(content: string): number {

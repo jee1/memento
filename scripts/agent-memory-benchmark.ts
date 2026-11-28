@@ -17,7 +17,14 @@ import {
   type AgentMemoryRetrievalQuery,
   type AgentMemoryTaskCase,
 } from './agent-memory-benchmark-adapter.js';
-import { meanFunnelGoldFraction, runProductionRecallBenchmark } from './agent-memory-production-adapter.js';
+import {
+  countQueriesWithCandidates,
+  meanFunnelGoldFraction,
+  parseBenchmarkEmbeddingProvider,
+  runProductionRecallBenchmark,
+  type BenchmarkEmbedding,
+  type BenchmarkEmbeddingProvider,
+} from './agent-memory-production-adapter.js';
 import { validateKoreanGoldFixture } from './korean-gold-validate.js';
 
 type BaselineName = 'grep' | 'fts_only' | 'vector' | 'rrf_sim' | 'memento_prod' | 'graph_rrf';
@@ -88,6 +95,7 @@ export interface ProductionScorecard {
   ranking_profile: string;
   ranking_version: string;
   embedding_provider: string;
+  embedding: BenchmarkEmbedding;
   production_path: string;
   query_count: number;
   abstention_count: number;
@@ -98,6 +106,16 @@ export interface ProductionScorecard {
   sql_candidate_recall: number;
   /** Gold hit rate after SearchEngine top-N (`text_topN` funnel stage). */
   engine_topn_recall: number;
+  /** Vector lane funnel: whether vectors that pass the similarity threshold add gold beyond the text lane. */
+  vector_lane: {
+    vector_threshold: number;
+    /** Mean vector-lane pool per query (thresholded plus below-threshold underfill). Excludes vector scores backfilled onto text-only candidates. */
+    ranked_vector_candidates_mean: number;
+    raw_vector_recall: number;
+    thresholded_vector_recall: number;
+    thresholded_vector_query_count: number;
+    union_recall: number;
+  };
   mrr: number;
   ndcg_at_10: number;
   latency_ms: { p50: number; p95: number };
@@ -148,6 +166,8 @@ export interface RunOptions {
   graphRrf?: boolean;
   seed?: number;
   production?: boolean;
+  /** Document embedding provider for the production path. Defaults to tfidf. */
+  embeddingProvider?: BenchmarkEmbeddingProvider;
   /** Explicit evaluation arm (e.g. `korean`). Required for agent-memory-benchmark-ko. */
   arm?: string;
 }
@@ -555,7 +575,11 @@ export async function runProductionAgentMemoryBenchmark(
 ): Promise<AgentMemoryBenchmarkReport> {
   const report = runAgentMemoryBenchmark(options);
   const dataset = loadDataset(options);
-  const production = await runProductionRecallBenchmark(dataset, dataset.manifest.top_k);
+  const production = await runProductionRecallBenchmark(
+    dataset,
+    dataset.manifest.top_k,
+    options.embeddingProvider,
+  );
   const metrics = evaluateRankedResults(
     production.evaluations,
     dataset.manifest.top_k,
@@ -601,7 +625,8 @@ export async function runProductionAgentMemoryBenchmark(
     dataset_sha256: report.reproduction.fixture_sha256,
     ranking_profile: production.ranking_profile,
     ranking_version: production.ranking_version,
-    embedding_provider: production.embedding_provider,
+    embedding_provider: production.embedding.provider,
+    embedding: production.embedding,
     seed: report.reproduction.seed,
     query_count: metrics.query_count,
     abstention_count: abstentionCount,
@@ -610,6 +635,14 @@ export async function runProductionAgentMemoryBenchmark(
     recall_at_10: metrics.recall_at_10,
     sql_candidate_recall: meanFunnelGoldFraction(production.evaluations, 'raw_text'),
     engine_topn_recall: meanFunnelGoldFraction(production.evaluations, 'text_topN'),
+    vector_lane: {
+      vector_threshold: production.vector_threshold,
+      ranked_vector_candidates_mean: production.ranked_vector_candidates_mean,
+      raw_vector_recall: meanFunnelGoldFraction(production.evaluations, 'raw_vector'),
+      thresholded_vector_recall: meanFunnelGoldFraction(production.evaluations, 'thresholded_vector'),
+      thresholded_vector_query_count: countQueriesWithCandidates(production.evaluations, 'thresholded_vector'),
+      union_recall: meanFunnelGoldFraction(production.evaluations, 'union'),
+    },
     mrr: metrics.mrr,
     ndcg_at_10: metrics.ndcg_at_10,
     latency_ms: metrics.latency_ms,
@@ -1215,6 +1248,13 @@ export function parseArgs(argv: string[]): CliOptions {
       options.graphRrf = true;
     } else if (arg === '--production') {
       options.production = true;
+    } else if (arg === '--embedding') {
+      const value = argv[index + 1];
+      if (!value || value.startsWith('--')) {
+        throw new Error('--embedding requires a value (tfidf or minilm)');
+      }
+      options.embeddingProvider = parseBenchmarkEmbeddingProvider(value);
+      index++;
     } else if (arg === '--scorecard-out' && argv[index + 1]) {
       options.scorecardOut = argv[++index];
     } else if (arg === '--arm') {
@@ -1231,6 +1271,9 @@ export function parseArgs(argv: string[]): CliOptions {
     .filter(Boolean).length;
   if (sources > 1) {
     throw new Error('--fixture, --longmemeval-s, and --locomo are mutually exclusive');
+  }
+  if (options.embeddingProvider && !options.production) {
+    throw new Error('--embedding applies only to --production');
   }
   assertArmForFixture(options);
   return options;
