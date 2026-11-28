@@ -256,10 +256,13 @@ describe('remember explicit memory_id target (#1000)', () => {
     expect(data.memory_id).toBe('mem_ep_inc');
     expect(data.updated).toBe(true);
 
-    const row = DatabaseUtils.get(db, 'SELECT importance, tags FROM memory_item WHERE id = ?', ['mem_ep_inc']) as {
+    const row = DatabaseUtils.get(db, 'SELECT content, importance, tags FROM memory_item WHERE id = ?', ['mem_ep_inc']) as {
+      content: string;
       importance: number;
       tags: string;
     };
+    // content 는 합치지 않고 바뀐다 (#1853)
+    expect(row.content).toBe('에피소드 병합');
     expect(row.importance).toBe(0.6);
     expect(JSON.parse(row.tags)).toEqual(expect.arrayContaining(['old', 'new']));
   });

@@ -579,7 +579,7 @@ export async function handleMemoryItem(
     });
     return host.createErrorResult(
       'NEAR_DUPLICATE',
-      '유사한 기억이 이미 존재하여 저장이 거절되었습니다. update_mode=incremental로 병합하세요.',
+      '유사한 기억이 이미 존재하여 저장이 거절되었습니다. update_mode=incremental 은 후보의 content 를 덮어쓰니 전체 본문을 보내세요.',
       { similarity_warning },
     );
   }

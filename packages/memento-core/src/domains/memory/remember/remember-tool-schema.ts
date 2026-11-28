@@ -11,7 +11,7 @@ export const RememberSchema = z.object({
   type: CommonSchemas.MemoryType.optional(),
   // 갱신 대상 지정 (Issue #1000)
   memory_id: z.string().max(200).optional()
-    .describe('갱신 대상 memory_id. update_mode와 함께 사용한다. 생략하면 새 기억으로 저장된다'),
+    .describe('갱신 대상 memory_id. update_mode와 함께 사용한다. 생략하면 새 기억으로 저장되지만 incremental 은 비슷한 기억의 content 를 덮어쓰기도 한다'),
   // Core Memory / Knowledge Vault용 필드
   key: CommonSchemas.Key.optional(),
   value: CommonSchemas.Value.optional(),
